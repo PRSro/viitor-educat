@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Menu, X, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -82,8 +83,9 @@ export const Header = () => {
             <Button 
               className={`aero-button-accent ${!isScrolled && 'shadow-glow'}`}
               size="default"
+              asChild
             >
-              Înscrie-te Acum
+              <Link to="/login">Înscrie-te Acum</Link>
             </Button>
           </div>
 
@@ -117,8 +119,8 @@ export const Header = () => {
                   {link.name}
                 </a>
               ))}
-              <Button className="aero-button-accent mt-4" size="lg">
-                Înscrie-te Acum
+              <Button className="aero-button-accent mt-4" size="lg" asChild>
+                <Link to="/login">Înscrie-te Acum</Link>
               </Button>
             </nav>
           </div>
