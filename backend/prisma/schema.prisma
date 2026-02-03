@@ -7,9 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User roles for RBAC
+enum Role {
+  STUDENT
+  TEACHER
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
+  role      Role     @default(STUDENT)
   createdAt DateTime @default(now())
 }
