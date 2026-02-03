@@ -1,21 +1,31 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Terminal, ArrowLeft } from "lucide-react";
+import { Terminal, ArrowLeft, Loader2 } from "lucide-react";
 import { useParallax } from "@/hooks/use-parallax";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { registerElement, unregisterElement, isMobile } = useParallax();
+  const { login, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const bubble1Ref = useRef<HTMLDivElement>(null);
   const bubble2Ref = useRef<HTMLDivElement>(null);
   const bubble3Ref = useRef<HTMLDivElement>(null);
   const glow1Ref = useRef<HTMLDivElement>(null);
   const glow2Ref = useRef<HTMLDivElement>(null);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -35,9 +45,22 @@ const Login = () => {
     };
   }, [registerElement, unregisterElement, isMobile]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Clear error when inputs change
+  useEffect(() => {
+    if (error) clearError();
+  }, [email, password]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ username, password });
+    
+    if (!email || !password) return;
+    
+    try {
+      await login(email, password);
+      navigate('/');
+    } catch {
+      // Error is handled by context
+    }
   };
 
   return (
@@ -103,18 +126,27 @@ const Login = () => {
             <p className="text-muted-foreground">Conectează-te la contul tău</p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-foreground font-medium">
-                Nume utilizator
+              <Label htmlFor="email" className="text-foreground font-medium">
+                Email
               </Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Introdu numele de utilizator"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="exemplu@email.com"
                 className="h-12 bg-background/50 border-border/50 focus:border-accent focus:ring-accent/20"
+                disabled={isLoading}
+                required
               />
             </div>
 
@@ -129,11 +161,24 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Introdu parola"
                 className="h-12 bg-background/50 border-border/50 focus:border-accent focus:ring-accent/20"
+                disabled={isLoading}
+                required
               />
             </div>
 
-            <Button type="submit" className="w-full h-12 aero-button-accent text-base font-semibold">
-              Conectare
+            <Button 
+              type="submit" 
+              className="w-full h-12 aero-button-accent text-base font-semibold"
+              disabled={isLoading || !email || !password}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Se conectează...
+                </>
+              ) : (
+                'Conectare'
+              )}
             </Button>
           </form>
 

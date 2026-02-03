@@ -1,17 +1,20 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Terminal, ArrowLeft, GraduationCap, BookOpen } from "lucide-react";
+import { Terminal, ArrowLeft, GraduationCap, BookOpen, Loader2 } from "lucide-react";
 import { useParallax } from "@/hooks/use-parallax";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
-  const [role, setRole] = useState<string>("");
-  const [username, setUsername] = useState("");
+  const [role, setRole] = useState<'STUDENT' | 'TEACHER' | ''>('');
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { registerElement, unregisterElement, isMobile } = useParallax();
+  const { register, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const bubble1Ref = useRef<HTMLDivElement>(null);
   const bubble2Ref = useRef<HTMLDivElement>(null);
@@ -19,6 +22,13 @@ const Register = () => {
   const bubble4Ref = useRef<HTMLDivElement>(null);
   const glow1Ref = useRef<HTMLDivElement>(null);
   const glow2Ref = useRef<HTMLDivElement>(null);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -40,9 +50,22 @@ const Register = () => {
     };
   }, [registerElement, unregisterElement, isMobile]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Clear error when inputs change
+  useEffect(() => {
+    if (error) clearError();
+  }, [email, password, role]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ role, username, password });
+    
+    if (!email || !password || !role) return;
+    
+    try {
+      await register(email, password, role);
+      navigate('/');
+    } catch {
+      // Error is handled by context
+    }
   };
 
   return (
@@ -114,13 +137,24 @@ const Register = () => {
             <p className="text-muted-foreground">Creează un cont nou</p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Role Selector */}
             <div className="space-y-2">
               <Label htmlFor="role" className="text-foreground font-medium">
                 Rol
               </Label>
-              <Select value={role} onValueChange={setRole}>
+              <Select 
+                value={role} 
+                onValueChange={(value: 'STUDENT' | 'TEACHER') => setRole(value)}
+                disabled={isLoading}
+              >
                 <SelectTrigger
                   id="role"
                   className="h-12 bg-background/50 border-border/50 focus:border-accent focus:ring-accent/20"
@@ -128,13 +162,13 @@ const Register = () => {
                   <SelectValue placeholder="Selectează rolul" />
                 </SelectTrigger>
                 <SelectContent className="aero-panel border-0">
-                  <SelectItem value="student" className="cursor-pointer">
+                  <SelectItem value="STUDENT" className="cursor-pointer">
                     <div className="flex items-center gap-2">
                       <GraduationCap className="w-4 h-4 text-accent" />
                       <span>Student</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="teacher" className="cursor-pointer">
+                  <SelectItem value="TEACHER" className="cursor-pointer">
                     <div className="flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-accent" />
                       <span>Profesor</span>
@@ -145,16 +179,18 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-foreground font-medium">
-                Nume utilizator
+              <Label htmlFor="email" className="text-foreground font-medium">
+                Email
               </Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Alege un nume de utilizator"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="exemplu@email.com"
                 className="h-12 bg-background/50 border-border/50 focus:border-accent focus:ring-accent/20"
+                disabled={isLoading}
+                required
               />
             </div>
 
@@ -169,11 +205,25 @@ const Register = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Alege o parolă"
                 className="h-12 bg-background/50 border-border/50 focus:border-accent focus:ring-accent/20"
+                disabled={isLoading}
+                required
+                minLength={6}
               />
             </div>
 
-            <Button type="submit" className="w-full h-12 aero-button-accent text-base font-semibold">
-              Înregistrare
+            <Button 
+              type="submit" 
+              className="w-full h-12 aero-button-accent text-base font-semibold"
+              disabled={isLoading || !email || !password || !role}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Se înregistrează...
+                </>
+              ) : (
+                'Înregistrare'
+              )}
             </Button>
           </form>
 
