@@ -11,7 +11,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { registerElement, unregisterElement, isMobile } = useParallax();
-  const { login, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const { login, isLoading, error, clearError, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   const bubble1Ref = useRef<HTMLDivElement>(null);
@@ -22,10 +22,11 @@ const Login = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
+    if (isAuthenticated && user) {
+      const redirectPath = user.role === 'TEACHER' ? '/teacher' : '/student';
+      navigate(redirectPath);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -57,7 +58,7 @@ const Login = () => {
     
     try {
       await login(email, password);
-      navigate('/');
+      // Redirect is handled by useEffect watching isAuthenticated
     } catch {
       // Error is handled by context
     }
