@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { authRoutes } from './routes/auth.js';
 import { protectedRoutes } from './routes/protected.js';
+import { lessonRoutes } from './routes/lessons.js';
 
 const server = Fastify({ logger: true });
 
@@ -19,6 +20,7 @@ await server.register(jwt, {
 // Register routes
 await server.register(authRoutes, { prefix: '/auth' });
 await server.register(protectedRoutes, { prefix: '/api' });
+await server.register(lessonRoutes, { prefix: '/lessons' });
 
 // Health check
 server.get('/health', async () => ({ status: 'ok' }));
