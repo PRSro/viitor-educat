@@ -20,10 +20,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  allowedRoles?: ('STUDENT' | 'TEACHER')[];
+  allowedRoles?: ('STUDENT' | 'TEACHER' | 'ADMIN')[];
+  redirectTo?: string;
 }
 
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, allowedRoles, redirectTo }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   // Show nothing while checking auth state
@@ -43,8 +44,15 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   // Check role permissions if specified
   if (allowedRoles && allowedRoles.length > 0) {
     if (!allowedRoles.includes(user.role)) {
+      // Redirect to custom path or access denied page
+      if (redirectTo) {
+        return <Navigate to={redirectTo} replace />;
+      }
       // Redirect to appropriate dashboard based on role
-      const redirectPath = user.role === 'TEACHER' ? '/teacher' : '/student';
+      const redirectPath = 
+        user.role === 'ADMIN' ? '/admin' :
+        user.role === 'TEACHER' ? '/teacher' : 
+        '/student';
       return <Navigate to={redirectPath} replace />;
     }
   }

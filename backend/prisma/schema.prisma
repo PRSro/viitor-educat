@@ -11,6 +11,7 @@ datasource db {
 enum Role {
   STUDENT
   TEACHER
+  ADMIN
 }
 
 model User {
