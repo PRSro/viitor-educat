@@ -8,7 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export interface User {
   id: string;
   email: string;
-  role: 'STUDENT' | 'TEACHER';
+  role: 'STUDENT' | 'TEACHER' | 'ADMIN';
   createdAt: string;
 }
 
@@ -28,7 +28,7 @@ export interface AuthError {
 export async function register(
   email: string,
   password: string,
-  role: 'STUDENT' | 'TEACHER'
+  role: 'STUDENT' | 'TEACHER' | 'ADMIN'
 ): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',

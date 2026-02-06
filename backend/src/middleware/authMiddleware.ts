@@ -15,7 +15,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 export interface JwtPayload {
   id: string;
   email: string;
-  role: 'STUDENT' | 'TEACHER';
+  role: 'STUDENT' | 'TEACHER' | 'ADMIN';
 }
 
 // Extend FastifyRequest to include user

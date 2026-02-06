@@ -4,6 +4,7 @@ import jwt from '@fastify/jwt';
 import { authRoutes } from './routes/auth.js';
 import { protectedRoutes } from './routes/protected.js';
 import { lessonRoutes } from './routes/lessons.js';
+import { adminRoutes } from './routes/admin.js';
 
 const server = Fastify({ logger: true });
 
@@ -21,6 +22,7 @@ await server.register(jwt, {
 await server.register(authRoutes, { prefix: '/auth' });
 await server.register(protectedRoutes, { prefix: '/api' });
 await server.register(lessonRoutes, { prefix: '/lessons' });
+await server.register(adminRoutes, { prefix: '/admin' });
 
 // Health check
 server.get('/health', async () => ({ status: 'ok' }));

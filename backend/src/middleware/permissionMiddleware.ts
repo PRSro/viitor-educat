@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { JwtPayload } from './authMiddleware.js';
 
-type Role = 'STUDENT' | 'TEACHER';
+type Role = 'STUDENT' | 'TEACHER' | 'ADMIN';
 
 /**
  * Permission Middleware Factory
@@ -58,6 +58,11 @@ export const teacherOnly = requireRole('TEACHER');
 export const studentOnly = requireRole('STUDENT');
 
 /**
+ * Convenience middleware: Admin-only access
+ */
+export const adminOnly = requireRole('ADMIN');
+
+/**
  * Convenience middleware: Any authenticated user (student or teacher)
  */
-export const anyRole = requireRole(['STUDENT', 'TEACHER']);
+export const anyRole = requireRole(['STUDENT', 'TEACHER', 'ADMIN']);

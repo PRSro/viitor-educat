@@ -23,7 +23,10 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      const redirectPath = user.role === 'TEACHER' ? '/teacher' : '/student';
+      const redirectPath = 
+        user.role === 'ADMIN' ? '/admin' :
+        user.role === 'TEACHER' ? '/teacher' : 
+        '/student';
       navigate(redirectPath);
     }
   }, [isAuthenticated, user, navigate]);
