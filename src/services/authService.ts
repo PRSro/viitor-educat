@@ -24,11 +24,13 @@ export interface AuthError {
 
 /**
  * Register a new user
+ * Note: ADMIN role cannot be self-registered for security reasons.
+ * Admin users must be created directly in the database.
  */
 export async function register(
   email: string,
   password: string,
-  role: 'STUDENT' | 'TEACHER' | 'ADMIN'
+  role: 'STUDENT' | 'TEACHER'
 ): Promise<AuthResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',

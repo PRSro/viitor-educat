@@ -37,7 +37,8 @@ export async function adminRoutes(server: FastifyInstance) {
 
       return users;
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      // Log error server-side only (no sensitive details to client)
+      server.log.error(error);
       return reply.status(500).send({ 
         error: 'Internal Server Error',
         message: 'Failed to fetch users' 
@@ -73,7 +74,8 @@ export async function adminRoutes(server: FastifyInstance) {
         })),
       };
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      // Log error server-side only
+      server.log.error(error);
       return reply.status(500).send({ 
         error: 'Internal Server Error',
         message: 'Failed to fetch statistics' 

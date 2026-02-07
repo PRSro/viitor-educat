@@ -15,7 +15,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, role: 'STUDENT' | 'TEACHER' | 'ADMIN') => Promise<void>;
+  // Note: ADMIN role cannot be self-registered - admins must be created via database
+  register: (email: string, password: string, role: 'STUDENT' | 'TEACHER') => Promise<void>;
   logout: () => void;
   error: string | null;
   clearError: () => void;
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, password: string, role: 'STUDENT' | 'TEACHER' | 'ADMIN') => {
+  const register = async (email: string, password: string, role: 'STUDENT' | 'TEACHER') => {
     setIsLoading(true);
     setError(null);
     

@@ -41,7 +41,9 @@ export function ProtectedRoute({ children, allowedRoles, redirectTo }: Protected
     return <Navigate to="/login" replace />;
   }
 
-  // Check role permissions if specified
+  // Note: This is UI-only protection. All security enforcement
+  // happens server-side via JWT validation in backend middleware.
+  // Users can bypass these redirects but cannot access protected APIs.
   if (allowedRoles && allowedRoles.length > 0) {
     if (!allowedRoles.includes(user.role)) {
       // Redirect to custom path or access denied page
