@@ -1,7 +1,14 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/authMiddleware.js';
-import { requireRole, teacherOnly, anyRole } from '../middleware/permissionMiddleware.js';
+import { teacherOnly, anyRole } from '../middleware/permissionMiddleware.js';
+import { 
+  createLessonSchema, 
+  updateLessonSchema, 
+  lessonIdSchema, 
+  formatZodError 
+} from '../validation/schemas.js';
+import { z } from 'zod';
 
 const prisma = new PrismaClient();
 
@@ -16,12 +23,6 @@ const prisma = new PrismaClient();
  * - DELETE /lessons/:id - TEACHER only can delete lessons (their own)
  */
 
-interface LessonBody {
-  title: string;
-  description?: string;
-  content: string;
-}
-
 interface LessonParams {
   id: string;
 }
@@ -31,7 +32,7 @@ export async function lessonRoutes(server: FastifyInstance) {
   /**
    * GET /lessons
    * List all lessons
-   * Accessible by: STUDENT, TEACHER
+   * Accessible by: STUDENT, TEACHER, ADMIN
    */
   server.get('/', {
     preHandler: [authMiddleware, anyRole]
@@ -51,27 +52,38 @@ export async function lessonRoutes(server: FastifyInstance) {
   /**
    * GET /lessons/:id
    * Get a single lesson by ID
-   * Accessible by: STUDENT, TEACHER
+   * Accessible by: STUDENT, TEACHER, ADMIN
    */
   server.get<{ Params: LessonParams }>('/:id', {
     preHandler: [authMiddleware, anyRole]
   }, async (request: FastifyRequest<{ Params: LessonParams }>, reply: FastifyReply) => {
-    const { id } = request.params;
-    
-    const lesson = await prisma.lesson.findUnique({
-      where: { id },
-      include: {
-        teacher: {
-          select: { id: true, email: true }
+    try {
+      // Validate ID format
+      const { id } = lessonIdSchema.parse(request.params);
+      
+      const lesson = await prisma.lesson.findUnique({
+        where: { id },
+        include: {
+          teacher: {
+            select: { id: true, email: true }
+          }
         }
+      });
+      
+      if (!lesson) {
+        return reply.status(404).send({ error: 'Lesson not found' });
       }
-    });
-    
-    if (!lesson) {
-      return reply.status(404).send({ error: 'Lesson not found' });
+      
+      return { lesson };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ 
+          error: 'Validation failed',
+          message: formatZodError(error)
+        });
+      }
+      throw error;
     }
-    
-    return { lesson };
   });
 
   /**
@@ -79,38 +91,42 @@ export async function lessonRoutes(server: FastifyInstance) {
    * Create a new lesson
    * Accessible by: TEACHER only
    */
-  server.post<{ Body: LessonBody }>('/', {
+  server.post('/', {
     preHandler: [authMiddleware, teacherOnly]
-  }, async (request: FastifyRequest<{ Body: LessonBody }>, reply: FastifyReply) => {
-    const { title, description, content } = request.body;
-    const teacherId = request.user!.id;
-    
-    // Validation
-    if (!title || !content) {
-      return reply.status(400).send({ 
-        error: 'Validation failed',
-        message: 'Title and content are required'
-      });
-    }
-    
-    const lesson = await prisma.lesson.create({
-      data: {
-        title,
-        description,
-        content,
-        teacherId
-      },
-      include: {
-        teacher: {
-          select: { id: true, email: true }
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      // Validate input with Zod
+      const validated = createLessonSchema.parse(request.body);
+      const { title, description, content } = validated;
+      const teacherId = request.user!.id;
+      
+      const lesson = await prisma.lesson.create({
+        data: {
+          title,
+          description,
+          content,
+          teacherId
+        },
+        include: {
+          teacher: {
+            select: { id: true, email: true }
+          }
         }
+      });
+      
+      return reply.status(201).send({ 
+        message: 'Lesson created successfully',
+        lesson 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ 
+          error: 'Validation failed',
+          message: formatZodError(error)
+        });
       }
-    });
-    
-    return reply.status(201).send({ 
-      message: 'Lesson created successfully',
-      lesson 
-    });
+      throw error;
+    }
   });
 
   /**
@@ -118,47 +134,54 @@ export async function lessonRoutes(server: FastifyInstance) {
    * Update a lesson
    * Accessible by: TEACHER only (must be the lesson owner)
    */
-  server.put<{ Params: LessonParams; Body: LessonBody }>('/:id', {
+  server.put<{ Params: LessonParams }>('/:id', {
     preHandler: [authMiddleware, teacherOnly]
-  }, async (request: FastifyRequest<{ Params: LessonParams; Body: LessonBody }>, reply: FastifyReply) => {
-    const { id } = request.params;
-    const { title, description, content } = request.body;
-    const teacherId = request.user!.id;
-    
-    // Check if lesson exists and belongs to this teacher
-    const existingLesson = await prisma.lesson.findUnique({
-      where: { id }
-    });
-    
-    if (!existingLesson) {
-      return reply.status(404).send({ error: 'Lesson not found' });
-    }
-    
-    if (existingLesson.teacherId !== teacherId) {
-      return reply.status(403).send({ 
-        error: 'Forbidden',
-        message: 'You can only update your own lessons'
+  }, async (request: FastifyRequest<{ Params: LessonParams }>, reply: FastifyReply) => {
+    try {
+      // Validate ID and body
+      const { id } = lessonIdSchema.parse(request.params);
+      const validated = updateLessonSchema.parse(request.body);
+      const teacherId = request.user!.id;
+      
+      // Check if lesson exists and belongs to this teacher
+      const existingLesson = await prisma.lesson.findUnique({
+        where: { id }
       });
-    }
-    
-    const lesson = await prisma.lesson.update({
-      where: { id },
-      data: {
-        title,
-        description,
-        content
-      },
-      include: {
-        teacher: {
-          select: { id: true, email: true }
-        }
+      
+      if (!existingLesson) {
+        return reply.status(404).send({ error: 'Lesson not found' });
       }
-    });
-    
-    return { 
-      message: 'Lesson updated successfully',
-      lesson 
-    };
+      
+      if (existingLesson.teacherId !== teacherId) {
+        return reply.status(403).send({ 
+          error: 'Forbidden',
+          message: 'You can only update your own lessons'
+        });
+      }
+      
+      const lesson = await prisma.lesson.update({
+        where: { id },
+        data: validated,
+        include: {
+          teacher: {
+            select: { id: true, email: true }
+          }
+        }
+      });
+      
+      return { 
+        message: 'Lesson updated successfully',
+        lesson 
+      };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ 
+          error: 'Validation failed',
+          message: formatZodError(error)
+        });
+      }
+      throw error;
+    }
   });
 
   /**
@@ -169,29 +192,40 @@ export async function lessonRoutes(server: FastifyInstance) {
   server.delete<{ Params: LessonParams }>('/:id', {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request: FastifyRequest<{ Params: LessonParams }>, reply: FastifyReply) => {
-    const { id } = request.params;
-    const teacherId = request.user!.id;
-    
-    // Check if lesson exists and belongs to this teacher
-    const existingLesson = await prisma.lesson.findUnique({
-      where: { id }
-    });
-    
-    if (!existingLesson) {
-      return reply.status(404).send({ error: 'Lesson not found' });
-    }
-    
-    if (existingLesson.teacherId !== teacherId) {
-      return reply.status(403).send({ 
-        error: 'Forbidden',
-        message: 'You can only delete your own lessons'
+    try {
+      // Validate ID format
+      const { id } = lessonIdSchema.parse(request.params);
+      const teacherId = request.user!.id;
+      
+      // Check if lesson exists and belongs to this teacher
+      const existingLesson = await prisma.lesson.findUnique({
+        where: { id }
       });
+      
+      if (!existingLesson) {
+        return reply.status(404).send({ error: 'Lesson not found' });
+      }
+      
+      if (existingLesson.teacherId !== teacherId) {
+        return reply.status(403).send({ 
+          error: 'Forbidden',
+          message: 'You can only delete your own lessons'
+        });
+      }
+      
+      await prisma.lesson.delete({
+        where: { id }
+      });
+      
+      return { message: 'Lesson deleted successfully' };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ 
+          error: 'Validation failed',
+          message: formatZodError(error)
+        });
+      }
+      throw error;
     }
-    
-    await prisma.lesson.delete({
-      where: { id }
-    });
-    
-    return { message: 'Lesson deleted successfully' };
   });
 }
