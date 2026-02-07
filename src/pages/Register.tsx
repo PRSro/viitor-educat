@@ -7,11 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Terminal, ArrowLeft, GraduationCap, BookOpen, Loader2 } from "lucide-react";
 import { useParallax } from "@/hooks/use-parallax";
 import { useAuth } from "@/contexts/AuthContext";
+import { registerSchema, getFirstError } from "@/lib/validation";
+import { sanitizeEmail, sanitizeInput } from "@/lib/sanitize";
 
 const Register = () => {
   const [role, setRole] = useState<'STUDENT' | 'TEACHER' | ''>('');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const { registerElement, unregisterElement, isMobile } = useParallax();
   const { register, isLoading, error, clearError, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -54,19 +57,29 @@ const Register = () => {
     };
   }, [registerElement, unregisterElement, isMobile]);
 
-  // Clear error when inputs change
+  // Clear errors when inputs change
   useEffect(() => {
     if (error) clearError();
+    setValidationError(null);
   }, [email, password, role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !role) return;
+    // Sanitize inputs
+    const sanitizedEmail = sanitizeEmail(email);
+    const sanitizedPassword = sanitizeInput(password, 128);
+    
+    // Client-side validation
+    const formData = { email: sanitizedEmail, password: sanitizedPassword, role };
+    const validationErr = getFirstError(registerSchema, formData);
+    if (validationErr) {
+      setValidationError(validationErr);
+      return;
+    }
     
     try {
-      await register(email, password, role);
-      // Redirect is handled by useEffect watching isAuthenticated
+      await register(sanitizedEmail, sanitizedPassword, role as 'STUDENT' | 'TEACHER');
     } catch {
       // Error is handled by context
     }
@@ -142,9 +155,9 @@ const Register = () => {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {(error || validationError) && (
             <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
-              {error}
+              {validationError || error}
             </div>
           )}
 

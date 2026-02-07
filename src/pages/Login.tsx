@@ -6,10 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Terminal, ArrowLeft, Loader2 } from "lucide-react";
 import { useParallax } from "@/hooks/use-parallax";
 import { useAuth } from "@/contexts/AuthContext";
+import { loginSchema, getFirstError } from "@/lib/validation";
+import { sanitizeEmail, sanitizeInput } from "@/lib/sanitize";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
   const { registerElement, unregisterElement, isMobile } = useParallax();
   const { login, isLoading, error, clearError, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -49,19 +52,28 @@ const Login = () => {
     };
   }, [registerElement, unregisterElement, isMobile]);
 
-  // Clear error when inputs change
+  // Clear errors when inputs change
   useEffect(() => {
     if (error) clearError();
+    setValidationError(null);
   }, [email, password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) return;
+    // Sanitize inputs
+    const sanitizedEmail = sanitizeEmail(email);
+    const sanitizedPassword = sanitizeInput(password, 128);
+    
+    // Client-side validation
+    const validationErr = getFirstError(loginSchema, { email: sanitizedEmail, password: sanitizedPassword });
+    if (validationErr) {
+      setValidationError(validationErr);
+      return;
+    }
     
     try {
-      await login(email, password);
-      // Redirect is handled by useEffect watching isAuthenticated
+      await login(sanitizedEmail, sanitizedPassword);
     } catch {
       // Error is handled by context
     }
@@ -131,9 +143,9 @@ const Login = () => {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {(error || validationError) && (
             <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm text-center">
-              {error}
+              {validationError || error}
             </div>
           )}
 

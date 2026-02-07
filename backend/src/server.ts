@@ -6,6 +6,11 @@ import { protectedRoutes } from './routes/protected.js';
 import { lessonRoutes } from './routes/lessons.js';
 import { adminRoutes } from './routes/admin.js';
 import { JWT_SECRET, PORT, ALLOWED_ORIGINS, isDevelopment, logConfig } from './config/env.js';
+import { 
+  securityHeadersPlugin, 
+  requestSanitizationPlugin, 
+  rateLimitPlugin 
+} from './middleware/securityMiddleware.js';
 
 // Log configuration on startup
 logConfig();
@@ -14,7 +19,6 @@ logConfig();
 const server = Fastify({ 
   logger: isDevelopment ? true : {
     level: 'warn',
-    // In production, use structured logging and avoid logging sensitive data
     serializers: {
       req(request) {
         return {
@@ -24,15 +28,24 @@ const server = Fastify({
         };
       },
     },
-  }
+  },
+  // Security: limit body size
+  bodyLimit: 1024 * 1024, // 1MB
 });
+
+// Register security plugins FIRST
+await server.register(securityHeadersPlugin);
+await server.register(requestSanitizationPlugin);
+await server.register(rateLimitPlugin);
 
 // Register CORS with restricted origins
 await server.register(cors, {
   origin: isDevelopment && ALLOWED_ORIGINS.length === 0 
-    ? true // Allow all in development if no origins specified
+    ? true
     : ALLOWED_ORIGINS,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 });
 
 // Register JWT with secure secret
@@ -61,7 +74,7 @@ await server.register(protectedRoutes, { prefix: '/api' });
 await server.register(lessonRoutes, { prefix: '/lessons' });
 await server.register(adminRoutes, { prefix: '/admin' });
 
-// Health check
+// Health check (public, but rate limited)
 server.get('/health', async () => ({ status: 'ok' }));
 
 // Start server

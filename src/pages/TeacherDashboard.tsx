@@ -1,7 +1,7 @@
 /**
  * Teacher Dashboard
  * 
- * Full CRUD functionality for lessons:
+ * Full CRUD functionality for lessons with input sanitization:
  * - List all lessons
  * - Create new lesson
  * - Edit existing lesson
@@ -29,6 +29,9 @@ import {
   updateLesson,
   deleteLesson,
 } from '@/services/lessonService';
+import { sanitizeInput, containsXssPatterns } from '@/lib/sanitize';
+import { lessonSchema, getFirstError } from '@/lib/validation';
+import { SafeText } from '@/components/SafeHtml';
 
 export default function TeacherDashboard() {
   const { user, logout } = useAuth();
@@ -85,17 +88,42 @@ export default function TeacherDashboard() {
     e.preventDefault();
     setFormError(null);
 
-    if (!title.trim() || !content.trim()) {
-      setFormError('Title and content are required');
+    // Sanitize inputs
+    const sanitizedTitle = sanitizeInput(title, 200);
+    const sanitizedDescription = sanitizeInput(description, 500);
+    const sanitizedContent = sanitizeInput(content, 50000);
+
+    // Check for XSS patterns
+    if (containsXssPatterns(sanitizedTitle) || containsXssPatterns(sanitizedContent)) {
+      setFormError('Input contains invalid characters');
+      return;
+    }
+
+    // Validate with schema
+    const validationErr = getFirstError(lessonSchema, {
+      title: sanitizedTitle,
+      description: sanitizedDescription || undefined,
+      content: sanitizedContent,
+    });
+    if (validationErr) {
+      setFormError(validationErr);
       return;
     }
 
     try {
       setSaving(true);
       if (isEditing && editingId) {
-        await updateLesson(editingId, { title, description, content });
+        await updateLesson(editingId, { 
+          title: sanitizedTitle, 
+          description: sanitizedDescription, 
+          content: sanitizedContent 
+        });
       } else {
-        await createLesson({ title, description, content });
+        await createLesson({ 
+          title: sanitizedTitle, 
+          description: sanitizedDescription, 
+          content: sanitizedContent 
+        });
       }
       resetForm();
       await fetchLessons();
@@ -209,8 +237,12 @@ export default function TeacherDashboard() {
                 <TableBody>
                   {lessons.map((lesson) => (
                     <TableRow key={lesson.id}>
-                      <TableCell className="font-medium">{lesson.title}</TableCell>
-                      <TableCell>{lesson.description || '-'}</TableCell>
+                      <TableCell className="font-medium">
+                        <SafeText content={lesson.title} />
+                      </TableCell>
+                      <TableCell>
+                        <SafeText content={lesson.description || '-'} />
+                      </TableCell>
                       <TableCell>
                         {new Date(lesson.createdAt).toLocaleDateString()}
                       </TableCell>
