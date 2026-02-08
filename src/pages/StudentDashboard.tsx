@@ -1,167 +1,527 @@
 /**
- * Student Dashboard
+ * Enhanced Student Dashboard
  * 
- * Read-only access to lessons:
- * - List all lessons
- * - View lesson details
+ * Features:
+ * - Enrolled courses with progress tracking
+ * - Browse all available courses
+ * - Articles section with category filtering and search
+ * - Responsive design with tabs navigation
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Lesson, getLessons, getLesson } from '@/services/lessonService';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { SafeHtml } from '@/components/SafeHtml';
+import { 
+  BookOpen, 
+  FileText, 
+  Search, 
+  ExternalLink, 
+  GraduationCap,
+  Clock,
+  User,
+  Filter,
+  Loader2
+} from 'lucide-react';
+import { 
+  getCourses, 
+  getEnrolledCourses, 
+  enrollInCourse,
+  Course, 
+  Enrollment 
+} from '@/services/courseService';
+import { 
+  getArticles, 
+  ArticleListItem, 
+  ArticleCategory,
+  ArticleFilters,
+  categoryLabels,
+  categoryColors
+} from '@/services/articleService';
 
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Courses state
+  const [enrolledCourses, setEnrolledCourses] = useState<Enrollment[]>([]);
+  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [enrollingId, setEnrollingId] = useState<string | null>(null);
+  
+  // Articles state
+  const [articles, setArticles] = useState<ArticleListItem[]>([]);
+  const [loadingArticles, setLoadingArticles] = useState(true);
+  const [articleSearch, setArticleSearch] = useState('');
+  const [articleCategory, setArticleCategory] = useState<ArticleCategory | 'ALL'>('ALL');
+  const [articlePage, setArticlePage] = useState(1);
+  const [articleTotalPages, setArticleTotalPages] = useState(1);
+  
   const [error, setError] = useState<string | null>(null);
 
-  // Viewing lesson details
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const [loadingLesson, setLoadingLesson] = useState(false);
-
-  // Fetch lessons on mount
+  // Fetch enrolled courses
   useEffect(() => {
-    fetchLessons();
+    async function fetchCourses() {
+      try {
+        setLoadingCourses(true);
+        const [enrolled, all] = await Promise.all([
+          getEnrolledCourses(),
+          getCourses()
+        ]);
+        setEnrolledCourses(enrolled);
+        setAllCourses(all);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch courses');
+      } finally {
+        setLoadingCourses(false);
+      }
+    }
+    fetchCourses();
   }, []);
 
-  async function fetchLessons() {
+  // Fetch articles with debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchArticles();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [articleSearch, articleCategory, articlePage]);
+
+  async function fetchArticles() {
     try {
-      setLoading(true);
-      const data = await getLessons();
-      setLessons(data);
+      setLoadingArticles(true);
+      const filters: ArticleFilters = {
+        page: articlePage,
+        limit: 9,
+      };
+      if (articleCategory !== 'ALL') {
+        filters.category = articleCategory;
+      }
+      if (articleSearch.trim()) {
+        filters.search = articleSearch.trim();
+      }
+      
+      const response = await getArticles(filters);
+      setArticles(response.articles);
+      setArticleTotalPages(response.pagination.totalPages);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch lessons');
+      setError(err instanceof Error ? err.message : 'Failed to fetch articles');
     } finally {
-      setLoading(false);
+      setLoadingArticles(false);
     }
   }
 
-  async function handleViewLesson(id: string) {
+  async function handleEnroll(courseId: string) {
     try {
-      setLoadingLesson(true);
-      const lesson = await getLesson(id);
-      setSelectedLesson(lesson);
+      setEnrollingId(courseId);
+      await enrollInCourse(courseId);
+      // Refresh courses
+      const [enrolled, all] = await Promise.all([
+        getEnrolledCourses(),
+        getCourses()
+      ]);
+      setEnrolledCourses(enrolled);
+      setAllCourses(all);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch lesson');
+      setError(err instanceof Error ? err.message : 'Failed to enroll');
     } finally {
-      setLoadingLesson(false);
+      setEnrollingId(null);
     }
   }
 
-  function closeDetails() {
-    setSelectedLesson(null);
-  }
+  // Filter out already enrolled courses from browse list
+  const enrolledCourseIds = useMemo(() => 
+    new Set(enrolledCourses.map(e => e.course.id)), 
+    [enrolledCourses]
+  );
+  
+  const availableCourses = useMemo(() => 
+    allCourses.filter(c => !enrolledCourseIds.has(c.id)),
+    [allCourses, enrolledCourseIds]
+  );
+
+  const categories: (ArticleCategory | 'ALL')[] = [
+    'ALL', 'MATH', 'SCIENCE', 'LITERATURE', 'HISTORY', 
+    'COMPUTER_SCIENCE', 'ARTS', 'LANGUAGES', 'GENERAL'
+  ];
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">Student Dashboard</h1>
-            <p className="text-muted-foreground">
-              Logged in as: {user?.email} ({user?.role})
-            </p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <GraduationCap className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Student Dashboard</h1>
+                <p className="text-sm text-muted-foreground">
+                  {user?.email}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to="/">
+                <Button variant="ghost" size="sm">Home</Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={logout}>
+                Logout
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" onClick={logout}>
-            Logout
-          </Button>
         </div>
+      </header>
 
-        {/* Lesson Details Modal/Card */}
-        {selectedLesson && (
-          <Card className="mb-8 border-2 border-primary">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>{selectedLesson.title}</CardTitle>
-                  <CardDescription>
-                    By: {selectedLesson.teacher.email} | 
-                    Created: {new Date(selectedLesson.createdAt).toLocaleDateString()}
-                  </CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={closeDetails}>
-                  Close
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {selectedLesson.description && (
-                <p className="text-muted-foreground mb-4">{selectedLesson.description}</p>
-              )}
-              <div className="bg-muted p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Content:</h4>
-                <p className="whitespace-pre-wrap">{selectedLesson.content}</p>
-              </div>
-            </CardContent>
-          </Card>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
+            {error}
+          </div>
         )}
 
-        {/* Lessons List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Available Lessons</CardTitle>
-            <CardDescription>
-              Click "View" to see lesson details
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p>Loading lessons...</p>
-            ) : error ? (
-              <p className="text-destructive">{error}</p>
-            ) : lessons.length === 0 ? (
-              <p className="text-muted-foreground">No lessons available yet.</p>
+        <Tabs defaultValue="my-courses" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="my-courses" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              My Courses
+            </TabsTrigger>
+            <TabsTrigger value="browse" className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Browse
+            </TabsTrigger>
+            <TabsTrigger value="articles" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Articles
+            </TabsTrigger>
+          </TabsList>
+
+          {/* My Courses Tab */}
+          <TabsContent value="my-courses" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">My Enrolled Courses</h2>
+              <p className="text-muted-foreground">Track your learning progress</p>
+            </div>
+
+            {loadingCourses ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : enrolledCourses.length === 0 ? (
+              <Card className="p-12 text-center">
+                <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No courses yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Browse available courses and start learning!
+                </p>
+                <Button onClick={() => document.querySelector('[value="browse"]')?.dispatchEvent(new Event('click'))}>
+                  Browse Courses
+                </Button>
+              </Card>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Teacher</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lessons.map((lesson) => (
-                    <TableRow key={lesson.id}>
-                      <TableCell className="font-medium">{lesson.title}</TableCell>
-                      <TableCell>{lesson.description || '-'}</TableCell>
-                      <TableCell>{lesson.teacher.email}</TableCell>
-                      <TableCell>
-                        {new Date(lesson.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewLesson(lesson.id)}
-                          disabled={loadingLesson}
-                        >
-                          {loadingLesson ? 'Loading...' : 'View'}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {enrolledCourses.map((enrollment) => (
+                  <CourseCard 
+                    key={enrollment.id}
+                    course={enrollment.course}
+                    progress={enrollment.progress}
+                    enrolledAt={enrollment.enrolledAt}
+                  />
+                ))}
+              </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </TabsContent>
+
+          {/* Browse Courses Tab */}
+          <TabsContent value="browse" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Browse All Courses</h2>
+              <p className="text-muted-foreground">Discover new learning opportunities</p>
+            </div>
+
+            {loadingCourses ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : availableCourses.length === 0 ? (
+              <Card className="p-12 text-center">
+                <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">All caught up!</h3>
+                <p className="text-muted-foreground">
+                  You're enrolled in all available courses.
+                </p>
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {availableCourses.map((course) => (
+                  <CourseCard 
+                    key={course.id}
+                    course={course}
+                    onEnroll={() => handleEnroll(course.id)}
+                    enrolling={enrollingId === course.id}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Articles Tab */}
+          <TabsContent value="articles" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Educational Articles</h2>
+              <p className="text-muted-foreground">Explore learning resources by category</p>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search articles..."
+                  value={articleSearch}
+                  onChange={(e) => {
+                    setArticleSearch(e.target.value);
+                    setArticlePage(1);
+                  }}
+                  className="pl-10"
+                />
+              </div>
+              <Select 
+                value={articleCategory} 
+                onValueChange={(v) => {
+                  setArticleCategory(v as ArticleCategory | 'ALL');
+                  setArticlePage(1);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-48">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat === 'ALL' ? 'All Categories' : categoryLabels[cat]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {loadingArticles ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : articles.length === 0 ? (
+              <Card className="p-12 text-center">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No articles found</h3>
+                <p className="text-muted-foreground">
+                  {articleSearch || articleCategory !== 'ALL' 
+                    ? 'Try adjusting your search or filters'
+                    : 'Check back later for new content'}
+                </p>
+              </Card>
+            ) : (
+              <>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {articles.map((article) => (
+                    <ArticleCard key={article.id} article={article} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {articleTotalPages > 1 && (
+                  <div className="flex justify-center gap-2 pt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={articlePage === 1}
+                      onClick={() => setArticlePage(p => p - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <span className="flex items-center px-4 text-sm text-muted-foreground">
+                      Page {articlePage} of {articleTotalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={articlePage === articleTotalPages}
+                      onClick={() => setArticlePage(p => p + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
+  );
+}
+
+// Course Card Component
+interface CourseCardProps {
+  course: Course;
+  progress?: number;
+  enrolledAt?: string;
+  onEnroll?: () => void;
+  enrolling?: boolean;
+}
+
+function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: CourseCardProps) {
+  const isEnrolled = progress !== undefined;
+  
+  return (
+    <Card className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
+      {course.imageUrl && (
+        <div className="aspect-video bg-muted overflow-hidden">
+          <img 
+            src={course.imageUrl} 
+            alt={course.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
+        </div>
+        {course.description && (
+          <CardDescription className="line-clamp-2">
+            {course.description}
+          </CardDescription>
+        )}
+      </CardHeader>
+      <CardContent className="flex-1 pb-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+          <User className="h-4 w-4" />
+          <span>{course.teacher.email}</span>
+        </div>
+        {course._count && (
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <BookOpen className="h-4 w-4" />
+              {course._count.lessons} lessons
+            </span>
+            {!isEnrolled && course._count.enrollments > 0 && (
+              <span className="flex items-center gap-1">
+                <GraduationCap className="h-4 w-4" />
+                {course._count.enrollments} enrolled
+              </span>
+            )}
+          </div>
+        )}
+        {isEnrolled && (
+          <div className="mt-4">
+            <div className="flex justify-between text-sm mb-1">
+              <span className="text-muted-foreground">Progress</span>
+              <span className="font-medium">{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="pt-2">
+        {isEnrolled ? (
+          <Link to={`/courses/${course.slug}`} className="w-full">
+            <Button className="w-full">Continue Learning</Button>
+          </Link>
+        ) : (
+          <Button 
+            className="w-full" 
+            onClick={onEnroll}
+            disabled={enrolling}
+          >
+            {enrolling ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Enrolling...
+              </>
+            ) : (
+              'Enroll Now'
+            )}
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
+
+// Article Card Component
+interface ArticleCardProps {
+  article: ArticleListItem;
+}
+
+function ArticleCard({ article }: ArticleCardProps) {
+  return (
+    <Card className="flex flex-col hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-2">
+          <Badge 
+            variant="secondary" 
+            className={categoryColors[article.category]}
+          >
+            {categoryLabels[article.category]}
+          </Badge>
+          {article.sourceUrl && (
+            <a 
+              href={article.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
+        </div>
+        <CardTitle className="text-lg line-clamp-2 mt-2">
+          {article.title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 pb-2">
+        {article.excerpt && (
+          <p className="text-sm text-muted-foreground line-clamp-3">
+            {article.excerpt}
+          </p>
+        )}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
+          {article.author && (
+            <span className="flex items-center gap-1">
+              <User className="h-3 w-3" />
+              {article.author.email}
+            </span>
+          )}
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {new Date(article.createdAt).toLocaleDateString()}
+          </span>
+        </div>
+      </CardContent>
+      <CardFooter className="pt-2">
+        <Link to={`/articles/${article.slug}`} className="w-full">
+          <Button variant="outline" className="w-full">
+            Read Article
+          </Button>
+        </Link>
+      </CardFooter>
+    </Card>
   );
 }
