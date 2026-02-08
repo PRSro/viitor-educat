@@ -14,13 +14,28 @@ enum Role {
   ADMIN
 }
 
+// Article categories
+enum ArticleCategory {
+  MATH
+  SCIENCE
+  LITERATURE
+  HISTORY
+  COMPUTER_SCIENCE
+  ARTS
+  LANGUAGES
+  GENERAL
+}
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(STUDENT)
-  createdAt DateTime @default(now())
-  lessons   Lesson[] @relation("TeacherLessons")
+  id          String       @id @default(cuid())
+  email       String       @unique
+  password    String
+  role        Role         @default(STUDENT)
+  createdAt   DateTime     @default(now())
+  lessons     Lesson[]     @relation("TeacherLessons")
+  courses     Course[]     @relation("TeacherCourses")
+  enrollments Enrollment[]
+  articles    Article[]    @relation("AuthorArticles")
 }
 
 model Lesson {
@@ -30,6 +45,60 @@ model Lesson {
   content     String
   teacherId   String
   teacher     User     @relation("TeacherLessons", fields: [teacherId], references: [id])
+  courseId    String?
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  description String?
+  imageUrl    String?
+  teacherId   String
+  teacher     User         @relation("TeacherCourses", fields: [teacherId], references: [id])
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  published   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress   Float    @default(0) // 0-100 percentage
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([studentId, courseId])
+}
+
+model Article {
+  id          String          @id @default(cuid())
+  title       String
+  slug        String          @unique
+  content     String
+  excerpt     String?
+  sourceUrl   String?
+  category    ArticleCategory @default(GENERAL)
+  authorId    String?
+  author      User?           @relation("AuthorArticles", fields: [authorId], references: [id])
+  published   Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+// Whitelisted domains for article import
+model WhitelistedDomain {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  name      String?
+  createdAt DateTime @default(now())
 }

@@ -5,6 +5,8 @@ import { authRoutes } from './routes/auth.js';
 import { protectedRoutes } from './routes/protected.js';
 import { lessonRoutes } from './routes/lessons.js';
 import { adminRoutes } from './routes/admin.js';
+import { courseRoutes } from './routes/courses.js';
+import { articleRoutes } from './routes/articles.js';
 import { JWT_SECRET, PORT, ALLOWED_ORIGINS, isDevelopment, logConfig } from './config/env.js';
 import { 
   securityHeadersPlugin, 
@@ -73,6 +75,8 @@ await server.register(authRoutes, { prefix: '/auth' });
 await server.register(protectedRoutes, { prefix: '/api' });
 await server.register(lessonRoutes, { prefix: '/lessons' });
 await server.register(adminRoutes, { prefix: '/admin' });
+await server.register(courseRoutes, { prefix: '/courses' });
+await server.register(articleRoutes, { prefix: '/articles' });
 
 // Health check (public, but rate limited)
 server.get('/health', async () => ({ status: 'ok' }));
