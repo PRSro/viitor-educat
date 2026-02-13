@@ -3,6 +3,8 @@
  * Handles API calls to backend auth endpoints
  */
 
+import type { ArticleListItem } from './articleService';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface User {
@@ -126,4 +128,235 @@ export function logout(): void {
  */
 export function isAuthenticated(): boolean {
   return !!getToken();
+}
+
+export interface TeacherProfile {
+  id: string;
+  bio: string | null;
+  pictureUrl: string | null;
+  phone: string | null;
+  office: string | null;
+  officeHours: string | null;
+  website: string | null;
+  linkedin: string | null;
+  twitter: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProfileResponse {
+  user: User;
+  profile: TeacherProfile | null;
+}
+
+/**
+ * Get current user profile from backend
+ */
+export async function getProfile(): Promise<ProfileResponse> {
+  const response = await fetch(`${API_BASE_URL}/profile`, {
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch profile');
+  }
+
+  return data;
+}
+
+/**
+ * Get teacher profile by ID (public for students)
+ */
+export interface TeacherCourses {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  imageUrl?: string;
+  createdAt: string;
+  _count?: {
+    lessons: number;
+    enrollments: number;
+  };
+}
+
+export async function getTeacherProfile(teacherId: string): Promise<{ teacher: User; profile: TeacherProfile | null; courses: TeacherCourses[] }> {
+  const response = await fetch(`${API_BASE_URL}/profile/${teacherId}`, {
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch teacher profile');
+  }
+
+  return data;
+}
+
+/**
+ * Upload profile picture
+ */
+export async function uploadProfilePicture(file: File): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/upload/profile-picture`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to upload profile picture');
+  }
+
+  return { url: data.url };
+}
+
+export interface TeacherWithProfile {
+  id: string;
+  email: string;
+  role: 'STUDENT' | 'TEACHER' | 'ADMIN';
+  teacherProfile: TeacherProfile | null;
+  courses?: {
+    id: string;
+    title: string;
+    slug: string;
+    description?: string;
+    imageUrl?: string;
+    _count?: {
+      lessons: number;
+      enrollments: number;
+    };
+  }[];
+}
+
+/**
+ * Get all teachers with their profiles (for student discovery)
+ */
+export async function getAllTeachers(): Promise<TeacherWithProfile[]> {
+  const response = await fetch(`${API_BASE_URL}/profile/teachers`, {
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch teachers');
+  }
+
+  return data.teachers;
+}
+
+/**
+ * Get teacher's published articles (for public profile)
+ */
+export async function getTeacherArticles(teacherId: string): Promise<ArticleListItem[]> {
+  const response = await fetch(`${API_BASE_URL}/profile/${teacherId}/articles`, {
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch teacher articles');
+  }
+
+  return data.articles;
+}
+
+/**
+ * Get teacher's published lessons (for public profile)
+ */
+export interface TeacherLesson {
+  id: string;
+  title: string;
+  description: string | null;
+  courseId: string | null;
+  course?: {
+    id: string;
+    title: string;
+    slug: string;
+  } | null;
+  order: number;
+  createdAt: string;
+}
+
+export async function getTeacherLessons(teacherId: string): Promise<TeacherLesson[]> {
+  const response = await fetch(`${API_BASE_URL}/profile/${teacherId}/lessons`, {
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch teacher lessons');
+  }
+
+  return data.lessons;
+}
+
+/**
+ * Upload article file (.docx only)
+ */
+export async function uploadArticleFile(file: File): Promise<{ content: string; title: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/upload/article`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to upload article file');
+  }
+
+  return data;
+}
+
+/**
+ * Upload lesson material (.md only)
+ */
+export async function uploadLessonMaterial(file: File): Promise<{ content: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/upload/lesson-material`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${getToken()}`,
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to upload lesson material');
+  }
+
+  return data;
 }

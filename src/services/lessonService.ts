@@ -13,6 +13,8 @@ export interface Lesson {
   description?: string;
   content: string;
   teacherId: string;
+  courseId?: string | null;
+  order: number;
   teacher: {
     id: string;
     email: string;

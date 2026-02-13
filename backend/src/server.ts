@@ -7,6 +7,8 @@ import { lessonRoutes } from './routes/lessons.js';
 import { adminRoutes } from './routes/admin.js';
 import { courseRoutes } from './routes/courses.js';
 import { articleRoutes } from './routes/articles.js';
+import { profileRoutes } from './routes/profile.js';
+import { uploadRoutes } from './routes/upload.js';
 import { JWT_SECRET, PORT, ALLOWED_ORIGINS, isDevelopment, logConfig } from './config/env.js';
 import { 
   securityHeadersPlugin, 
@@ -56,7 +58,7 @@ await server.register(jwt, {
 });
 
 // Global error handler - sanitizes errors in production
-server.setErrorHandler((error, request, reply) => {
+server.setErrorHandler((error: any, request, reply) => {
   server.log.error(error);
   
   const statusCode = error.statusCode || 500;
@@ -77,6 +79,8 @@ await server.register(lessonRoutes, { prefix: '/lessons' });
 await server.register(adminRoutes, { prefix: '/admin' });
 await server.register(courseRoutes, { prefix: '/courses' });
 await server.register(articleRoutes, { prefix: '/articles' });
+await server.register(profileRoutes, { prefix: '/profile' });
+await server.register(uploadRoutes);
 
 // Health check (public, but rate limited)
 server.get('/health', async () => ({ status: 'ok' }));

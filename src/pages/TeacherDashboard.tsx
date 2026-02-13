@@ -1,27 +1,22 @@
-/**
- * Teacher Dashboard
- * 
- * Full CRUD functionality for lessons with input sanitization:
- * - List all lessons
- * - Create new lesson
- * - Edit existing lesson
- * - Delete lesson
- */
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription
+} from '@/components/ui/dialog';
 import {
   Lesson,
   getLessons,
@@ -29,249 +24,1074 @@ import {
   updateLesson,
   deleteLesson,
 } from '@/services/lessonService';
+import { getCourses, Course, createCourse, updateCourse, deleteCourse, getTeacherCourses } from '@/services/courseService';
+import { getTeacherArticles, uploadArticleFile, uploadLessonMaterial, TeacherLesson } from '@/services/authService';
+import { ArticleListItem, ArticleCategory, createArticle, getArticles, categoryLabels } from '@/services/articleService';
 import { sanitizeInput, containsXssPatterns } from '@/lib/sanitize';
 import { lessonSchema, getFirstError } from '@/lib/validation';
-import { SafeText } from '@/components/SafeHtml';
+import { 
+  BookOpen, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  ExternalLink, 
+  Loader2, 
+  User, 
+  Moon, 
+  Sun, 
+  GraduationCap,
+  FileText,
+  Eye,
+  EyeOff,
+  Play,
+  ChevronRight,
+  Clock,
+  Users,
+  CheckCircle2,
+  XCircle,
+  Wand2,
+  ArrowLeft,
+  ArrowRight,
+  View,
+  AlertCircle,
+  Upload,
+  File,
+  FileStack,
+  X
+} from 'lucide-react';
 
 export default function TeacherDashboard() {
   const { user, logout } = useAuth();
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [isDark, setIsDark] = useState(false);
 
-  // Form state
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [content, setContent] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [courseBuilderStep, setCourseBuilderStep] = useState(1);
+  const [courseBuilderData, setCourseBuilderData] = useState({
+    title: '',
+    description: '',
+    imageUrl: '',
+    lessons: [] as Lesson[]
+  });
+  const [courseSaving, setCourseSaving] = useState(false);
 
-  // Fetch lessons on mount
+  const [lessonFormOpen, setLessonFormOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [lessonFormData, setLessonFormData] = useState({
+    title: '',
+    description: '',
+    content: '',
+    courseId: ''
+  });
+  const [lessonSaving, setLessonSaving] = useState(false);
+  const [lessonFile, setLessonFile] = useState<File | null>(null);
+
+  const [articles, setArticles] = useState<ArticleListItem[]>([]);
+  const [articleFormOpen, setArticleFormOpen] = useState(false);
+  const [articleFormData, setArticleFormData] = useState({
+    title: '',
+    content: '',
+    excerpt: '',
+    category: 'GENERAL' as ArticleCategory,
+    file: null as File | null
+  });
+  const [articleSaving, setArticleSaving] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+
   useEffect(() => {
-    fetchLessons();
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    setIsDark(isDarkMode);
   }, []);
 
-  async function fetchLessons() {
+  const toggleTheme = () => {
+    const newIsDark = !isDark;
+    setIsDark(newIsDark);
+    if (newIsDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        setError(null);
+        const [lessonsData, coursesData, articlesData] = await Promise.all([
+          getLessons(),
+          getTeacherCourses(),
+          user?.id ? getTeacherArticles(user.id).catch(() => []) : Promise.resolve([])
+        ]);
+        setLessons(lessonsData || []);
+        setCourses(coursesData || []);
+        setArticles(articlesData || []);
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch data. Please check if the backend is running.');
+        setLessons([]);
+        setCourses([]);
+        setArticles([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  async function handleCourseSubmit() {
+    if (!courseBuilderData.title.trim()) return;
+    
     try {
-      setLoading(true);
-      const data = await getLessons();
-      setLessons(data);
+      setCourseSaving(true);
       setError(null);
+      const newCourse = await createCourse({
+        title: courseBuilderData.title,
+        description: courseBuilderData.description || undefined,
+        imageUrl: courseBuilderData.imageUrl || undefined
+      });
+      
+      const [lessonsData, coursesData] = await Promise.all([
+        getLessons(),
+        getTeacherCourses()
+      ]);
+      setLessons(lessonsData || []);
+      setCourses(coursesData || []);
+      
+      setCourseBuilderStep(1);
+      setCourseBuilderData({ title: '', description: '', imageUrl: '', lessons: [] });
+      setActiveTab('courses');
+      setSuccess('Course created successfully!');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch lessons');
+      console.error('Failed to create course:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create course');
     } finally {
-      setLoading(false);
+      setCourseSaving(false);
     }
   }
 
-  function resetForm() {
-    setTitle('');
-    setDescription('');
-    setContent('');
-    setIsEditing(false);
-    setEditingId(null);
-    setFormError(null);
+  async function handleDeleteCourse(id: string) {
+    if (!confirm('Are you sure you want to delete this course?')) return;
+
+    try {
+      setError(null);
+      await deleteCourse(id);
+      const data = await getTeacherCourses();
+      setCourses(data || []);
+      setSuccess('Course deleted successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete course');
+    }
   }
 
-  function handleEdit(lesson: Lesson) {
-    setTitle(lesson.title);
-    setDescription(lesson.description || '');
-    setContent(lesson.content);
-    setIsEditing(true);
-    setEditingId(lesson.id);
-    setFormError(null);
+  async function handleTogglePublish(course: Course) {
+    try {
+      setError(null);
+      await updateCourse(course.id, { published: !course.published });
+      const data = await getTeacherCourses();
+      setCourses(data || []);
+      setSuccess(course.published ? 'Course unpublished' : 'Course published!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update course');
+    }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setFormError(null);
+  async function handleDeleteLesson(id: string) {
+    if (!confirm('Are you sure you want to delete this lesson?')) return;
 
-    // Sanitize inputs
-    const sanitizedTitle = sanitizeInput(title, 200);
-    const sanitizedDescription = sanitizeInput(description, 500);
-    const sanitizedContent = sanitizeInput(content, 50000);
+    try {
+      await deleteLesson(id);
+      const data = await getLessons();
+      setLessons(data || []);
+      setSuccess('Lesson deleted successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete lesson');
+    }
+  }
 
-    // Check for XSS patterns
+  function openLessonForm(lesson?: Lesson) {
+    if (lesson) {
+      setEditingLesson(lesson);
+      setLessonFormData({
+        title: lesson.title,
+        description: lesson.description || '',
+        content: lesson.content,
+        courseId: lesson.courseId || ''
+      });
+    } else {
+      setEditingLesson(null);
+      setLessonFormData({ title: '', description: '', content: '', courseId: '' });
+    }
+    setLessonFormOpen(true);
+  }
+
+  async function handleLessonSubmit() {
+    const sanitizedTitle = sanitizeInput(lessonFormData.title, 200);
+    const sanitizedDescription = sanitizeInput(lessonFormData.description, 500);
+    const sanitizedContent = sanitizeInput(lessonFormData.content, 50000);
+
     if (containsXssPatterns(sanitizedTitle) || containsXssPatterns(sanitizedContent)) {
-      setFormError('Input contains invalid characters');
+      setError('Input contains invalid characters');
       return;
     }
 
-    // Validate with schema
     const validationErr = getFirstError(lessonSchema, {
       title: sanitizedTitle,
       description: sanitizedDescription || undefined,
       content: sanitizedContent,
     });
     if (validationErr) {
-      setFormError(validationErr);
+      setError(validationErr);
       return;
     }
 
     try {
-      setSaving(true);
-      if (isEditing && editingId) {
-        await updateLesson(editingId, { 
+      setLessonSaving(true);
+      setError(null);
+      if (editingLesson) {
+        await updateLesson(editingLesson.id, { 
           title: sanitizedTitle, 
           description: sanitizedDescription, 
           content: sanitizedContent 
         });
+        setSuccess('Lesson updated successfully!');
       } else {
         await createLesson({ 
           title: sanitizedTitle, 
           description: sanitizedDescription, 
-          content: sanitizedContent 
+          content: sanitizedContent,
+          courseId: lessonFormData.courseId || undefined
         });
+        setSuccess('Lesson created successfully!');
       }
-      resetForm();
-      await fetchLessons();
+      
+      const [lessonsData, coursesData] = await Promise.all([
+        getLessons(),
+        getTeacherCourses()
+      ]);
+      setLessons(lessonsData || []);
+      setCourses(coursesData || []);
+      
+      setLessonFormOpen(false);
+      setEditingLesson(null);
+      setLessonFormData({ title: '', description: '', content: '', courseId: '' });
+      
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to save lesson');
+      setError(err instanceof Error ? err.message : 'Failed to save lesson');
     } finally {
-      setSaving(false);
+      setLessonSaving(false);
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this lesson?')) return;
+  const myLessons = lessons.filter(l => l.teacherId === user?.id);
+  const publishedCourses = courses.filter(c => c.published);
+  const draftCourses = courses.filter(c => !c.published);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>, type: 'article' | 'lesson') {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileError(null);
+
+    if (type === 'article') {
+      if (!file.name.endsWith('.docx')) {
+        setFileError('Articles must be uploaded as .docx files only');
+        setArticleFormData(prev => ({ ...prev, file: null }));
+        return;
+      }
+      setArticleFormData(prev => ({ ...prev, file }));
+    } else {
+      if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
+        setFileError('Lesson materials must be uploaded as .md (Markdown) files only');
+        return;
+      }
+    }
+  }
+
+  async function handleArticleSubmit() {
+    if (!articleFormData.file && !articleFormData.content) {
+      setFileError('Please upload a .docx file or enter content manually');
+      return;
+    }
 
     try {
-      await deleteLesson(id);
-      await fetchLessons();
+      setArticleSaving(true);
+      setError(null);
+
+      let content = articleFormData.content;
+      let title = articleFormData.title;
+
+      if (articleFormData.file) {
+        const result = await uploadArticleFile(articleFormData.file);
+        content = result.content;
+        title = result.title || articleFormData.title;
+      }
+
+      await createArticle({
+        title: title || 'Untitled Article',
+        content,
+        excerpt: articleFormData.excerpt || content.substring(0, 200),
+        category: articleFormData.category
+      });
+
+      const articlesData = user?.id ? await getTeacherArticles(user.id).catch(() => []) : [];
+      setArticles(articlesData || []);
+
+      setArticleFormOpen(false);
+      setArticleFormData({ title: '', content: '', excerpt: '', category: 'GENERAL', file: null });
+      setFileError(null);
+      setSuccess('Article published successfully!');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete lesson');
+      setError(err instanceof Error ? err.message : 'Failed to publish article');
+    } finally {
+      setArticleSaving(false);
     }
+  }
+
+  async function handleDeleteArticle(id: string) {
+    if (!confirm('Are you sure you want to delete this article?')) return;
+
+    try {
+      const { deleteArticle } = await import('@/services/articleService');
+      await deleteArticle(id);
+      setArticles(articles.filter(a => a.id !== id));
+      setSuccess('Article deleted successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete article');
+    }
+  }
+
+  function openArticleForm() {
+    setArticleFormData({ title: '', content: '', excerpt: '', category: 'GENERAL', file: null });
+    setFileError(null);
+    setArticleFormOpen(true);
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading Teacher Dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold">Teacher Dashboard</h1>
-            <p className="text-muted-foreground">
-              Logged in as: {user?.email} ({user?.role})
-            </p>
-          </div>
-          <Button variant="outline" onClick={logout}>
-            Logout
-          </Button>
-        </div>
-
-        {/* Lesson Form */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>
-              {isEditing ? 'Edit Lesson' : 'Create New Lesson'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Title *</label>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Lesson title"
-                />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <GraduationCap className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <Input
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Brief description (optional)"
-                />
+                <h1 className="text-xl font-bold">Teacher Dashboard</h1>
+                <p className="text-sm text-muted-foreground">
+                  {user?.email} ({user?.role})
+                </p>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Content *</label>
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Lesson content"
-                  rows={5}
-                />
-              </div>
-              {formError && (
-                <p className="text-sm text-destructive">{formError}</p>
-              )}
-              <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>
-                  {saving ? 'Saving...' : isEditing ? 'Update Lesson' : 'Create Lesson'}
-                </Button>
-                {isEditing && (
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancel
+            </div>
+            <div className="flex items-center gap-2">
+              <Link to="/">
+                <Button variant="ghost" size="sm">Home</Button>
+              </Link>
+              {user?.id && (
+                <Link to={`/teachers/${user.id}`}>
+                  <Button variant="ghost" size="sm">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    My Public Profile
                   </Button>
-                )}
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                </Link>
+              )}
+              <Link to="/profile">
+                <Button variant="outline" size="sm">
+                  <User className="h-4 w-4 mr-2" />
+                  Profil
+                </Button>
+              </Link>
+              <Button variant="outline" size="icon" onClick={toggleTheme}>
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+              <Button variant="outline" size="sm" onClick={logout}>
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
 
-        {/* Lessons List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Lessons</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p>Loading lessons...</p>
-            ) : error ? (
-              <p className="text-destructive">{error}</p>
-            ) : lessons.length === 0 ? (
-              <p className="text-muted-foreground">No lessons yet. Create your first lesson above.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lessons.map((lesson) => (
-                    <TableRow key={lesson.id}>
-                      <TableCell className="font-medium">
-                        <SafeText content={lesson.title} />
-                      </TableCell>
-                      <TableCell>
-                        <SafeText content={lesson.description || '-'} />
-                      </TableCell>
-                      <TableCell>
-                        {new Date(lesson.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(lesson)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(lesson.id)}
-                          >
-                            Delete
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{error}</span>
+            <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+              Dismiss
+            </Button>
+          </div>
+        )}
+
+        {/* Success Alert */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-xl grid-cols-5">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="courses">Courses</TabsTrigger>
+            <TabsTrigger value="lessons">Lessons</TabsTrigger>
+            <TabsTrigger value="articles">Articles</TabsTrigger>
+            <TabsTrigger value="builder">Builder</TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Courses</p>
+                      <p className="text-3xl font-bold">{courses.length}</p>
+                    </div>
+                    <BookOpen className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Published</p>
+                      <p className="text-3xl font-bold">{publishedCourses.length}</p>
+                    </div>
+                    <Eye className="h-8 w-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Drafts</p>
+                      <p className="text-3xl font-bold">{draftCourses.length}</p>
+                    </div>
+                    <Edit className="h-8 w-8 text-amber-500" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Lessons</p>
+                      <p className="text-3xl font-bold">{myLessons.length}</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-purple-500" />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Articles</p>
+                      <p className="text-3xl font-bold">{articles.length}</p>
+                    </div>
+                    <FileText className="h-8 w-8 text-blue-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Courses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {courses.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">No courses yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {courses.slice(0, 5).map(course => (
+                        <div key={course.id} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                          <span className="font-medium truncate">{course.title}</span>
+                          <Badge variant={course.published ? "default" : "secondary"}>
+                            {course.published ? "Published" : "Draft"}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Lessons</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {myLessons.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">No lessons yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {myLessons.slice(0, 5).map(lesson => (
+                        <div key={lesson.id} className="flex items-center justify-between p-2 rounded bg-muted/50">
+                          <span className="font-medium truncate">{lesson.title}</span>
+                          <Button size="sm" variant="ghost" onClick={() => openLessonForm(lesson)}>
+                            <Edit className="h-3 w-3" />
                           </Button>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Courses Tab */}
+          <TabsContent value="courses" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">My Courses</h2>
+              <Button onClick={() => setActiveTab('builder')}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Course
+              </Button>
+            </div>
+
+            {courses.length === 0 ? (
+              <Card className="p-12 text-center">
+                <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No courses yet</h3>
+                <p className="text-muted-foreground mb-4">Create your first course to get started.</p>
+                <Button onClick={() => setActiveTab('builder')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Course
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {courses.map(course => (
+                  <Card key={course.id} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
+                      {course.description && (
+                        <CardDescription className="line-clamp-2">{course.description}</CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-4 w-4" />
+                          {course._count?.lessons || 0}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          {course._count?.enrollments || 0}
+                        </span>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="gap-2">
+                      <Button 
+                        size="sm" 
+                        variant={course.published ? "default" : "outline"}
+                        onClick={() => handleTogglePublish(course)}
+                        className="flex-1"
+                      >
+                        {course.published ? "Published" : "Publish"}
+                      </Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDeleteCourse(course.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </TabsContent>
+
+          {/* Lessons Tab */}
+          <TabsContent value="lessons" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">My Lessons</h2>
+              <Button onClick={() => openLessonForm()}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Lesson
+              </Button>
+            </div>
+
+            {myLessons.length === 0 ? (
+              <Card className="p-12 text-center">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No lessons yet</h3>
+                <p className="text-muted-foreground mb-4">Create your first lesson to get started.</p>
+                <Button onClick={() => openLessonForm()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Lesson
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {myLessons.map(lesson => (
+                  <Card key={lesson.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium">{lesson.title}</h3>
+                          {lesson.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {lesson.description}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {new Date(lesson.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => openLessonForm(lesson)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleDeleteLesson(lesson.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Articles Tab */}
+          <TabsContent value="articles" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">My Articles</h2>
+              <Button onClick={openArticleForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Publish Article
+              </Button>
+            </div>
+
+            {articles.length === 0 ? (
+              <Card className="p-12 text-center">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No articles published yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Publish your first article. Articles require a .docx file upload.
+                </p>
+                <Button onClick={openArticleForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Publish Article
+                </Button>
+              </Card>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {articles.map(article => (
+                  <Card key={article.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium">{article.title}</h3>
+                          {article.excerpt && (
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {article.excerpt}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="outline" className="text-xs">
+                              {categoryLabels[article.category] || article.category}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(article.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleDeleteArticle(article.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Builder Tab */}
+          <TabsContent value="builder" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Builder</CardTitle>
+                <CardDescription>Create a new course in 3 steps</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Progress Steps */}
+                <div className="flex items-center justify-center mb-8">
+                  <div className="flex items-center gap-2">
+                    {[
+                      { step: 1, label: 'Basic Info' },
+                      { step: 2, label: 'Add Lessons' },
+                      { step: 3, label: 'Preview' }
+                    ].map((s, i) => (
+                      <div key={s.step} className="flex items-center">
+                        <div className={`
+                          w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all
+                          ${courseBuilderStep >= s.step 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted text-muted-foreground'}
+                        `}>
+                          {courseBuilderStep > s.step ? <CheckCircle2 className="h-5 w-5" /> : s.step}
+                        </div>
+                        <span className={`ml-2 text-sm ${courseBuilderStep >= s.step ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {s.label}
+                        </span>
+                        {i < 2 && (
+                          <ChevronRight className="h-4 w-4 mx-2 text-muted-foreground" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Step 1: Basic Info */}
+                {courseBuilderStep === 1 && (
+                  <div className="space-y-6 max-w-2xl mx-auto">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Course Title *</label>
+                        <Input
+                          value={courseBuilderData.title}
+                          onChange={(e) => setCourseBuilderData(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="e.g., Introduction to Web Development"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Description</label>
+                        <Textarea
+                          value={courseBuilderData.description}
+                          onChange={(e) => setCourseBuilderData(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Describe what students will learn..."
+                          rows={4}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Cover Image URL</label>
+                        <Input
+                          value={courseBuilderData.imageUrl}
+                          onChange={(e) => setCourseBuilderData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                          placeholder="https://example.com/image.jpg"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button 
+                        onClick={() => setCourseBuilderStep(2)} 
+                        disabled={!courseBuilderData.title.trim()}
+                      >
+                        Next: Preview
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: Preview */}
+                {courseBuilderStep === 2 && (
+                  <div className="space-y-6 max-w-2xl mx-auto">
+                    <Card className="bg-muted/50">
+                      <CardContent className="pt-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Title</p>
+                            <p className="font-medium text-lg">{courseBuilderData.title || 'Untitled Course'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Description</p>
+                            <p>{courseBuilderData.description || 'No description'}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="flex justify-between gap-4">
+                      <Button variant="outline" onClick={() => setCourseBuilderStep(1)}>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={async () => {
+                            await handleCourseSubmit();
+                          }}
+                          disabled={courseSaving}
+                        >
+                          {courseSaving ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Create Course
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* Lesson Form Dialog */}
+      <Dialog open={lessonFormOpen} onOpenChange={setLessonFormOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingLesson ? 'Edit Lesson' : 'Create New Lesson'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingLesson 
+                ? 'Update the lesson content below.' 
+                : 'Fill in the details for your new lesson.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Lesson Title *</label>
+              <Input
+                value={lessonFormData.title}
+                onChange={(e) => setLessonFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="e.g., Getting Started with HTML"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Description</label>
+              <Input
+                value={lessonFormData.description}
+                onChange={(e) => setLessonFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Brief description"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Course (Optional)</label>
+              <select
+                className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+                value={lessonFormData.courseId}
+                onChange={(e) => setLessonFormData(prev => ({ ...prev, courseId: e.target.value }))}
+              >
+                <option value="">Standalone Lesson</option>
+                {courses.map(course => (
+                  <option key={course.id} value={course.id}>{course.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="lesson-file" className="block text-sm font-medium mb-2">
+                Upload .md File (Optional)
+              </Label>
+              <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                <input
+                  id="lesson-file"
+                  type="file"
+                  accept=".md,.markdown"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
+                        setError('Only .md (Markdown) files are accepted');
+                        return;
+                      }
+                      setLessonFile(file);
+                      setLessonFormData(prev => ({ ...prev, content: `[Uploaded: ${file.name}]` }));
+                    }
+                  }}
+                />
+                <label htmlFor="lesson-file" className="cursor-pointer">
+                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+                  <p className="text-xs text-muted-foreground">
+                    {lessonFile ? lessonFile.name : 'Click to upload .md file'}
+                  </p>
+                </label>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Content *</label>
+              <Textarea
+                value={lessonFormData.content}
+                onChange={(e) => setLessonFormData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Lesson content... (or upload .md file above)"
+                rows={10}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLessonFormOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleLessonSubmit} 
+              disabled={lessonSaving || !lessonFormData.title.trim() || !lessonFormData.content.trim()}
+            >
+              {lessonSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : editingLesson ? (
+                'Update Lesson'
+              ) : (
+                'Create Lesson'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Article Form Dialog */}
+      <Dialog open={articleFormOpen} onOpenChange={setArticleFormOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Publish New Article</DialogTitle>
+            <DialogDescription>
+              Upload a .docx file to create an article, or enter content manually.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="article-file" className="block text-sm font-medium mb-2">
+                Upload .docx File *
+              </Label>
+              <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                <input
+                  id="article-file"
+                  type="file"
+                  accept=".docx"
+                  className="hidden"
+                  onChange={(e) => handleFileChange(e, 'article')}
+                />
+                <label htmlFor="article-file" className="cursor-pointer">
+                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {articleFormData.file ? articleFormData.file.name : 'Click to upload .docx file'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Only .docx files are accepted
+                  </p>
+                </label>
+              </div>
+              {fileError && (
+                <p className="text-sm text-destructive mt-2">{fileError}</p>
+              )}
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or enter manually</span>
+              </div>
+            </div>
+
+            <div>
+              <Label className="block text-sm font-medium mb-2">Article Title</Label>
+              <Input
+                value={articleFormData.title}
+                onChange={(e) => setArticleFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Article title"
+                disabled={!!articleFormData.file}
+              />
+            </div>
+
+            <div>
+              <Label className="block text-sm font-medium mb-2">Category</Label>
+              <select
+                className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+                value={articleFormData.category}
+                onChange={(e) => setArticleFormData(prev => ({ ...prev, category: e.target.value as ArticleCategory }))}
+              >
+                {Object.entries(categoryLabels).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label className="block text-sm font-medium mb-2">Content</Label>
+              <Textarea
+                value={articleFormData.content}
+                onChange={(e) => setArticleFormData(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Article content... (leave empty if uploading file)"
+                rows={8}
+                disabled={!!articleFormData.file}
+              />
+            </div>
+
+            <div>
+              <Label className="block text-sm font-medium mb-2">Excerpt</Label>
+              <Textarea
+                value={articleFormData.excerpt}
+                onChange={(e) => setArticleFormData(prev => ({ ...prev, excerpt: e.target.value }))}
+                placeholder="Brief excerpt for the article preview..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArticleFormOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleArticleSubmit} 
+              disabled={articleSaving || (!articleFormData.file && !articleFormData.content.trim())}
+            >
+              {articleSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Publish Article
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

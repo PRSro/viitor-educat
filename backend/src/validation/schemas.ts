@@ -61,6 +61,17 @@ export const createLessonSchema = z.object({
     .trim()
     .min(1, { message: 'Content is required' })
     .max(50000, { message: 'Content must be less than 50000 characters' }),
+  courseId: z
+    .string()
+    .uuid({ message: 'Invalid course ID format' })
+    .optional()
+    .nullable(),
+  order: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .default(0),
 });
 
 export const updateLessonSchema = z.object({
@@ -80,6 +91,16 @@ export const updateLessonSchema = z.object({
     .trim()
     .min(1, { message: 'Content cannot be empty' })
     .max(50000, { message: 'Content must be less than 50000 characters' })
+    .optional(),
+  courseId: z
+    .string()
+    .uuid({ message: 'Invalid course ID format' })
+    .optional()
+    .nullable(),
+  order: z
+    .number()
+    .int()
+    .min(0)
     .optional(),
 });
 

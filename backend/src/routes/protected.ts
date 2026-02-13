@@ -1,6 +1,10 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, JwtPayload } from '../middleware/authMiddleware.js';
 import { requireRole, teacherOnly, anyRole } from '../middleware/permissionMiddleware.js';
+
+function getCurrentUser(request: FastifyRequest): JwtPayload | undefined {
+  return (request as any).user as JwtPayload | undefined;
+}
 
 /**
  * Protected Routes Examples
@@ -74,7 +78,7 @@ export async function protectedRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     return {
       message: 'Grade posted successfully (mock)',
-      postedBy: request.user?.email
+      postedBy: getCurrentUser(request)?.email
     };
   });
 

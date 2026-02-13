@@ -34,7 +34,10 @@ import {
   Clock,
   User,
   Filter,
-  Loader2
+  Loader2,
+  Moon,
+  Sun,
+  Users
 } from 'lucide-react';
 import { 
   getCourses, 
@@ -43,6 +46,7 @@ import {
   Course, 
   Enrollment 
 } from '@/services/courseService';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   getArticles, 
   ArticleListItem, 
@@ -70,6 +74,24 @@ export default function StudentDashboard() {
   const [articleTotalPages, setArticleTotalPages] = useState(1);
   
   const [error, setError] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    setIsDark(isDarkMode);
+  }, []);
+
+  const toggleTheme = () => {
+    const newIsDark = !isDark;
+    setIsDark(newIsDark);
+    if (newIsDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   // Fetch enrolled courses
   useEffect(() => {
@@ -180,6 +202,18 @@ export default function StudentDashboard() {
               <Link to="/">
                 <Button variant="ghost" size="sm">Home</Button>
               </Link>
+              <Link to="/teachers">
+                <Button variant="ghost" size="sm">
+                  <Users className="h-4 w-4 mr-2" />
+                  Teachers
+                </Button>
+              </Link>
+              <Link to="/profile">
+                <Button variant="outline" size="sm">
+                  <User className="h-4 w-4 mr-2" />
+                  Profil
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" onClick={logout}>
                 Logout
               </Button>
@@ -196,7 +230,7 @@ export default function StudentDashboard() {
         )}
 
         <Tabs defaultValue="my-courses" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
+          <TabsList className="grid w-full max-w-lg grid-cols-5">
             <TabsTrigger value="my-courses" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               My Courses
@@ -204,6 +238,10 @@ export default function StudentDashboard() {
             <TabsTrigger value="browse" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               Browse
+            </TabsTrigger>
+            <TabsTrigger value="teachers" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Teachers
             </TabsTrigger>
             <TabsTrigger value="articles" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -371,6 +409,80 @@ export default function StudentDashboard() {
               </>
             )}
           </TabsContent>
+
+          {/* Teachers Tab */}
+          <TabsContent value="teachers" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-semibold mb-2">Browse Teachers</h2>
+                <p className="text-muted-foreground">Discover educators and their courses</p>
+              </div>
+              <Button asChild>
+                <Link to="/teachers">
+                  View All Teachers
+                </Link>
+              </Button>
+            </div>
+
+            <Card className="p-12 text-center">
+              <div className="max-w-sm mx-auto">
+                <div className="p-4 rounded-full bg-muted mx-auto w-fit mb-4">
+                  <Users className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">Discover Teachers</h3>
+                <p className="text-muted-foreground mb-4">
+                  Browse our qualified educators and their published courses.
+                </p>
+                <Button asChild>
+                  <Link to="/teachers">
+                    <Users className="h-4 w-4 mr-2" />
+                    Browse Teachers
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Setări</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+                  <div className="space-y-1">
+                    <p className="font-medium">Tema Întunecată</p>
+                    <p className="text-sm text-muted-foreground">
+                      Activează modul întunecat pentru interfață
+                    </p>
+                  </div>
+                  <Button
+                    variant={isDark ? "default" : "outline"}
+                    onClick={toggleTheme}
+                    className="aero-button"
+                  >
+                    {isDark ? (
+                      <>
+                        <Sun className="h-4 w-4 mr-2" />
+                        Luminos
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="h-4 w-4 mr-2" />
+                        Întunecat
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Button variant="outline" onClick={logout} className="aero-button">
+                    Deconectare
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
@@ -411,9 +523,26 @@ function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: Cours
         )}
       </CardHeader>
       <CardContent className="flex-1 pb-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-          <User className="h-4 w-4" />
-          <span>{course.teacher.email}</span>
+        <div className="flex items-center gap-3 mb-3">
+          {course.teacher.teacherProfile?.pictureUrl ? (
+            <img 
+              src={course.teacher.teacherProfile.pictureUrl}
+              alt={course.teacher.email}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <User className="h-4 w-4 text-primary" />
+            </div>
+          )}
+          <Link 
+            to={`/teachers/${course.teacher.id}`}
+            className="text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            {course.teacher.teacherProfile?.bio 
+              ? course.teacher.teacherProfile.bio.substring(0, 30) + '...'
+              : course.teacher.email}
+          </Link>
         </div>
         {course._count && (
           <div className="flex items-center gap-4 text-sm text-muted-foreground">

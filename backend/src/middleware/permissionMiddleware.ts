@@ -28,14 +28,15 @@ export function requireRole(allowedRoles: Role | Role[]) {
     reply: FastifyReply
   ): Promise<void> {
     // Ensure authMiddleware ran first
-    if (!request.user) {
+    const user = (request as any).user;
+    if (!user) {
       return reply.status(401).send({
         error: 'Unauthorized',
         message: 'Authentication required before permission check',
       });
     }
 
-    const userRole = request.user.role;
+    const userRole = user.role;
 
     // Check if user's role is in allowed roles
     if (!roles.includes(userRole)) {

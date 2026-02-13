@@ -224,7 +224,7 @@ export default function CourseDetail() {
               </Card>
             </div>
 
-            {/* Sidebar */}
+              {/* Sidebar */}
             <div className="space-y-6">
               <Card className="sticky top-24">
                 <CardContent className="pt-6">
@@ -233,11 +233,26 @@ export default function CourseDetail() {
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                       <User className="h-6 w-6 text-primary" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="text-sm text-muted-foreground">Instructor</p>
-                      <p className="font-medium">{course.teacher.email}</p>
+                      <Link 
+                        to={`/teachers/${course.teacher.id}`}
+                        className="font-medium hover:text-primary transition-colors"
+                      >
+                        {course.teacher.teacherProfile?.bio 
+                          ? course.teacher.teacherProfile.bio.substring(0, 30) + '...'
+                          : course.teacher.email.split('@')[0]}
+                      </Link>
                     </div>
                   </div>
+
+                  {/* Teacher Profile Link */}
+                  <Button variant="outline" className="w-full mb-6" asChild>
+                    <Link to={`/teachers/${course.teacher.id}`}>
+                      <User className="h-4 w-4 mr-2" />
+                      View Teacher Profile
+                    </Link>
+                  </Button>
 
                   {/* Course Stats */}
                   <div className="space-y-3 mb-6">

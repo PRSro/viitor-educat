@@ -17,6 +17,17 @@ export interface Course {
   teacher: {
     id: string;
     email: string;
+    teacherProfile?: {
+      id: string;
+      bio: string | null;
+      pictureUrl: string | null;
+      phone: string | null;
+      office: string | null;
+      officeHours: string | null;
+      website: string | null;
+      linkedin: string | null;
+      twitter: string | null;
+    } | null;
   };
   published: boolean;
   createdAt: string;
@@ -72,6 +83,40 @@ export async function getCourses(): Promise<Course[]> {
 }
 
 /**
+ * Fetch all courses for current teacher (including drafts)
+ */
+export async function getTeacherCourses(): Promise<Course[]> {
+  const response = await fetch(`${API_BASE_URL}/courses/teacher/my-courses`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch teacher courses');
+  }
+
+  return data.courses;
+}
+
+/**
+ * Fetch published courses for a specific teacher
+ */
+export async function getTeacherPublishedCourses(teacherId: string): Promise<Course[]> {
+  const response = await fetch(`${API_BASE_URL}/courses/teacher/${teacherId}`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch teacher courses');
+  }
+
+  return data.courses;
+}
+
+/**
  * Fetch enrolled courses for current student
  */
 export async function getEnrolledCourses(): Promise<Enrollment[]> {
@@ -91,7 +136,7 @@ export async function getEnrolledCourses(): Promise<Enrollment[]> {
 /**
  * Get course details by slug
  */
-export async function getCourseBySlug(slug: string): Promise<{ course: Course; enrollment: { progress: number } | null }> {
+export async function getCourseBySlug(slug: string): Promise<{ course: Course; enrollment: { progress: number } | null; isTeacher: boolean }> {
   const response = await fetch(`${API_BASE_URL}/courses/${slug}`, {
     headers: getAuthHeaders(),
   });

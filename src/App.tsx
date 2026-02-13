@@ -18,6 +18,9 @@ import ArticleDetail from "./pages/ArticleDetail";
 import CourseDetail from "./pages/CourseDetail";
 import AccessDenied from "./pages/AccessDenied";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
+import Teachers from "./pages/Teachers";
+import TeacherProfilePage from "./pages/TeacherProfile";
 
 const queryClient = new QueryClient();
 
@@ -77,12 +80,42 @@ const App = () => (
                     } 
                   />
                   
+                  {/* Profile - All authenticated users */}
+                  <Route 
+                    path="/profile" 
+                    element={
+                      <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                        <Profile />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
                   {/* Article Detail - All authenticated users */}
                   <Route 
                     path="/articles/:slug" 
                     element={
                       <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
                         <ArticleDetail />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Teachers - All authenticated users */}
+                  <Route 
+                    path="/teachers" 
+                    element={
+                      <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                        <Teachers />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Teacher Profile - All authenticated users */}
+                  <Route 
+                    path="/teachers/:teacherId" 
+                    element={
+                      <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                        <TeacherProfilePage />
                       </ProtectedRoute>
                     } 
                   />

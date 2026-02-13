@@ -1,13 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient } from '@prisma/client';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, JwtPayload } from '../middleware/authMiddleware.js';
 import { teacherOnly, anyRole, adminOnly } from '../middleware/permissionMiddleware.js';
 import { z } from 'zod';
 import { formatZodError } from '../validation/schemas.js';
 
 const prisma = new PrismaClient();
 
-// Validation schemas
 const createCourseSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(200),
   description: z.string().trim().max(2000).optional(),
@@ -26,19 +25,6 @@ const slugSchema = z.object({
   slug: z.string().min(1, 'Slug is required'),
 });
 
-/**
- * Course Routes
- * 
- * Permissions:
- * - GET /courses - All authenticated users can view published courses
- * - GET /courses/:slug - View course details with lessons
- * - GET /student/courses - Students see their enrolled courses with progress
- * - POST /courses - Teacher/Admin can create courses
- * - PUT /courses/:id - Teacher can update their own courses
- * - DELETE /courses/:id - Teacher can delete their own courses
- * - POST /courses/:id/enroll - Students can enroll in courses
- */
-
 function generateSlug(title: string): string {
   return title
     .toLowerCase()
@@ -47,25 +33,70 @@ function generateSlug(title: string): string {
     .slice(0, 100) + '-' + Date.now().toString(36);
 }
 
+function getCurrentUser(request: FastifyRequest): JwtPayload {
+  return (request as any).user as JwtPayload;
+}
+
 export async function courseRoutes(server: FastifyInstance) {
   
   /**
    * GET /courses
-   * List all published courses
+   * List all published courses - accessible by all authenticated users
    */
   server.get('/', {
     preHandler: [authMiddleware, anyRole]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const courses = await prisma.course.findMany({
-      where: { published: true },
-      include: {
-        teacher: { select: { id: true, email: true } },
-        _count: { select: { lessons: true, enrollments: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    return { courses };
+    try {
+      const user = getCurrentUser(request);
+      const courses = await prisma.course.findMany({
+        where: { published: true },
+        include: {
+          teacher: { 
+            select: { id: true, email: true },
+            include: { teacherProfile: true }
+          },
+          _count: { select: { lessons: true, enrollments: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return { courses };
+    } catch (error) {
+      server.log.error(error, 'Error fetching courses');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /courses/teacher/:teacherId
+   * Get all published courses for a specific teacher - for student visibility
+   */
+  server.get<{ Params: { teacherId: string } }>('/teacher/:teacherId', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request: FastifyRequest<{ Params: { teacherId: string } }>, reply: FastifyReply) => {
+    try {
+      const { teacherId } = request.params;
+      
+      const courses = await prisma.course.findMany({
+        where: { 
+          teacherId,
+          published: true 
+        },
+        include: {
+          teacher: { 
+            select: { id: true, email: true },
+            include: { teacherProfile: true }
+          },
+          _count: { select: { lessons: true, enrollments: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return { courses };
+    } catch (error) {
+      server.log.error(error, 'Error fetching teacher courses');
+      throw error;
+    }
   });
 
   /**
@@ -75,14 +106,17 @@ export async function courseRoutes(server: FastifyInstance) {
   server.get('/student', {
     preHandler: [authMiddleware, anyRole]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const studentId = request.user!.id;
+    const studentId = getCurrentUser(request).id;
     
     const enrollments = await prisma.enrollment.findMany({
       where: { studentId },
       include: {
         course: {
           include: {
-            teacher: { select: { id: true, email: true } },
+            teacher: { 
+              select: { id: true, email: true },
+              include: { teacherProfile: true }
+            },
             _count: { select: { lessons: true } }
           }
         }
@@ -102,7 +136,7 @@ export async function courseRoutes(server: FastifyInstance) {
 
   /**
    * GET /courses/:slug
-   * Get course details with lessons
+   * Get course details with lessons - for enrolled students or course owner
    */
   server.get<{ Params: { slug: string } }>('/:slug', {
     preHandler: [authMiddleware, anyRole]
@@ -113,7 +147,10 @@ export async function courseRoutes(server: FastifyInstance) {
       const course = await prisma.course.findUnique({
         where: { slug },
         include: {
-          teacher: { select: { id: true, email: true } },
+          teacher: { 
+            select: { id: true, email: true },
+            include: { teacherProfile: true }
+          },
           lessons: {
             orderBy: { order: 'asc' },
             select: { id: true, title: true, description: true, order: true }
@@ -125,11 +162,19 @@ export async function courseRoutes(server: FastifyInstance) {
         return reply.status(404).send({ error: 'Course not found' });
       }
       
+      // Check if user is enrolled or is the teacher
+      const isTeacher = course.teacherId === getCurrentUser(request).id;
+      
+      // Only show course if published OR user is the teacher
+      if (!course.published && !isTeacher && getCurrentUser(request).role !== 'ADMIN') {
+        return reply.status(404).send({ error: 'Course not found' });
+      }
+      
       // Check enrollment for progress
       const enrollment = await prisma.enrollment.findUnique({
         where: {
           studentId_courseId: {
-            studentId: request.user!.id,
+            studentId: getCurrentUser(request).id,
             courseId: course.id
           }
         }
@@ -137,7 +182,8 @@ export async function courseRoutes(server: FastifyInstance) {
       
       return { 
         course,
-        enrollment: enrollment ? { progress: enrollment.progress } : null
+        enrollment: enrollment ? { progress: enrollment.progress } : null,
+        isTeacher
       };
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -146,6 +192,7 @@ export async function courseRoutes(server: FastifyInstance) {
           message: formatZodError(error)
         });
       }
+      server.log.error(error, 'Error fetching course by slug');
       throw error;
     }
   });
@@ -159,11 +206,15 @@ export async function courseRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const validated = createCourseSchema.parse(request.body);
-      const teacherId = request.user!.id;
+      const teacherId = getCurrentUser(request).id;
+      
+      server.log.info({ teacherId, title: validated.title }, 'Creating new course');
       
       const course = await prisma.course.create({
         data: {
-          ...validated,
+          title: validated.title,
+          description: validated.description,
+          imageUrl: validated.imageUrl,
           slug: generateSlug(validated.title),
           teacherId
         },
@@ -171,6 +222,8 @@ export async function courseRoutes(server: FastifyInstance) {
           teacher: { select: { id: true, email: true } }
         }
       });
+      
+      server.log.info({ courseId: course.id }, 'Course created successfully');
       
       return reply.status(201).send({ 
         message: 'Course created successfully',
@@ -183,6 +236,38 @@ export async function courseRoutes(server: FastifyInstance) {
           message: formatZodError(error)
         });
       }
+      server.log.error(error, 'Error creating course');
+      return reply.status(500).send({ 
+        error: 'Internal Server Error',
+        message: 'Failed to create course'
+      });
+    }
+  });
+
+  /**
+   * GET /courses/teacher/my-courses
+   * Get all courses for the current teacher (including drafts)
+   */
+  server.get('/teacher/my-courses', {
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const teacherId = getCurrentUser(request).id;
+      
+      const courses = await prisma.course.findMany({
+        where: { teacherId },
+        include: {
+          teacher: { 
+            select: { id: true, email: true }
+          },
+          _count: { select: { lessons: true, enrollments: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      return { courses };
+    } catch (error) {
+      server.log.error(error, 'Error fetching teacher courses');
       throw error;
     }
   });
@@ -197,7 +282,7 @@ export async function courseRoutes(server: FastifyInstance) {
     try {
       const { id } = courseIdSchema.parse(request.params);
       const validated = updateCourseSchema.parse(request.body);
-      const teacherId = request.user!.id;
+      const teacherId = getCurrentUser(request).id;
       
       const existing = await prisma.course.findUnique({ where: { id } });
       
@@ -205,7 +290,7 @@ export async function courseRoutes(server: FastifyInstance) {
         return reply.status(404).send({ error: 'Course not found' });
       }
       
-      if (existing.teacherId !== teacherId && request.user!.role !== 'ADMIN') {
+      if (existing.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
         return reply.status(403).send({ 
           error: 'Forbidden',
           message: 'You can only update your own courses'
@@ -228,6 +313,7 @@ export async function courseRoutes(server: FastifyInstance) {
           message: formatZodError(error)
         });
       }
+      server.log.error(error, 'Error updating course');
       throw error;
     }
   });
@@ -241,7 +327,7 @@ export async function courseRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
       const { id } = courseIdSchema.parse(request.params);
-      const studentId = request.user!.id;
+      const studentId = getCurrentUser(request).id;
       
       const course = await prisma.course.findUnique({ where: { id } });
       
@@ -273,6 +359,7 @@ export async function courseRoutes(server: FastifyInstance) {
           message: formatZodError(error)
         });
       }
+      server.log.error(error, 'Error enrolling in course');
       throw error;
     }
   });
@@ -286,7 +373,7 @@ export async function courseRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     try {
       const { id } = courseIdSchema.parse(request.params);
-      const teacherId = request.user!.id;
+      const teacherId = getCurrentUser(request).id;
       
       const existing = await prisma.course.findUnique({ where: { id } });
       
@@ -294,7 +381,7 @@ export async function courseRoutes(server: FastifyInstance) {
         return reply.status(404).send({ error: 'Course not found' });
       }
       
-      if (existing.teacherId !== teacherId && request.user!.role !== 'ADMIN') {
+      if (existing.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
         return reply.status(403).send({ 
           error: 'Forbidden',
           message: 'You can only delete your own courses'
@@ -311,6 +398,7 @@ export async function courseRoutes(server: FastifyInstance) {
           message: formatZodError(error)
         });
       }
+      server.log.error(error, 'Error deleting course');
       throw error;
     }
   });

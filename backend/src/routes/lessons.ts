@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient } from '@prisma/client';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, JwtPayload } from '../middleware/authMiddleware.js';
 import { teacherOnly, anyRole } from '../middleware/permissionMiddleware.js';
 import { 
   createLessonSchema, 
@@ -12,12 +12,17 @@ import { z } from 'zod';
 
 const prisma = new PrismaClient();
 
+function getCurrentUser(request: FastifyRequest): JwtPayload {
+  return (request as any).user as JwtPayload;
+}
+
 /**
  * Lessons CRUD Routes
  * 
  * Permissions:
  * - GET /lessons - Both STUDENT and TEACHER can view all lessons
  * - GET /lessons/:id - Both STUDENT and TEACHER can view a lesson
+ * - GET /lessons/course/:courseId - Get lessons for a specific course
  * - POST /lessons - TEACHER only can create lessons
  * - PUT /lessons/:id - TEACHER only can update lessons (their own)
  * - DELETE /lessons/:id - TEACHER only can delete lessons (their own)
@@ -25,6 +30,10 @@ const prisma = new PrismaClient();
 
 interface LessonParams {
   id: string;
+}
+
+interface CourseParams {
+  courseId: string;
 }
 
 export async function lessonRoutes(server: FastifyInstance) {
@@ -44,6 +53,29 @@ export async function lessonRoutes(server: FastifyInstance) {
         }
       },
       orderBy: { createdAt: 'desc' }
+    });
+    
+    return { lessons };
+  });
+
+  /**
+   * GET /lessons/course/:courseId
+   * Get all lessons for a specific course
+   * Accessible by: STUDENT, TEACHER, ADMIN
+   */
+  server.get<{ Params: CourseParams }>('/course/:courseId', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request: FastifyRequest<{ Params: CourseParams }>, reply: FastifyReply) => {
+    const { courseId } = request.params;
+    
+    const lessons = await prisma.lesson.findMany({
+      where: { courseId },
+      include: {
+        teacher: {
+          select: { id: true, email: true }
+        }
+      },
+      orderBy: { order: 'asc' }
     });
     
     return { lessons };
@@ -97,15 +129,30 @@ export async function lessonRoutes(server: FastifyInstance) {
     try {
       // Validate input with Zod
       const validated = createLessonSchema.parse(request.body);
-      const { title, description, content } = validated;
-      const teacherId = request.user!.id;
+      const { title, description, content, courseId, order } = validated;
+      const teacherId = getCurrentUser(request).id;
+
+      // If courseId provided, verify teacher owns the course
+      if (courseId) {
+        const course = await prisma.course.findUnique({
+          where: { id: courseId }
+        });
+        if (!course || course.teacherId !== teacherId) {
+          return reply.status(403).send({ 
+            error: 'Forbidden',
+            message: 'You can only add lessons to your own courses'
+          });
+        }
+      }
       
       const lesson = await prisma.lesson.create({
         data: {
           title,
           description,
           content,
-          teacherId
+          teacherId,
+          courseId: courseId || null,
+          order: order || 0
         },
         include: {
           teacher: {
@@ -141,7 +188,7 @@ export async function lessonRoutes(server: FastifyInstance) {
       // Validate ID and body
       const { id } = lessonIdSchema.parse(request.params);
       const validated = updateLessonSchema.parse(request.body);
-      const teacherId = request.user!.id;
+      const teacherId = getCurrentUser(request).id;
       
       // Check if lesson exists and belongs to this teacher
       const existingLesson = await prisma.lesson.findUnique({
@@ -195,7 +242,7 @@ export async function lessonRoutes(server: FastifyInstance) {
     try {
       // Validate ID format
       const { id } = lessonIdSchema.parse(request.params);
-      const teacherId = request.user!.id;
+      const teacherId = getCurrentUser(request).id;
       
       // Check if lesson exists and belongs to this teacher
       const existingLesson = await prisma.lesson.findUnique({

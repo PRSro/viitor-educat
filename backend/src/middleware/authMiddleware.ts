@@ -18,13 +18,6 @@ export interface JwtPayload {
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
 }
 
-// Extend FastifyRequest to include user
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: JwtPayload;
-  }
-}
-
 export async function authMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
@@ -46,7 +39,7 @@ export async function authMiddleware(
     const decoded = await request.server.jwt.verify<JwtPayload>(token);
     
     // Attach user to request for downstream handlers
-    request.user = decoded;
+    (request as any).user = decoded;
   } catch (err) {
     return reply.status(401).send({ 
       error: 'Unauthorized', 

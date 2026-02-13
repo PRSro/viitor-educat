@@ -1,12 +1,16 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient, ArticleCategory } from '@prisma/client';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, JwtPayload } from '../middleware/authMiddleware.js';
 import { teacherOnly, anyRole, adminOnly, requireRole } from '../middleware/permissionMiddleware.js';
 import { z } from 'zod';
 import { formatZodError } from '../validation/schemas.js';
 import DOMPurify from 'isomorphic-dompurify';
 
 const prisma = new PrismaClient();
+
+function getCurrentUser(request: FastifyRequest): JwtPayload {
+  return (request as any).user as JwtPayload;
+}
 
 // Rate limiting for import endpoint
 const importRateLimits = new Map<string, { count: number; resetAt: number }>();
@@ -254,7 +258,7 @@ export async function articleRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const validated = createArticleSchema.parse(request.body);
-      const authorId = request.user!.id;
+      const authorId = getCurrentUser(request).id;
       
       // Sanitize content
       const sanitizedContent = sanitizeContent(validated.content);
@@ -295,7 +299,7 @@ export async function articleRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const userId = request.user!.id;
+      const userId = getCurrentUser(request).id;
       
       // Rate limiting
       const now = Date.now();
@@ -408,7 +412,7 @@ export async function articleRoutes(server: FastifyInstance) {
     try {
       const { id } = request.params;
       const validated = updateArticleSchema.parse(request.body);
-      const userId = request.user!.id;
+      const userId = getCurrentUser(request).id;
       
       const existing = await prisma.article.findUnique({ where: { id } });
       
@@ -416,7 +420,7 @@ export async function articleRoutes(server: FastifyInstance) {
         return reply.status(404).send({ error: 'Article not found' });
       }
       
-      if (existing.authorId !== userId && request.user!.role !== 'ADMIN') {
+      if (existing.authorId !== userId && getCurrentUser(request).role !== 'ADMIN') {
         return reply.status(403).send({ 
           error: 'Forbidden',
           message: 'You can only update your own articles'
@@ -457,7 +461,7 @@ export async function articleRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const { id } = request.params;
-    const userId = request.user!.id;
+    const userId = getCurrentUser(request).id;
     
     const existing = await prisma.article.findUnique({ where: { id } });
     
@@ -465,7 +469,7 @@ export async function articleRoutes(server: FastifyInstance) {
       return reply.status(404).send({ error: 'Article not found' });
     }
     
-    if (existing.authorId !== userId && request.user!.role !== 'ADMIN') {
+    if (existing.authorId !== userId && getCurrentUser(request).role !== 'ADMIN') {
       return reply.status(403).send({ 
         error: 'Forbidden',
         message: 'You can only delete your own articles'
