@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
@@ -21,6 +22,11 @@ import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Teachers from "./pages/Teachers";
 import TeacherProfilePage from "./pages/TeacherProfile";
+import ArticlesPage from "./pages/ArticlesPage";
+import ResourcesPage from "./pages/ResourcesPage";
+import FlashcardsPage from "./pages/FlashcardsPage";
+import StudyDashboard from "./pages/StudyDashboard";
+import SettingsPage from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -29,16 +35,17 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
         <AuthProvider>
-          <ErrorBoundary>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/access-denied" element={<AccessDenied />} />
+          <SettingsProvider>
+            <ErrorBoundary>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/access-denied" element={<AccessDenied />} />
                   
                   {/* Protected Routes - Admin Only */}
                   <Route 
@@ -120,12 +127,63 @@ const App = () => (
                     } 
                   />
                   
+                  {/* Articles Page - All authenticated users */}
+                  <Route 
+                    path="/student/articles" 
+                    element={
+                      <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                        <ArticlesPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Resources Page - All authenticated users */}
+                  <Route 
+                    path="/student/resources" 
+                    element={
+                      <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                        <ResourcesPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Flashcards Page - All authenticated users */}
+                  <Route 
+                    path="/student/flashcards" 
+                    element={
+                      <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                        <FlashcardsPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Study Dashboard - Student only */}
+                  <Route 
+                    path="/student/study" 
+                    element={
+                      <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                        <StudyDashboard />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* Settings Page - All authenticated users */}
+                  <Route 
+                    path="/settings" 
+                    element={
+                      <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                        <SettingsPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>
             </TooltipProvider>
           </ErrorBoundary>
+          </SettingsProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

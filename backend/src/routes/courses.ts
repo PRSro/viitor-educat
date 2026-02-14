@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware, JwtPayload } from '../middleware/authMiddleware.js';
-import { teacherOnly, anyRole, adminOnly } from '../middleware/permissionMiddleware.js';
+import { teacherOnly, anyRole, adminOnly, requireRole } from '../middleware/permissionMiddleware.js';
 import { z } from 'zod';
 import { formatZodError } from '../validation/schemas.js';
 
@@ -399,6 +399,158 @@ export async function courseRoutes(server: FastifyInstance) {
         });
       }
       server.log.error(error, 'Error deleting course');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /courses/:courseId/students
+   * Get enrolled students for a course - Teacher/Admin only
+   * Returns list of students with their enrollment progress
+   */
+  server.get<{ Params: { courseId: string } }>('/:courseId/students', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request: FastifyRequest<{ Params: { courseId: string } }>, reply: FastifyReply) => {
+    try {
+      const { courseId } = request.params;
+      const currentUser = getCurrentUser(request);
+      
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        include: {
+          teacher: { select: { id: true } }
+        }
+      });
+
+      if (!course) {
+        return reply.status(404).send({ error: 'Course not found' });
+      }
+
+      // Check if user is the course teacher or admin
+      if (currentUser.role !== 'ADMIN' && course.teacherId !== currentUser.id) {
+        return reply.status(403).send({ 
+          error: 'Forbidden',
+          message: 'You can only view students in your own courses'
+        });
+      }
+
+      const enrollments = await prisma.enrollment.findMany({
+        where: { courseId },
+        include: {
+          student: {
+            select: {
+              id: true,
+              email: true,
+              createdAt: true,
+              studentProfile: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const students = enrollments.map(enrollment => ({
+        id: enrollment.id,
+        studentId: enrollment.student.id,
+        email: enrollment.student.email,
+        enrolledAt: enrollment.createdAt,
+        progress: enrollment.progress,
+        completedAt: enrollment.completedAt,
+        avatarUrl: enrollment.student.studentProfile?.avatarUrl,
+        bio: enrollment.student.studentProfile?.bio
+      }));
+
+      return { students };
+    } catch (error) {
+      server.log.error(error, 'Error fetching course students');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /courses/:courseId/analytics
+   * Get course analytics - Teacher/Admin only
+   * Returns enrollment stats, completion rates, progress metrics
+   */
+  server.get<{ Params: { courseId: string } }>('/:courseId/analytics', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request: FastifyRequest<{ Params: { courseId: string } }>, reply: FastifyReply) => {
+    try {
+      const { courseId } = request.params;
+      const currentUser = getCurrentUser(request);
+      
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        include: {
+          teacher: { select: { id: true } },
+          lessons: { select: { id: true, title: true } },
+          _count: { select: { enrollments: true, lessons: true } }
+        }
+      });
+
+      if (!course) {
+        return reply.status(404).send({ error: 'Course not found' });
+      }
+
+      // Check if user is the course teacher or admin
+      if (currentUser.role !== 'ADMIN' && course.teacherId !== currentUser.id) {
+        return reply.status(403).send({ 
+          error: 'Forbidden',
+          message: 'You can only view analytics for your own courses'
+        });
+      }
+
+      const enrollments = await prisma.enrollment.findMany({
+        where: { courseId },
+        select: { progress: true, completedAt: true, createdAt: true }
+      });
+
+      const totalEnrollments = enrollments.length;
+      const completedEnrollments = enrollments.filter(e => e.completedAt !== null).length;
+      const averageProgress = totalEnrollments > 0 
+        ? enrollments.reduce((sum, e) => sum + e.progress, 0) / totalEnrollments 
+        : 0;
+      
+      const completionRate = totalEnrollments > 0 
+        ? (completedEnrollments / totalEnrollments) * 100 
+        : 0;
+
+      // Calculate enrollment trend (last 7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const recentEnrollments = enrollments.filter(e => new Date(e.createdAt) >= sevenDaysAgo).length;
+
+      // Get lesson-level analytics
+      const lessons = await prisma.lesson.findMany({
+        where: { courseId },
+        include: {
+          _count: { select: { flashcards: true } }
+        }
+      });
+
+      return {
+        course: {
+          id: course.id,
+          title: course.title,
+          totalLessons: course._count.lessons,
+          totalEnrollments
+        },
+        enrollment: {
+          total: totalEnrollments,
+          completed: completedEnrollments,
+          inProgress: totalEnrollments - completedEnrollments,
+          recentEnrollments,
+          completionRate: Math.round(completionRate * 10) / 10,
+          averageProgress: Math.round(averageProgress * 10) / 10
+        },
+        lessons: lessons.map(l => ({
+          id: l.id,
+          title: l.title,
+          hasFlashcards: l._count.flashcards > 0
+        }))
+      };
+    } catch (error) {
+      server.log.error(error, 'Error fetching course analytics');
       throw error;
     }
   });

@@ -25,6 +25,7 @@ export interface Article {
   excerpt?: string;
   sourceUrl?: string;
   category: ArticleCategory;
+  tags: string[];
   author?: {
     id: string;
     email: string;
@@ -40,6 +41,7 @@ export interface ArticleListItem {
   slug: string;
   excerpt?: string;
   category: ArticleCategory;
+  tags: string[];
   sourceUrl?: string;
   createdAt: string;
   author?: {
@@ -60,6 +62,8 @@ export interface ArticlesResponse {
 
 export interface ArticleFilters {
   category?: ArticleCategory;
+  teacherId?: string;
+  tags?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -70,6 +74,7 @@ export interface CreateArticleData {
   content: string;
   excerpt?: string;
   category?: ArticleCategory;
+  tags?: string[];
   sourceUrl?: string;
 }
 
@@ -88,6 +93,8 @@ export async function getArticles(filters?: ArticleFilters): Promise<ArticlesRes
   const params = new URLSearchParams();
   
   if (filters?.category) params.set('category', filters.category);
+  if (filters?.teacherId) params.set('teacherId', filters.teacherId);
+  if (filters?.tags) params.set('tags', filters.tags);
   if (filters?.search) params.set('search', filters.search);
   if (filters?.page) params.set('page', filters.page.toString());
   if (filters?.limit) params.set('limit', filters.limit.toString());
@@ -103,6 +110,44 @@ export async function getArticles(filters?: ArticleFilters): Promise<ArticlesRes
 
   if (!response.ok) {
     throw new Error(data.error || 'Failed to fetch articles');
+  }
+
+  return data;
+}
+
+/**
+ * Get latest articles for news feed
+ */
+export async function getLatestArticles(): Promise<ArticleListItem[]> {
+  const response = await fetch(`${API_BASE_URL}/articles/latest`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch latest articles');
+  }
+
+  return data.articles;
+}
+
+/**
+ * Get articles by a specific teacher
+ */
+export async function getArticlesByTeacher(teacherId: string, page = 1, limit = 10): Promise<ArticlesResponse> {
+  const params = new URLSearchParams();
+  params.set('page', page.toString());
+  params.set('limit', limit.toString());
+  
+  const response = await fetch(`${API_BASE_URL}/articles/teacher/${teacherId}?${params}`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch teacher articles');
   }
 
   return data;

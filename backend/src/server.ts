@@ -9,6 +9,15 @@ import { courseRoutes } from './routes/courses.js';
 import { articleRoutes } from './routes/articles.js';
 import { profileRoutes } from './routes/profile.js';
 import { uploadRoutes } from './routes/upload.js';
+import { resourceRoutes } from './routes/resources.js';
+import { flashcardRoutes } from './routes/flashcards.js';
+import { settingsRoutes } from './routes/settings.js';
+import { searchRoutes } from './routes/search.js';
+import { quizRoutes } from './routes/quizzes.js';
+import { notificationRoutes } from './routes/notifications.js';
+import { bookmarkRoutes } from './routes/bookmarks.js';
+import { analyticsRoutes } from './routes/analytics.js';
+import { profileRoutes as studentProfileRoutes } from './routes/profiles.js';
 import { JWT_SECRET, PORT, ALLOWED_ORIGINS, isDevelopment, logConfig } from './config/env.js';
 import { 
   securityHeadersPlugin, 
@@ -81,6 +90,15 @@ await server.register(courseRoutes, { prefix: '/courses' });
 await server.register(articleRoutes, { prefix: '/articles' });
 await server.register(profileRoutes, { prefix: '/profile' });
 await server.register(uploadRoutes);
+await server.register(resourceRoutes, { prefix: '/resources' });
+await server.register(flashcardRoutes, { prefix: '/flashcards' });
+await server.register(settingsRoutes, { prefix: '/settings' });
+await server.register(searchRoutes, { prefix: '/search' });
+await server.register(quizRoutes, { prefix: '/quizzes' });
+await server.register(notificationRoutes, { prefix: '/notifications' });
+await server.register(bookmarkRoutes, { prefix: '/bookmarks' });
+await server.register(analyticsRoutes, { prefix: '/analytics' });
+await server.register(studentProfileRoutes, { prefix: '/profiles' });
 
 // Health check (public, but rate limited)
 server.get('/health', async () => ({ status: 'ok' }));

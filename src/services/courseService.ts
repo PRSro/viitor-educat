@@ -219,3 +219,70 @@ export async function deleteCourse(id: string): Promise<void> {
     throw new Error(data.error || data.message || 'Failed to delete course');
   }
 }
+
+export interface CourseStudent {
+  id: string;
+  studentId: string;
+  email: string;
+  enrolledAt: string;
+  progress: number;
+  completedAt: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+}
+
+export interface CourseAnalytics {
+  course: {
+    id: string;
+    title: string;
+    totalLessons: number;
+    totalEnrollments: number;
+  };
+  enrollment: {
+    total: number;
+    completed: number;
+    inProgress: number;
+    recentEnrollments: number;
+    completionRate: number;
+    averageProgress: number;
+  };
+  lessons: {
+    id: string;
+    title: string;
+    hasFlashcards: boolean;
+  }[];
+}
+
+/**
+ * Get enrolled students for a course (Teacher only)
+ */
+export async function getCourseStudents(courseId: string): Promise<CourseStudent[]> {
+  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/students`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch course students');
+  }
+
+  return data.students;
+}
+
+/**
+ * Get course analytics (Teacher only)
+ */
+export async function getCourseAnalytics(courseId: string): Promise<CourseAnalytics> {
+  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/analytics`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch course analytics');
+  }
+
+  return data;
+}

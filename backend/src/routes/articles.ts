@@ -28,6 +28,7 @@ const createArticleSchema = z.object({
   content: z.string().trim().min(1, 'Content is required').max(50000),
   excerpt: z.string().trim().max(500).optional(),
   category: articleCategoryEnum.optional().default('GENERAL'),
+  tags: z.array(z.string()).optional().default([]),
   sourceUrl: z.string().url().optional().nullable(),
 });
 
@@ -41,6 +42,8 @@ const importArticleSchema = z.object({
 
 const articleQuerySchema = z.object({
   category: articleCategoryEnum.optional(),
+  teacherId: z.string().optional(),
+  tags: z.string().optional(),
   search: z.string().max(100).optional(),
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(50).optional().default(10),
@@ -159,12 +162,21 @@ export async function articleRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const query = articleQuerySchema.parse(request.query);
-      const { category, search, page, limit } = query;
+      const { category, teacherId, tags, search, page, limit } = query;
       
       const where: any = { published: true };
       
       if (category) {
         where.category = category;
+      }
+      
+      if (teacherId) {
+        where.authorId = teacherId;
+      }
+      
+      if (tags) {
+        const tagArray = tags.split(',').map(t => t.trim());
+        where.tags = { hasSome: tagArray };
       }
       
       if (search) {
@@ -183,6 +195,7 @@ export async function articleRoutes(server: FastifyInstance) {
             slug: true,
             excerpt: true,
             category: true,
+            tags: true,
             sourceUrl: true,
             createdAt: true,
             author: { select: { id: true, email: true } }
@@ -210,6 +223,80 @@ export async function articleRoutes(server: FastifyInstance) {
           message: formatZodError(error)
         });
       }
+      throw error;
+    }
+  });
+
+  /**
+   * GET /articles/latest
+   * Get latest articles for news feed (max 10)
+   */
+  server.get('/latest', {
+    preHandler: [authMiddleware, anyRole]
+  }, async () => {
+    const articles = await prisma.article.findMany({
+      where: { published: true },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        category: true,
+        tags: true,
+        sourceUrl: true,
+        createdAt: true,
+        author: { select: { id: true, email: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10
+    });
+    
+    return { articles };
+  });
+
+  /**
+   * GET /articles/teacher/:teacherId
+   * Get articles by a specific teacher
+   */
+  server.get<{ Params: { teacherId: string }; Querystring: { page?: string; limit?: string } }>('/teacher/:teacherId', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request, reply) => {
+    try {
+      const { teacherId } = request.params;
+      const page = request.query.page ? parseInt(request.query.page) : 1;
+      const limit = request.query.limit ? parseInt(request.query.limit) : 10;
+        
+      const [articles, total] = await Promise.all([
+        prisma.article.findMany({
+          where: { published: true, authorId: teacherId },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            excerpt: true,
+            category: true,
+            tags: true,
+            sourceUrl: true,
+            createdAt: true,
+            author: { select: { id: true, email: true } }
+          },
+          orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit
+        }),
+        prisma.article.count({ where: { published: true, authorId: teacherId } })
+      ]);
+      
+      return { 
+        articles,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      };
+    } catch (error) {
       throw error;
     }
   });

@@ -275,4 +275,126 @@ export async function lessonRoutes(server: FastifyInstance) {
       throw error;
     }
   });
+
+  /**
+   * POST /lessons/:id/complete
+   * Mark a lesson as completed and update enrollment progress
+   * Accessible by: STUDENT (enrolled in the course)
+   */
+  server.post<{ Params: { id: string } }>('/:id/complete', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const studentId = getCurrentUser(request).id;
+
+      const lesson = await prisma.lesson.findUnique({
+        where: { id },
+        include: { course: true }
+      });
+
+      if (!lesson || !lesson.course) {
+        return reply.status(404).send({ error: 'Lesson not found' });
+      }
+
+      // Check if student is enrolled in the course
+      const enrollment = await prisma.enrollment.findUnique({
+        where: {
+          studentId_courseId: {
+            studentId,
+            courseId: lesson.courseId!
+          }
+        }
+      });
+
+      if (!enrollment) {
+        return reply.status(403).send({ 
+          error: 'Forbidden',
+          message: 'You must be enrolled in this course to mark lessons as complete'
+        });
+      }
+
+      // Get total lessons in the course
+      const totalLessons = await prisma.lesson.count({
+        where: { courseId: lesson.courseId }
+      });
+
+      // Calculate new progress
+      const progressIncrement = totalLessons > 0 ? 100 / totalLessons : 0;
+      let newProgress = Math.min(100, enrollment.progress + progressIncrement);
+      
+      // Mark as completed if progress reaches 100%
+      const completedAt = newProgress >= 100 ? new Date() : null;
+
+      // Update enrollment
+      const updatedEnrollment = await prisma.enrollment.update({
+        where: { id: enrollment.id },
+        data: {
+          progress: newProgress,
+          completedAt
+        }
+      });
+
+      return { 
+        message: 'Lesson marked as complete',
+        progress: updatedEnrollment.progress,
+        completedAt: updatedEnrollment.completedAt
+      };
+    } catch (error) {
+      server.log.error(error, 'Error marking lesson complete');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /lessons/:id/progress
+   * Get lesson completion status for current user
+   * Accessible by: STUDENT (enrolled in the course)
+   */
+  server.get<{ Params: { id: string } }>('/:id/progress', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const studentId = getCurrentUser(request).id;
+
+      const lesson = await prisma.lesson.findUnique({
+        where: { id },
+        include: { course: true }
+      });
+
+      if (!lesson || !lesson.course) {
+        return reply.status(404).send({ error: 'Lesson not found' });
+      }
+
+      // Check if student is enrolled in the course
+      const enrollment = await prisma.enrollment.findUnique({
+        where: {
+          studentId_courseId: {
+            studentId,
+            courseId: lesson.courseId!
+          }
+        }
+      });
+
+      if (!enrollment) {
+        return reply.status(403).send({ 
+          error: 'Forbidden',
+          message: 'You must be enrolled in this course to view progress'
+        });
+      }
+
+      return {
+        lessonId: lesson.id,
+        lessonTitle: lesson.title,
+        courseId: lesson.courseId,
+        progress: enrollment.progress,
+        completedAt: enrollment.completedAt,
+        isCompleted: enrollment.progress >= 100
+      };
+    } catch (error) {
+      server.log.error(error, 'Error fetching lesson progress');
+      throw error;
+    }
+  });
 }

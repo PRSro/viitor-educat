@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,11 +25,12 @@ import {
   updateLesson,
   deleteLesson,
 } from '@/services/lessonService';
-import { getCourses, Course, createCourse, updateCourse, deleteCourse, getTeacherCourses } from '@/services/courseService';
+import { getCourses, Course, createCourse, updateCourse, deleteCourse, getTeacherCourses, getCourseAnalytics, getCourseStudents, CourseAnalytics, CourseStudent } from '@/services/courseService';
 import { getTeacherArticles, uploadArticleFile, uploadLessonMaterial, TeacherLesson } from '@/services/authService';
 import { ArticleListItem, ArticleCategory, createArticle, getArticles, categoryLabels } from '@/services/articleService';
 import { sanitizeInput, containsXssPatterns } from '@/lib/sanitize';
 import { lessonSchema, getFirstError } from '@/lib/validation';
+import { NotificationBell } from '@/components/NotificationBell';
 import { 
   BookOpen, 
   Plus, 
@@ -37,8 +39,6 @@ import {
   ExternalLink, 
   Loader2, 
   User, 
-  Moon, 
-  Sun, 
   GraduationCap,
   FileText,
   Eye,
@@ -57,18 +57,23 @@ import {
   Upload,
   File,
   FileStack,
-  X
+  X,
+  Settings,
+  TrendingUp,
+  BarChart3,
+  Target,
+  Activity
 } from 'lucide-react';
 
 export default function TeacherDashboard() {
   const { user, logout } = useAuth();
+  const { theme } = useSettings();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [isDark, setIsDark] = useState(false);
 
   const [courseBuilderStep, setCourseBuilderStep] = useState(1);
   const [courseBuilderData, setCourseBuilderData] = useState({
@@ -102,22 +107,12 @@ export default function TeacherDashboard() {
   const [articleSaving, setArticleSaving] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    setIsDark(isDarkMode);
-  }, []);
-
-  const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    if (newIsDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
+  // Analytics state
+  const [analytics, setAnalytics] = useState<CourseAnalytics | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [students, setStudents] = useState<CourseStudent[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -374,6 +369,42 @@ export default function TeacherDashboard() {
     }
   }
 
+  async function fetchCourseAnalytics(courseId: string) {
+    if (!courseId) return;
+    
+    try {
+      setLoadingAnalytics(true);
+      const data = await getCourseAnalytics(courseId);
+      setAnalytics(data);
+      setSelectedCourseId(courseId);
+    } catch (err) {
+      console.error('Failed to fetch analytics:', err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }
+
+  async function fetchCourseStudents(courseId: string) {
+    if (!courseId) return;
+    
+    try {
+      setLoadingStudents(true);
+      const data = await getCourseStudents(courseId);
+      setStudents(data);
+    } catch (err) {
+      console.error('Failed to fetch students:', err);
+    } finally {
+      setLoadingStudents(false);
+    }
+  }
+
+  async function handleCourseSelect(courseId: string) {
+    await Promise.all([
+      fetchCourseAnalytics(courseId),
+      fetchCourseStudents(courseId)
+    ]);
+  }
+
   function openArticleForm() {
     setArticleFormData({ title: '', content: '', excerpt: '', category: 'GENERAL', file: null });
     setFileError(null);
@@ -392,17 +423,25 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 left-10 w-96 h-96 bg-sky-400/5 rounded-full blur-3xl" />
+      </div>
+
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-card/30 backdrop-blur-md relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <div className="p-2 rounded-lg bg-primary/10">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-sm border border-primary/20">
                 <GraduationCap className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">Teacher Dashboard</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                  Teacher Dashboard
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   {user?.email} ({user?.role})
                 </p>
@@ -410,26 +449,30 @@ export default function TeacherDashboard() {
             </div>
             <div className="flex items-center gap-2">
               <Link to="/">
-                <Button variant="ghost" size="sm">Home</Button>
+                <Button variant="ghost" size="sm" className="hover:bg-primary/10">Home</Button>
               </Link>
               {user?.id && (
                 <Link to={`/teachers/${user.id}`}>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="hover:bg-primary/10">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     My Public Profile
                   </Button>
                 </Link>
               )}
+              <NotificationBell />
               <Link to="/profile">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="aero-button">
                   <User className="h-4 w-4 mr-2" />
                   Profil
                 </Button>
               </Link>
-              <Button variant="outline" size="icon" onClick={toggleTheme}>
-                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-              <Button variant="outline" size="sm" onClick={logout}>
+              <Link to="/settings">
+                <Button variant="outline" size="sm" className="aero-button">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Setări
+                </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={logout} className="hover:bg-destructive/10 hover:text-destructive">
                 Logout
               </Button>
             </div>
@@ -437,7 +480,7 @@ export default function TeacherDashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Error Alert */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
@@ -458,12 +501,13 @@ export default function TeacherDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-xl grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="courses">Courses</TabsTrigger>
-            <TabsTrigger value="lessons">Lessons</TabsTrigger>
-            <TabsTrigger value="articles">Articles</TabsTrigger>
-            <TabsTrigger value="builder">Builder</TabsTrigger>
+          <TabsList className="grid w-full max-w-xl grid-cols-6 aero-glass p-1">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-primary/20">Overview</TabsTrigger>
+            <TabsTrigger value="courses" className="data-[state=active]:bg-primary/20">Courses</TabsTrigger>
+            <TabsTrigger value="lessons" className="data-[state=active]:bg-primary/20">Lessons</TabsTrigger>
+            <TabsTrigger value="articles" className="data-[state=active]:bg-primary/20">Articles</TabsTrigger>
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary/20">Analytics</TabsTrigger>
+            <TabsTrigger value="builder" className="data-[state=active]:bg-primary/20">Builder</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -741,6 +785,145 @@ export default function TeacherDashboard() {
                   </Card>
                 ))}
               </div>
+            )}
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Course Analytics</h2>
+              <p className="text-muted-foreground">View student progress and course performance</p>
+            </div>
+
+            {/* Course Selector */}
+            <Card className="aero-glass">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Select Course
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <select
+                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+                  value={selectedCourseId}
+                  onChange={(e) => handleCourseSelect(e.target.value)}
+                >
+                  <option value="">Select a course...</option>
+                  {publishedCourses.map(course => (
+                    <option key={course.id} value={course.id}>
+                      {course.title} ({course._count?.enrollments || 0} students)
+                    </option>
+                  ))}
+                </select>
+              </CardContent>
+            </Card>
+
+            {loadingAnalytics || loadingStudents ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : analytics ? (
+              <>
+                {/* Analytics Cards */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Card className="aero-glass">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total Students</p>
+                          <p className="text-3xl font-bold">{analytics.enrollment.total}</p>
+                        </div>
+                        <Users className="h-8 w-8 text-primary" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="aero-glass">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Completed</p>
+                          <p className="text-3xl font-bold">{analytics.enrollment.completed}</p>
+                        </div>
+                        <CheckCircle2 className="h-8 w-8 text-green-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="aero-glass">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Avg. Progress</p>
+                          <p className="text-3xl font-bold">{analytics.enrollment.averageProgress}%</p>
+                        </div>
+                        <TrendingUp className="h-8 w-8 text-blue-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="aero-glass">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Completion Rate</p>
+                          <p className="text-3xl font-bold">{analytics.enrollment.completionRate}%</p>
+                        </div>
+                        <Target className="h-8 w-8 text-purple-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Student List */}
+                <Card className="aero-glass">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Enrolled Students ({students.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {students.length === 0 ? (
+                      <p className="text-muted-foreground text-center py-4">No students enrolled yet</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {students.map(student => (
+                          <div key={student.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                {student.avatarUrl ? (
+                                  <img src={student.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                  <User className="h-5 w-5 text-primary" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium">{student.email}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Enrolled {new Date(student.enrolledAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{Math.round(student.progress)}%</p>
+                              {student.completedAt && (
+                                <p className="text-xs text-green-500">Completed</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <Card className="p-12 text-center">
+                <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Select a course</h3>
+                <p className="text-muted-foreground">
+                  Choose a course above to view student analytics
+                </p>
+              </Card>
             )}
           </TabsContent>
 

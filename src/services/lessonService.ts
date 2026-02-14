@@ -133,3 +133,53 @@ export async function deleteLesson(id: string): Promise<void> {
     throw new Error(data.error || data.message || 'Failed to delete lesson');
   }
 }
+
+export interface LessonProgress {
+  lessonId: string;
+  lessonTitle: string;
+  courseId: string;
+  progress: number;
+  completedAt: string | null;
+  isCompleted: boolean;
+}
+
+export interface LessonCompleteResponse {
+  message: string;
+  progress: number;
+  completedAt: string | null;
+}
+
+/**
+ * Mark a lesson as complete (Student enrolled in course)
+ */
+export async function completeLesson(lessonId: string): Promise<LessonCompleteResponse> {
+  const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}/complete`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to complete lesson');
+  }
+
+  return data;
+}
+
+/**
+ * Get lesson progress for current user (Student enrolled in course)
+ */
+export async function getLessonProgress(lessonId: string): Promise<LessonProgress> {
+  const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}/progress`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Failed to fetch lesson progress');
+  }
+
+  return data;
+}
