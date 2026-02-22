@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["id", "title", "slug", "content", "authorId", "createdAt"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique article identifier"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "content": {
+      "type": "string",
+      "description": "HTML content of the article"
+    },
+    "excerpt": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "sourceUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["MATH", "SCIENCE", "LITERATURE", "HISTORY", "COMPUTER_SCIENCE", "ARTS", "LANGUAGES", "GENERAL"]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authorId": {
+      "type": "string"
+    },
+    "published": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "published", "archived"],
+      "default": "draft"
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["heading", "paragraph", "image", "link", "list", "code", "quote"]
+          },
+          "level": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string"
+          },
+          "src": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "wordCount": {
+          "type": "number"
+        },
+        "readingTime": {
+          "type": "number"
+        },
+        "lastModified": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "version": {
+          "type": "number"
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

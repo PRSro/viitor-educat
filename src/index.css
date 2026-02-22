@@ -898,6 +898,19 @@
     animation: glowPulse 3s ease-in-out infinite;
   }
 
+  /* Parallax utilities */
+  .animate-parallax-slow {
+    animation: parallaxSlow 8s ease-in-out infinite;
+  }
+  
+  .animate-parallax-medium {
+    animation: parallaxMedium 6s ease-in-out infinite;
+  }
+  
+  .animate-parallax-fast {
+    animation: parallaxFast 4s ease-in-out infinite;
+  }
+
   @keyframes fadeUp {
     from {
       opacity: 0;
@@ -944,6 +957,33 @@
     }
     50% {
       box-shadow: 0 0 40px hsl(165 70% 55% / 0.5);
+    }
+  }
+
+  @keyframes parallaxSlow {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-30px) scale(1.02);
+    }
+  }
+
+  @keyframes parallaxMedium {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-20px) scale(1.01);
+    }
+  }
+
+  @keyframes parallaxFast {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
     }
   }
 
@@ -1002,5 +1042,49 @@
   
   .text-glow-white {
     text-shadow: 0 0 30px hsl(0 0% 100% / 0.5);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     PARALLAX LAYER UTILITIES
+  ═══════════════════════════════════════════════════════════════ */
+  .parallax-layer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    will-change: transform;
+  }
+
+  .parallax-back {
+    z-index: 0;
+  }
+
+  .parallax-mid {
+    z-index: 1;
+  }
+
+  .parallax-front {
+    z-index: 2;
+  }
+
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .translate-z-10 {
+    transform: translateZ(10px);
+  }
+
+  .translate-z-20 {
+    transform: translateZ(20px);
+  }
+
+  .translate-z-30 {
+    transform: translateZ(30px);
   }
 }

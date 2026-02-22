@@ -13,6 +13,14 @@ enum Role {
   ADMIN
 }
 
+enum Status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  PRIVATE
+  PUBLIC
+}
+
 enum ArticleCategory {
   MATH
   SCIENCE
@@ -65,6 +73,34 @@ model User {
   bookmarks        Bookmark[]
   quizAttempts     QuizAttempt[]
   interactions     UserInteraction[]
+  lessonCompletions LessonCompletion[]
+}
+
+model Lesson {
+  id                String            @id @default(cuid())
+  title             String
+  description       String?
+  content           String
+  status            Status           @default(PRIVATE)
+  order             Int               @default(0)
+  
+  courseId          String?
+  course            Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  externalResources ExternalResource[]
+  flashcards        Flashcard[]
+  
+  teacherId         String
+  teacher           User              @relation("TeacherLessons", fields: [teacherId], references: [id], onDelete: Cascade)
+  
+  completions       LessonCompletion[]
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([teacherId])
+  @@index([courseId])
+  @@index([status])
 }
 
 model Course {
@@ -74,34 +110,45 @@ model Course {
   description       String?
   imageUrl          String?
   level             CourseLevel        @default(BEGINNER)
+  category          String?            @default("GENERAL")
+  tags              String[]           @default([])
+  
   teacherId         String
-  teacher           User               @relation("TeacherCourses", fields: [teacherId], references: [id])
+  teacher           User               @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  
   lessons           Lesson[]
   enrollments       Enrollment[]
   externalResources ExternalResource[]
-  flashcards        Flashcard[]
   quizzes           Quiz[]
+  
   published         Boolean            @default(false)
+  status            Status            @default(DRAFT)
   enrollmentLimit   Int?
   waitlistEnabled   Boolean            @default(false)
+  
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+
+  @@index([teacherId])
+  @@index([published, status])
+  @@index([slug])
+  @@index([category])
 }
 
-model Lesson {
-  id                   String            @id @default(cuid())
-  title                String
-  description          String?
-  content              String
-  teacherId            String
-  teacher              User              @relation("TeacherLessons", fields: [teacherId], references: [id])
-  courseId             String?
-  course               Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  order                Int               @default(0)
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  externalResources    ExternalResource[]
-  flashcards           Flashcard[]
+// Remvoed CourseLesson model
+
+model LessonCompletion {
+  id              String        @id @default(cuid())
+  
+  lessonId        String
+  lesson          Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  studentId       String
+  student         User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  completedAt     DateTime      @default(now())
+
+  @@unique([lessonId, studentId])
 }
 
 model TeacherProfile {
@@ -134,15 +181,17 @@ model StudentProfile {
 }
 
 model Enrollment {
-  id            String     @id @default(cuid())
-  studentId     String
-  student       User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  courseId      String
-  course        Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress      Float      @default(0)
-  completedAt   DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                   String     @id @default(cuid())
+  studentId            String
+  student              User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId             String
+  course               Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress             Float      @default(0)
+  completedLessonsCount Int       @default(0)
+  lastAccessedLessonId String?    // Changed from lastAccessedCourseLessonId
+  completedAt          DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 
   @@unique([studentId, courseId])
 }
@@ -156,35 +205,41 @@ model Article {
   sourceUrl   String?
   category    ArticleCategory @default(GENERAL)
   tags        String[]        @default([])
-  authorId    String?
-  author      User?           @relation("AuthorArticles", fields: [authorId], references: [id])
-  published   Boolean         @default(true)
+  authorId    String
+  author      User            @relation("AuthorArticles", fields: [authorId], references: [id], onDelete: Cascade)
+  published   Boolean         @default(false)
+  status      Status          @default(DRAFT)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  externalResources ExternalResource[]
+
+  @@index([authorId])
+  @@index([published, status])
+  @@index([category])
+  @@index([title])
 }
 
 model ExternalResource {
-  id          String       @id @default(cuid())
+  id          String   @id @default(cuid())
   type        ResourceType
   url         String
   title       String
   description String?
-  lessonId    String?
-  lesson      Lesson?      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  courseId    String?
-  course      Course?      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  courses     Course[]
+  lessons     Lesson[]
+  articles    Article[]
+  
   teacherId   String
-  teacher     User         @relation(fields: [teacherId], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  teacher     User     @relation(fields: [teacherId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Flashcard {
   id          String   @id @default(cuid())
   lessonId    String?
-  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  courseId    String?
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   teacherId   String
   teacher     User     @relation(fields: [teacherId], references: [id])
   question    String

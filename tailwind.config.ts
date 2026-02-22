@@ -159,6 +159,27 @@ export default {
           "0%": { transform: "scale(1)", opacity: "0.5" },
           "100%": { transform: "scale(2)", opacity: "0" },
         },
+        // Parallax keyframes
+        "parallax-slow": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-30px)" },
+        },
+        "parallax-medium": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-50px)" },
+        },
+        "parallax-fast": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        "float-rotate": {
+          "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+          "50%": { transform: "translateY(-20px) rotate(5deg)" },
+        },
+        "wave": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -174,6 +195,12 @@ export default {
         "glow-pulse": "glow-pulse 3s ease-in-out infinite",
         shimmer: "shimmer 3s linear infinite",
         ripple: "ripple 3s ease-out infinite",
+        // Parallax animations
+        "parallax-slow": "parallax-slow 8s ease-in-out infinite",
+        "parallax-medium": "parallax-medium 6s ease-in-out infinite",
+        "parallax-fast": "parallax-fast 4s ease-in-out infinite",
+        "float-rotate": "float-rotate 8s ease-in-out infinite",
+        wave: "wave 3s ease-in-out infinite",
       },
       boxShadow: {
         glow: "0 0 50px hsl(165 80% 55% / 0.4)",
@@ -183,6 +210,10 @@ export default {
         "card-hover": "0 8px 40px hsl(165 50% 35% / 0.15)",
         aero: "0 8px 32px hsl(165 60% 45% / 0.15), 0 2px 8px hsl(165 50% 50% / 0.1), inset 0 1px 0 hsl(0 0% 100% / 0.7)",
         "aero-strong": "0 12px 48px hsl(165 60% 40% / 0.2), 0 4px 16px hsl(165 50% 45% / 0.15), inset 0 2px 0 hsl(0 0% 100% / 0.8)",
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
       backdropBlur: {
         xs: "2px",

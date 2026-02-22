@@ -1,5 +1,6 @@
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 interface ThemeToggleProps {
@@ -7,25 +8,31 @@ interface ThemeToggleProps {
 }
 
 export const ThemeToggle = ({ isScrolled = false }: ThemeToggleProps) => {
-  const [isDark, setIsDark] = useState(false);
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains("dark");
-    setIsDark(isDarkMode);
+    setMounted(true);
   }, []);
 
+  const isDark = resolvedTheme === "dark";
+
   const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    
-    if (newIsDark) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
+    const newTheme = isDark ? "light" : "dark";
+    setTheme(newTheme);
   };
+
+  if (!mounted) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className={`rounded-xl ${isScrolled ? "text-foreground" : "text-white"}`}
+      >
+        <Sun className="h-5 w-5" />
+      </Button>
+    );
+  }
 
   return (
     <Button
@@ -35,8 +42,11 @@ export const ThemeToggle = ({ isScrolled = false }: ThemeToggleProps) => {
       className={`rounded-xl transition-all ${
         isScrolled
           ? "text-foreground hover:bg-accent/10"
-          : "text-white hover:bg-white/20"
+          : isDark 
+            ? "text-white/80 hover:bg-white/20" 
+            : "text-white hover:bg-white/20"
       }`}
+      aria-label="Toggle theme"
     >
       {isDark ? (
         <Sun className="h-5 w-5" />
