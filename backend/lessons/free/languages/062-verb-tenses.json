@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd67005rwe8oob2o1ppd",
+  "courseId": "cmm10bd67005owe8onkp1utf4",
+  "courseTitle": "English Grammar Essentials",
+  "title": "Verb Tenses",
+  "description": "Past, present, future",
+  "content": "# Verb Tenses\n\nEnglish has 12 tenses combining simple, continuous, perfect, and perfect continuous with past, present, future.\n\n## Resources\n\n- [Resource 1](https://www.englishpage.com/verbpage/verbtenseintro.html)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.englishpage.com/verbpage/verbtenseintro.html"
+  ],
+  "createdAt": "2026-02-24T19:36:57.967Z"
+}

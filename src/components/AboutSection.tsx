@@ -63,7 +63,7 @@ export const AboutSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center mb-20">
           {/* Image with Aero Glass Overlays */}
           <div className="relative">
-            <div className="aero-glass p-2 rounded-3xl">
+            <div className="aero-glass aero-glass-img p-2 rounded-3xl">
               <img
                 src={studentsLibrary}
                 alt="Elevi în biblioteca colegiului"
@@ -116,7 +116,7 @@ export const AboutSection = () => {
               {highlights.map((highlight, index) => (
                 <div 
                   key={index} 
-                  className="flex items-start gap-3 aero-glass p-3 hover-lift hover-glow cursor-default"
+                  className="flex items-start gap-3 aero-glass p-3 hover-lift hover-glow cursor-default soft-shadow"
                 >
                   <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent to-teal-500 flex items-center justify-center shrink-0 mt-0.5 relative overflow-hidden">
                     <CheckCircle2 className="w-4 h-4 text-white" />
@@ -134,7 +134,7 @@ export const AboutSection = () => {
           {values.map((value) => (
             <div
               key={value.title}
-              className="aero-glass p-8 text-center group hover-lift hover-glow cursor-default"
+              className="aero-glass p-8 text-center group hover-lift hover-glow cursor-default soft-shadow"
             >
               <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-accent/20 to-teal-500/20 flex items-center justify-center group-hover:from-accent group-hover:to-teal-500 transition-all duration-300 relative overflow-hidden">
                 <value.icon className="w-8 h-8 text-accent group-hover:text-white transition-colors" />

@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd4f002cwe8ohyykqg08",
+  "courseId": "cmm10bd4f002awe8oecpi2qiz",
+  "courseTitle": "Shakespeare's Greatest Works",
+  "title": "Hamlet",
+  "description": "To be or not to be",
+  "content": "# Hamlet\n\nHamlet explores themes of revenge, mortality, and indecision. Prince Hamlet must avenge his father's murder.\n\n## Resources\n\n- [Resource 1](https://www.gutenberg.org/ebooks/1524)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.gutenberg.org/ebooks/1524"
+  ],
+  "createdAt": "2026-02-24T19:36:57.904Z"
+}

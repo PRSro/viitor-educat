@@ -63,11 +63,17 @@ export async function profileRoutes(server: FastifyInstance) {
       const validated = updateProfileSchema.parse(request.body);
       const userId = getCurrentUser(request).id;
 
+      // Get existing profile to get schoolId
+      const existingProfile = await prisma.teacherProfile.findUnique({
+        where: { userId }
+      });
+
       const profile = await prisma.teacherProfile.upsert({
         where: { userId },
         update: validated,
         create: {
           userId,
+          schoolId: existingProfile?.schoolId || (await prisma.school.findFirst())?.id || '',
           ...validated
         }
       });

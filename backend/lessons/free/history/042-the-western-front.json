@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqggi0036sls5fw229z2r",
+  "courseId": "cmm0zqggh0033sls52iicxz47",
+  "courseTitle": "World War I & II",
+  "title": "The Western Front",
+  "description": "Trench warfare",
+  "content": "# The Western Front\n\nThe Western Front stretched from Belgium to Switzerland. Soldiers endured horrific conditions in trenches.\n\n## Resources\n\n- [Resource 1](https://www.iwm.org.uk/history/first-world-war)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.iwm.org.uk/history/first-world-war"
+  ],
+  "createdAt": "2026-02-24T19:20:42.450Z"
+}

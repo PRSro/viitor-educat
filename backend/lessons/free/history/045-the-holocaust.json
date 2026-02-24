@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqggi0039sls5f7sqxgdb",
+  "courseId": "cmm0zqggh0033sls52iicxz47",
+  "courseTitle": "World War I & II",
+  "title": "The Holocaust",
+  "description": "Genocide and remembrance",
+  "content": "# The Holocaust\n\nThe Nazi regime systematically murdered six million Jews and millions of others during the Holocaust.\n\n## Resources\n\n- [Resource 1](https://www.ushmm.org/)",
+  "order": 4,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.ushmm.org/"
+  ],
+  "createdAt": "2026-02-24T19:20:42.450Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqghh0051sls5nys0ltlf",
+  "courseId": "cmm0zqghh004xsls55nr8xl9i",
+  "courseTitle": "Music Theory Basics",
+  "title": "Chords and Harmony",
+  "description": "Building chords",
+  "content": "# Chords and Harmony\n\nChords are three or more notes played together. Major chords sound happy; minor chords sound sad.\n\n## Resources\n\n- [Resource 1](https://www.musictheory.net/lessons/40)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.musictheory.net/lessons/40"
+  ],
+  "createdAt": "2026-02-24T19:20:42.485Z"
+}

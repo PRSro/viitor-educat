@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqghx0067sls5r1hn82eh",
+  "courseId": "cmm0zqghx0063sls5ik49idfo",
+  "courseTitle": "Romanian Language Basics",
+  "title": "Nouns and Articles",
+  "description": "Gender and definite articles",
+  "content": "# Nouns and Articles\n\nRomanian nouns have three genders. The definite article is attached as a suffix: casa → the house.\n\n## Resources\n\n- [Resource 1](https://www.romanianpod101.com/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.romanianpod101.com/"
+  ],
+  "createdAt": "2026-02-24T19:20:42.502Z"
+}

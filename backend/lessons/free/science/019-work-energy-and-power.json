@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5qe00168fnu16ta9kiy",
+  "courseId": "cmlzhz5qe00128fnu5abnhujr",
+  "courseTitle": "Physics: Mechanics",
+  "title": "Work, Energy, and Power",
+  "description": "Conservation of energy",
+  "content": "# Work, Energy, and Power\n\nWork is force times displacement. Kinetic energy is ½mv². The work-energy theorem connects them.\n\n## Resources\n\n- [Resource 1](https://openstax.org/books/college-physics-2e/pages/7-1-work-the-scientific-definition)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://openstax.org/books/college-physics-2e/pages/7-1-work-the-scientific-definition"
+  ],
+  "createdAt": "2026-02-23T18:15:49.190Z"
+}

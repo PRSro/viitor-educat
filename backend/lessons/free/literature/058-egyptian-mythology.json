@@ -1,0 +1,16 @@
+{
+  "id": "cmm1068kf002iu07km0zsdiln",
+  "courseId": "cmm1068kf002eu07kvldnw1dq",
+  "courseTitle": "World Mythology",
+  "title": "Egyptian Mythology",
+  "description": "Ra, Isis, and the afterlife",
+  "content": "# Egyptian Mythology\n\nEgyptian mythology is deeply connected to the afterlife, with gods like Osiris, Isis, and Ra.\n\n## Resources\n\n- [Resource 1](https://www.britannica.com/topic/Egyptian-mythology)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.britannica.com/topic/Egyptian-mythology"
+  ],
+  "createdAt": "2026-02-24T19:32:58.719Z"
+}

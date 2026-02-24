@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqgfv001xsls5s0y3czf0",
+  "courseId": "cmm0zqgfv001vsls5zxxx30l9",
+  "courseTitle": "Astronomy: The Solar System",
+  "title": "The Sun and Stars",
+  "description": "Our star",
+  "content": "# The Sun and Stars\n\nThe Sun is a G-type main-sequence star. It produces energy through nuclear fusion of hydrogen into helium.\n\n## Resources\n\n- [Resource 1](https://science.nasa.gov/sun/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://science.nasa.gov/sun/"
+  ],
+  "createdAt": "2026-02-24T19:20:42.427Z"
+}

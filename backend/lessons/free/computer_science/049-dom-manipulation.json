@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqgh6004bsls50pj4ssce",
+  "courseId": "cmm0zqgh60047sls53c2sl8m7",
+  "courseTitle": "JavaScript Essentials",
+  "title": "DOM Manipulation",
+  "description": "Interacting with web pages",
+  "content": "# DOM Manipulation\n\nThe DOM represents the page structure. Use document.querySelector() and event listeners to make pages interactive.\n\n## Resources\n\n- [Resource 1](https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model"
+  ],
+  "createdAt": "2026-02-24T19:20:42.474Z"
+}

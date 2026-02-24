@@ -1,0 +1,16 @@
+{
+  "id": "cmm1068m5005pu07k0nvbcohw",
+  "courseId": "cmm1068m5005lu07kei4gpkde",
+  "courseTitle": "English Grammar Essentials",
+  "title": "Sentence Structure",
+  "description": "Building correct sentences",
+  "content": "# Sentence Structure\n\nBasic sentence: Subject + Verb + Object. Compound and complex sentences use conjunctions and clauses.\n\n## Resources\n\n- [Resource 1](https://owl.purdue.edu/owl/general_writing/mechanics/sentence_structure.html)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://owl.purdue.edu/owl/general_writing/mechanics/sentence_structure.html"
+  ],
+  "createdAt": "2026-02-24T19:32:58.781Z"
+}

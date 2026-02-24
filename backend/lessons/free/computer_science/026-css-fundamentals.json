@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5sl00408fnui0uwqhk8",
+  "courseId": "cmlzhz5sl003x8fnu97z2yp5y",
+  "courseTitle": "Web Development with HTML & CSS",
+  "title": "CSS Fundamentals",
+  "description": "Styling web pages",
+  "content": "# CSS Fundamentals\n\nCSS controls visual presentation: colors, fonts, layout, spacing, and responsive design.\n\n## Resources\n\n- [Resource 1](https://developer.mozilla.org/en-US/docs/Learn/CSS)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://developer.mozilla.org/en-US/docs/Learn/CSS"
+  ],
+  "createdAt": "2026-02-23T18:15:49.269Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcef8001hm2p3m4gvl5wm",
+  "courseId": "cmlzhcef8001fm2p3ncdh9dtt",
+  "courseTitle": "Biology: Cell Biology",
+  "title": "Cell Theory",
+  "description": "Foundations of cell biology",
+  "content": "# Cell Theory\n\nAll living things are made of cells. Cells are the basic unit of life and come from pre-existing cells.\n\n## Resources\n\n- [Resource 1](https://openstax.org/books/biology-2e/pages/4-1-studying-cells)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://openstax.org/books/biology-2e/pages/4-1-studying-cells"
+  ],
+  "createdAt": "2026-02-23T17:58:07.364Z"
+}

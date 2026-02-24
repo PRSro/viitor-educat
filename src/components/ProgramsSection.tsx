@@ -73,7 +73,7 @@ export const ProgramsSection = () => {
               și Securitate Cibernetică.
             </p>
           </div>
-          <Button className="aero-button group shrink-0 hover-glow" size="lg">
+          <Button className="aero-button group shrink-0 hover-glow text-foreground" size="lg">
             Vezi Toate Programele
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </Button>
@@ -84,7 +84,7 @@ export const ProgramsSection = () => {
           {programs.map((program) => (
             <div
               key={program.title}
-              className="group aero-glass p-6 lg:p-8 hover-lift transition-all duration-300 hover:shadow-glow"
+              className="group aero-glass p-6 lg:p-8 hover-lift transition-all duration-300 hover:shadow-glow soft-shadow"
             >
               <div className="flex items-start gap-5">
                 {/* Aero Bubble Icon */}
@@ -122,7 +122,7 @@ export const ProgramsSection = () => {
 
         {/* Featured Image - Aero Frame */}
         <div className="relative">
-          <div className="aero-glass p-3 rounded-3xl">
+          <div className="aero-glass aero-glass-img p-3 rounded-3xl">
             <div className="grid lg:grid-cols-2 gap-0 overflow-hidden rounded-2xl">
               <img
                 src={informaticsClass}
@@ -148,7 +148,7 @@ export const ProgramsSection = () => {
                     Investim constant în echipamente și software pentru a oferi 
                     elevilor experiențe de învățare la standarde internaționale.
                   </p>
-                  <Button className="aero-button bg-white/20 hover:bg-white/30 text-white border-white/30" size="lg">
+                  <Button className="aero-button bg-white/20 hover:bg-white/30 text-foreground dark:text-white border-white/30 dark:border-white/30" size="lg">
                     Fă un Tur Virtual
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>

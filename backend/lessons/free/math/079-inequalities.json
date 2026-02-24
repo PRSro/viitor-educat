@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd2n000fwe8ocpt75svt",
+  "courseId": "cmm10bd2m000bwe8oaeecazor",
+  "courseTitle": "Introduction to Algebra",
+  "title": "Inequalities",
+  "description": "Working with inequalities",
+  "content": "# Inequalities\n\nInequalities compare two expressions using <, >, ≤, or ≥. Solving inequalities is similar to solving equations, but remember to flip the sign when multiplying or dividing by a negative number.\n\n## Resources\n\n- [Resource 1](https://www.mathsisfun.com/algebra/inequality.html)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.mathsisfun.com/algebra/inequality.html"
+  ],
+  "createdAt": "2026-02-24T19:36:57.839Z"
+}

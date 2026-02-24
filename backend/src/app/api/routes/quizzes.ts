@@ -18,7 +18,7 @@ const createQuizSchema = z.object({
   description: z.string().optional(),
   lessonId: z.string().optional(),
   courseId: z.string().optional(),
-  published: z.boolean().optional(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'PRIVATE']).optional(),
   timeLimit: z.number().int().positive().optional(),
   passingScore: z.number().int().min(0).max(100).optional(),
 });
@@ -55,7 +55,7 @@ interface QuizQuestionParams {
 }
 
 export async function quizRoutes(fastify: FastifyInstance) {
-  
+
   /**
    * GET /quizzes
    * List all quizzes (published for students, all for teachers)
@@ -65,21 +65,21 @@ export async function quizRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const user = getCurrentUser(request);
-      const { courseId, lessonId, published } = request.query as { 
-        courseId?: string; 
-        lessonId?: string; 
-        published?: string 
+      const { courseId, lessonId, published } = request.query as {
+        courseId?: string;
+        lessonId?: string;
+        published?: string
       };
 
       const where: any = {};
 
       if (user.role === 'STUDENT') {
-        where.published = true;
+        where.status = 'PUBLISHED';
       }
 
       if (courseId) where.courseId = courseId;
       if (lessonId) where.lessonId = lessonId;
-      if (published) where.published = published === 'true';
+      if (published) where.status = published === 'true' ? 'PUBLISHED' : undefined;
 
       const quizzes = await prisma.quiz.findMany({
         where,
@@ -154,7 +154,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       });
 
       // Students can only see published quizzes
-      if (user.role === 'STUDENT' && !quiz.published) {
+      if (user.role === 'STUDENT' && quiz.status !== 'PUBLISHED') {
         return reply.status(404).send({ error: 'Quiz not found' });
       }
 
@@ -189,7 +189,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
           where: { id: validated.courseId }
         });
         if (!course || course.teacherId !== teacherId) {
-          return reply.status(403).send({ 
+          return reply.status(403).send({
             error: 'Forbidden',
             message: 'You can only create quizzes for your own courses'
           });
@@ -206,13 +206,13 @@ export async function quizRoutes(fastify: FastifyInstance) {
         }
       });
 
-      return reply.status(201).send({ 
+      return reply.status(201).send({
         message: 'Quiz created successfully',
-        quiz 
+        quiz
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ 
+        return reply.status(400).send({
           error: 'Validation failed',
           details: error.errors
         });
@@ -241,7 +241,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       }
 
       if (existing.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
-        return reply.status(403).send({ 
+        return reply.status(403).send({
           error: 'Forbidden',
           message: 'You can only update your own quizzes'
         });
@@ -258,7 +258,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       return { message: 'Quiz updated successfully', quiz };
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ 
+        return reply.status(400).send({
           error: 'Validation failed',
           details: error.errors
         });
@@ -286,7 +286,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       }
 
       if (existing.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
-        return reply.status(403).send({ 
+        return reply.status(403).send({
           error: 'Forbidden',
           message: 'You can only delete your own quizzes'
         });
@@ -320,7 +320,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       }
 
       if (quiz.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
-        return reply.status(403).send({ 
+        return reply.status(403).send({
           error: 'Forbidden',
           message: 'You can only add questions to your own quizzes'
         });
@@ -334,13 +334,13 @@ export async function quizRoutes(fastify: FastifyInstance) {
         }
       });
 
-      return reply.status(201).send({ 
+      return reply.status(201).send({
         message: 'Question added successfully',
-        question 
+        question
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ 
+        return reply.status(400).send({
           error: 'Validation failed',
           details: error.errors
         });
@@ -369,7 +369,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       }
 
       if (quiz.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
-        return reply.status(403).send({ 
+        return reply.status(403).send({
           error: 'Forbidden',
           message: 'You can only update questions in your own quizzes'
         });
@@ -383,7 +383,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       return { message: 'Question updated successfully', question };
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ 
+        return reply.status(400).send({
           error: 'Validation failed',
           details: error.errors
         });
@@ -411,7 +411,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       }
 
       if (quiz.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
-        return reply.status(403).send({ 
+        return reply.status(403).send({
           error: 'Forbidden',
           message: 'You can only delete questions from your own quizzes'
         });
@@ -443,7 +443,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
         include: { questions: true }
       });
 
-      if (!quiz || !quiz.published) {
+      if (!quiz || quiz.status !== 'PUBLISHED') {
         return reply.status(404).send({ error: 'Quiz not found' });
       }
 
@@ -459,7 +459,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
         });
 
         if (!enrollment) {
-          return reply.status(403).send({ 
+          return reply.status(403).send({
             error: 'Forbidden',
             message: 'You must be enrolled in this course to take the quiz'
           });
@@ -534,10 +534,10 @@ export async function quizRoutes(fastify: FastifyInstance) {
       // Students can only see their own attempts
       if (user.role === 'STUDENT') {
         where.studentId = user.id;
-      } 
+      }
       // Teachers can only see attempts for their quizzes
       else if (user.role === 'TEACHER' && quiz.teacherId !== user.id) {
-        return reply.status(403).send({ 
+        return reply.status(403).send({
           error: 'Forbidden',
           message: 'You can only view attempts for your own quizzes'
         });

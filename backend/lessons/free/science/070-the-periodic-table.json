@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd3r001jwe8obfdm1bca",
+  "courseId": "cmm10bd3r001gwe8okiuskexg",
+  "courseTitle": "Chemistry Basics",
+  "title": "The Periodic Table",
+  "description": "Organization of elements",
+  "content": "# The Periodic Table\n\nElements are arranged by atomic number. Groups share similar properties; periods show trends.\n\n## Resources\n\n- [Resource 1](https://ptable.com/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://ptable.com/"
+  ],
+  "createdAt": "2026-02-24T19:36:57.880Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhceh10057m2p3rqhkvl0q",
+  "courseId": "cmlzhceh10055m2p391595w76",
+  "courseTitle": "Digital Photography",
+  "title": "Understanding Exposure",
+  "description": "Aperture, shutter speed, ISO",
+  "content": "# Understanding Exposure\n\nThe exposure triangle: aperture controls depth of field, shutter speed controls motion blur, ISO controls sensitivity.\n\n## Resources\n\n- [Resource 1](https://www.cambridgeincolour.com/tutorials/camera-exposure.htm)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.cambridgeincolour.com/tutorials/camera-exposure.htm"
+  ],
+  "createdAt": "2026-02-23T17:58:07.430Z"
+}

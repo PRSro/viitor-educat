@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcehu006xm2p3i26svau5",
+  "courseId": "cmlzhceht006tm2p378od9nii",
+  "courseTitle": "Time Management",
+  "title": "Prioritization with Eisenhower Matrix",
+  "description": "Urgent vs. important",
+  "content": "# Prioritization with Eisenhower Matrix\n\nCategorize tasks into 4 quadrants: urgent+important (do), important (schedule), urgent (delegate), neither (eliminate).\n\n## Resources\n\n- [Resource 1](https://www.eisenhower.me/eisenhower-matrix/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://www.eisenhower.me/eisenhower-matrix/"
+  ],
+  "createdAt": "2026-02-23T17:58:07.458Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhceg8003gm2p36t2gfeyf",
+  "courseId": "cmlzhceg8003dm2p3tzscq1om",
+  "courseTitle": "History of Science",
+  "title": "Darwin and Evolution",
+  "description": "Natural selection",
+  "content": "# Darwin and Evolution\n\nCharles Darwin's theory of evolution by natural selection revolutionized biology and our understanding of life.\n\n## Resources\n\n- [Resource 1](https://www.darwinproject.ac.uk/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.darwinproject.ac.uk/"
+  ],
+  "createdAt": "2026-02-23T17:58:07.400Z"
+}

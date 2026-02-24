@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5tv005q8fnumyno21o0",
+  "courseId": "cmlzhz5tv005n8fnujofbizqw",
+  "courseTitle": "French for Beginners",
+  "title": "Numbers and Colors",
+  "description": "Un, deux, trois...",
+  "content": "# Numbers and Colors\n\nFrench numbers: un, deux, trois, quatre, cinq... Colors: rouge, bleu, vert, jaune, noir, blanc.\n\n## Resources\n\n- [Resource 1](https://www.francaisfacile.com/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.francaisfacile.com/"
+  ],
+  "createdAt": "2026-02-23T18:15:49.315Z"
+}

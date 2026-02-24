@@ -28,6 +28,7 @@ import ResourcesPage from "@/modules/core/pages/ResourcesPage";
 import FlashcardsPage from "@/modules/core/pages/FlashcardsPage";
 import StudyDashboard from "@/modules/core/pages/StudyDashboard";
 import SettingsPage from "@/modules/core/pages/SettingsPage";
+import NewsPage from "@/modules/core/pages/NewsPage";
 import StudentProfilePage from "@/modules/core/pages/StudentProfilePage";
 import LessonViewerPage from "@/modules/lessons/pages/LessonViewerPage";
 import SearchPage from "@/modules/core/pages/SearchPage";
@@ -54,6 +55,7 @@ const App = () => (
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
                       <Route path="/access-denied" element={<AccessDenied />} />
+                      <Route path="/noutati" element={<NewsPage />} />
 
                       {/* Protected Routes - Admin Only */}
                       <Route

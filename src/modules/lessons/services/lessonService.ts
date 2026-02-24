@@ -178,7 +178,7 @@ export async function deleteLesson(id: string): Promise<void> {
 /**
  * Get courses containing a lesson
  */
-export async function getLessonCourses(lessonId: string): Promise<any[]> {
+export async function getLessonCourses(lessonId: string): Promise<unknown[]> {
   const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}/courses`, {
     headers: getAuthHeaders(),
   });

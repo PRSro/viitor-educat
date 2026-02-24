@@ -27,11 +27,11 @@ import {
 } from '@/components/ui/select';
 import { SafeHtml } from '@/components/SafeHtml';
 import { NotificationBell } from '@/components/NotificationBell';
-import { 
-  BookOpen, 
-  FileText, 
-  Search, 
-  ExternalLink, 
+import {
+  BookOpen,
+  FileText,
+  Search,
+  ExternalLink,
   GraduationCap,
   Clock,
   User,
@@ -42,18 +42,18 @@ import {
   Layers,
   Link as LinkIcon
 } from 'lucide-react';
-import { 
-  getCourses, 
-  getEnrolledCourses, 
+import {
+  getCourses,
+  getEnrolledCourses,
   enrollInCourse,
-  Course, 
-  Enrollment 
+  Course,
+  Enrollment
 } from '@/services/courseService';
 import { getAllTeachers, TeacherWithProfile } from '@/services/authService';
 import { useNavigate } from 'react-router-dom';
-import { 
-  getArticles, 
-  ArticleListItem, 
+import {
+  getArticles,
+  ArticleListItem,
   ArticleCategory,
   ArticleFilters,
   categoryLabels,
@@ -64,22 +64,22 @@ export default function StudentDashboard() {
   const { user, logout } = useAuth();
   const { settings, theme, isSettingsLoaded } = useSettings();
   const navigate = useNavigate();
-  
+
   // Feature toggles from settings
   const showArticles = useFeatureEnabled('showArticles');
   const showFlashcards = useFeatureEnabled('showFlashcards');
   const showResources = useFeatureEnabled('showResources');
-  
+
   // Courses state
   const [enrolledCourses, setEnrolledCourses] = useState<Enrollment[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [enrollingId, setEnrollingId] = useState<string | null>(null);
-  
+
   // Course search/filter state
   const [courseSearch, setCourseSearch] = useState('');
   const [teacherFilter, setTeacherFilter] = useState<string>('ALL');
-  
+
   // Articles state
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [loadingArticles, setLoadingArticles] = useState(true);
@@ -87,11 +87,11 @@ export default function StudentDashboard() {
   const [articleCategory, setArticleCategory] = useState<ArticleCategory | 'ALL'>('ALL');
   const [articlePage, setArticlePage] = useState(1);
   const [articleTotalPages, setArticleTotalPages] = useState(1);
-  
+
   // Teachers state
   const [teacherList, setTeacherList] = useState<TeacherWithProfile[]>([]);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
-  
+
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -132,36 +132,36 @@ export default function StudentDashboard() {
 
   // Fetch articles with debounced search
   useEffect(() => {
+    async function fetchArticles() {
+      try {
+        setLoadingArticles(true);
+        const filters: ArticleFilters = {
+          page: articlePage,
+          limit: 9,
+        };
+        if (articleCategory !== 'ALL') {
+          filters.category = articleCategory;
+        }
+        if (articleSearch.trim()) {
+          filters.search = articleSearch.trim();
+        }
+
+        const response = await getArticles(filters);
+        setArticles(response.articles);
+        setArticleTotalPages(response.pagination.totalPages);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch articles');
+      } finally {
+        setLoadingArticles(false);
+      }
+    }
+
     const timer = setTimeout(() => {
       fetchArticles();
     }, 300);
     return () => clearTimeout(timer);
   }, [articleSearch, articleCategory, articlePage]);
-
-  async function fetchArticles() {
-    try {
-      setLoadingArticles(true);
-      const filters: ArticleFilters = {
-        page: articlePage,
-        limit: 9,
-      };
-      if (articleCategory !== 'ALL') {
-        filters.category = articleCategory;
-      }
-      if (articleSearch.trim()) {
-        filters.search = articleSearch.trim();
-      }
-      
-      const response = await getArticles(filters);
-      setArticles(response.articles);
-      setArticleTotalPages(response.pagination.totalPages);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch articles');
-    } finally {
-      setLoadingArticles(false);
-    }
-  }
 
   async function handleEnroll(courseId: string) {
     try {
@@ -182,26 +182,26 @@ export default function StudentDashboard() {
   }
 
   // Filter out already enrolled courses from browse list
-  const enrolledCourseIds = useMemo(() => 
-    new Set(enrolledCourses.map(e => e.course.id)), 
+  const enrolledCourseIds = useMemo(() =>
+    new Set(enrolledCourses.map(e => e.course.id)),
     [enrolledCourses]
   );
-  
+
   const availableCourses = useMemo(() => {
     let courses = allCourses.filter(c => !enrolledCourseIds.has(c.id));
-    
+
     if (courseSearch.trim()) {
       const search = courseSearch.toLowerCase();
-      courses = courses.filter(c => 
+      courses = courses.filter(c =>
         c.title.toLowerCase().includes(search) ||
         c.description?.toLowerCase().includes(search)
       );
     }
-    
+
     if (teacherFilter !== 'ALL') {
       courses = courses.filter(c => c.teacherId === teacherFilter);
     }
-    
+
     return courses;
   }, [allCourses, enrolledCourseIds, courseSearch, teacherFilter]);
 
@@ -213,7 +213,7 @@ export default function StudentDashboard() {
         teacherMap.set(course.teacherId, {
           id: course.teacherId,
           email: course.teacher.email,
-          name: course.teacher.teacherProfile?.bio 
+          name: course.teacher.teacherProfile?.bio
             ? course.teacher.teacherProfile.bio.substring(0, 30) + '...'
             : course.teacher.email.split('@')[0]
         });
@@ -223,7 +223,7 @@ export default function StudentDashboard() {
   }, [allCourses]);
 
   const categories: (ArticleCategory | 'ALL')[] = [
-    'ALL', 'MATH', 'SCIENCE', 'LITERATURE', 'HISTORY', 
+    'ALL', 'MATH', 'SCIENCE', 'LITERATURE', 'HISTORY',
     'COMPUTER_SCIENCE', 'ARTS', 'LANGUAGES', 'GENERAL'
   ];
 
@@ -339,7 +339,7 @@ export default function StudentDashboard() {
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {enrolledCourses.map((enrollment) => (
-                  <CourseCard 
+                  <CourseCard
                     key={enrollment.id}
                     course={enrollment.course}
                     progress={enrollment.progress}
@@ -368,8 +368,8 @@ export default function StudentDashboard() {
                   className="pl-10"
                 />
               </div>
-              <Select 
-                value={teacherFilter} 
+              <Select
+                value={teacherFilter}
                 onValueChange={setTeacherFilter}
               >
                 <SelectTrigger className="w-full sm:w-56">
@@ -386,8 +386,8 @@ export default function StudentDashboard() {
                 </SelectContent>
               </Select>
               {(courseSearch || teacherFilter !== 'ALL') && (
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => {
                     setCourseSearch('');
                     setTeacherFilter('ALL');
@@ -409,7 +409,7 @@ export default function StudentDashboard() {
                   {courseSearch || teacherFilter !== 'ALL' ? 'No courses found' : 'All caught up!'}
                 </h3>
                 <p className="text-muted-foreground">
-                  {courseSearch || teacherFilter !== 'ALL' 
+                  {courseSearch || teacherFilter !== 'ALL'
                     ? 'Try adjusting your search or filters'
                     : "You're enrolled in all available courses."}
                 </p>
@@ -417,7 +417,7 @@ export default function StudentDashboard() {
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {availableCourses.map((course) => (
-                  <CourseCard 
+                  <CourseCard
                     key={course.id}
                     course={course}
                     onEnroll={() => handleEnroll(course.id)}
@@ -449,8 +449,8 @@ export default function StudentDashboard() {
                   className="pl-10"
                 />
               </div>
-              <Select 
-                value={articleCategory} 
+              <Select
+                value={articleCategory}
                 onValueChange={(v) => {
                   setArticleCategory(v as ArticleCategory | 'ALL');
                   setArticlePage(1);
@@ -479,7 +479,7 @@ export default function StudentDashboard() {
                 <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">No articles found</h3>
                 <p className="text-muted-foreground">
-                  {articleSearch || articleCategory !== 'ALL' 
+                  {articleSearch || articleCategory !== 'ALL'
                     ? 'Try adjusting your search or filters'
                     : 'Check back later for new content'}
                 </p>
@@ -549,9 +549,9 @@ export default function StudentDashboard() {
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
                           {teacher.teacherProfile?.pictureUrl ? (
-                            <img 
-                              src={teacher.teacherProfile.pictureUrl} 
-                              alt="" 
+                            <img
+                              src={teacher.teacherProfile.pictureUrl}
+                              alt=""
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -560,7 +560,7 @@ export default function StudentDashboard() {
                         </div>
                         <div>
                           <CardTitle className="text-lg">
-                            {teacher.teacherProfile?.bio 
+                            {teacher.teacherProfile?.bio
                               ? teacher.teacherProfile.bio.substring(0, 30) + (teacher.teacherProfile.bio.length > 30 ? '...' : '')
                               : teacher.email.split('@')[0]}
                           </CardTitle>
@@ -569,11 +569,11 @@ export default function StudentDashboard() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {teacher.courses.length > 0 ? (
+                      {teacher.courses && teacher.courses.length > 0 ? (
                         <div className="space-y-2">
                           <p className="text-sm font-medium">{teacher.courses.length} Course(s)</p>
-                          {teacher.courses.slice(0, 2).map((course: any) => (
-                            <Link 
+                          {teacher.courses.slice(0, 2).map((course) => (
+                            <Link
                               key={course.id}
                               to={`/courses/${course.slug}`}
                               className="block p-2 rounded bg-muted/50 hover:bg-muted transition-colors"
@@ -752,13 +752,13 @@ interface CourseCardProps {
 
 function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: CourseCardProps) {
   const isEnrolled = progress !== undefined;
-  
+
   return (
     <Card className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
       {course.imageUrl && (
         <div className="aspect-video bg-muted overflow-hidden">
-          <img 
-            src={course.imageUrl} 
+          <img
+            src={course.imageUrl}
             alt={course.title}
             className="w-full h-full object-cover"
           />
@@ -777,7 +777,7 @@ function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: Cours
       <CardContent className="flex-1 pb-2">
         <div className="flex items-center gap-3 mb-3">
           {course.teacher.teacherProfile?.pictureUrl ? (
-            <img 
+            <img
               src={course.teacher.teacherProfile.pictureUrl}
               alt={course.teacher.email}
               className="w-8 h-8 rounded-full object-cover"
@@ -787,11 +787,11 @@ function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: Cours
               <User className="h-4 w-4 text-primary" />
             </div>
           )}
-          <Link 
+          <Link
             to={`/teachers/${course.teacher.id}`}
             className="text-sm text-muted-foreground hover:text-primary transition-colors"
           >
-            {course.teacher.teacherProfile?.bio 
+            {course.teacher.teacherProfile?.bio
               ? course.teacher.teacherProfile.bio.substring(0, 30) + '...'
               : course.teacher.email}
           </Link>
@@ -826,8 +826,8 @@ function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: Cours
             <Button className="w-full">Continue Learning</Button>
           </Link>
         ) : (
-          <Button 
-            className="w-full" 
+          <Button
+            className="w-full"
             onClick={onEnroll}
             disabled={enrolling}
           >
@@ -856,14 +856,14 @@ function ArticleCard({ article }: ArticleCardProps) {
     <Card className="flex flex-col hover:shadow-lg transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
-          <Badge 
-            variant="secondary" 
+          <Badge
+            variant="secondary"
             className={categoryColors[article.category]}
           >
             {categoryLabels[article.category]}
           </Badge>
           {article.sourceUrl && (
-            <a 
+            <a
               href={article.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"

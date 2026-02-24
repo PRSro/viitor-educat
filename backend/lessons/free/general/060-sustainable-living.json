@@ -1,0 +1,16 @@
+{
+  "id": "cmm1068my0077u07k28u71yza",
+  "courseId": "cmm1068mx0073u07kalked917",
+  "courseTitle": "Environmental Awareness",
+  "title": "Sustainable Living",
+  "description": "Reduce, reuse, recycle",
+  "content": "# Sustainable Living\n\nIndividual actions matter: reduce consumption, reuse items, recycle materials, conserve water and energy.\n\n## Resources\n\n- [Resource 1](https://www.un.org/sustainabledevelopment/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://www.un.org/sustainabledevelopment/"
+  ],
+  "createdAt": "2026-02-24T19:32:58.810Z"
+}

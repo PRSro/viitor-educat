@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd6z0078we8o3e3dsnt5",
+  "courseId": "cmm10bd6y0076we8onp8grnal",
+  "courseTitle": "Environmental Awareness",
+  "title": "Climate Change Basics",
+  "description": "The science of global warming",
+  "content": "# Climate Change Basics\n\nGreenhouse gases trap heat in Earth's atmosphere. Human activities have increased CO₂ levels dramatically since industrialization.\n\n## Resources\n\n- [Resource 1](https://climate.nasa.gov/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://climate.nasa.gov/"
+  ],
+  "createdAt": "2026-02-24T19:36:57.995Z"
+}

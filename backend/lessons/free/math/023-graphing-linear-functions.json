@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5pf00098fnu0vhl0087",
+  "courseId": "cmlzhz5pe00048fnuu70rwd9i",
+  "courseTitle": "Introduction to Algebra",
+  "title": "Graphing Linear Functions",
+  "description": "Plotting lines on the coordinate plane",
+  "content": "# Graphing Linear Functions\n\nA linear function has the form y = mx + b where m is the slope and b is the y-intercept.\n\n## Resources\n\n- [Resource 1](https://www.desmos.com/calculator)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.desmos.com/calculator"
+  ],
+  "createdAt": "2026-02-23T18:15:49.155Z"
+}

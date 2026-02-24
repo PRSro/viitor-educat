@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5sz004j8fnuazoafxbi",
+  "courseId": "cmlzhz5sz004h8fnuuy61mz0r",
+  "courseTitle": "Introduction to Git & GitHub",
+  "title": "What is Version Control?",
+  "description": "Tracking changes",
+  "content": "# What is Version Control?\n\nVersion control tracks file changes over time, enabling collaboration and history management.\n\n## Resources\n\n- [Resource 1](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control"
+  ],
+  "createdAt": "2026-02-23T18:15:49.283Z"
+}

@@ -29,10 +29,10 @@ const Register = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      const redirectPath = 
+      const redirectPath =
         user.role === 'ADMIN' ? '/admin' :
-        user.role === 'TEACHER' ? '/teacher' : 
-        '/student';
+          user.role === 'TEACHER' ? '/teacher' :
+            '/student';
       navigate(redirectPath);
     }
   }, [isAuthenticated, user, navigate]);
@@ -40,20 +40,27 @@ const Register = () => {
   useEffect(() => {
     if (isMobile) return;
 
-    registerElement(bubble1Ref.current, 0.25, 22);
-    registerElement(bubble2Ref.current, 0.35, 28);
-    registerElement(bubble3Ref.current, 0.3, 15);
-    registerElement(bubble4Ref.current, 0.4, 20);
-    registerElement(glow1Ref.current, 0.08, 8);
-    registerElement(glow2Ref.current, 0.06, 6);
+    const b1 = bubble1Ref.current;
+    const b2 = bubble2Ref.current;
+    const b3 = bubble3Ref.current;
+    const b4 = bubble4Ref.current;
+    const g1 = glow1Ref.current;
+    const g2 = glow2Ref.current;
+
+    registerElement(b1, 0.25, 22);
+    registerElement(b2, 0.35, 28);
+    registerElement(b3, 0.3, 15);
+    registerElement(b4, 0.4, 20);
+    registerElement(g1, 0.08, 8);
+    registerElement(g2, 0.06, 6);
 
     return () => {
-      unregisterElement(bubble1Ref.current);
-      unregisterElement(bubble2Ref.current);
-      unregisterElement(bubble3Ref.current);
-      unregisterElement(bubble4Ref.current);
-      unregisterElement(glow1Ref.current);
-      unregisterElement(glow2Ref.current);
+      unregisterElement(b1);
+      unregisterElement(b2);
+      unregisterElement(b3);
+      unregisterElement(b4);
+      unregisterElement(g1);
+      unregisterElement(g2);
     };
   }, [registerElement, unregisterElement, isMobile]);
 
@@ -65,11 +72,11 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Sanitize inputs
     const sanitizedEmail = sanitizeEmail(email);
     const sanitizedPassword = sanitizeInput(password, 128);
-    
+
     // Client-side validation
     const formData = { email: sanitizedEmail, password: sanitizedPassword, role };
     const validationErr = getFirstError(registerSchema, formData);
@@ -77,7 +84,7 @@ const Register = () => {
       setValidationError(validationErr);
       return;
     }
-    
+
     try {
       await register(sanitizedEmail, sanitizedPassword, role as 'STUDENT' | 'TEACHER');
     } catch {
@@ -167,8 +174,8 @@ const Register = () => {
               <Label htmlFor="role" className="text-foreground font-medium">
                 Rol
               </Label>
-              <Select 
-                value={role} 
+              <Select
+                value={role}
                 onValueChange={(value: 'STUDENT' | 'TEACHER') => setRole(value)}
                 disabled={isLoading}
               >
@@ -228,8 +235,8 @@ const Register = () => {
               />
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-12 aero-button-accent text-base font-semibold"
               disabled={isLoading || !email || !password || !role}
             >

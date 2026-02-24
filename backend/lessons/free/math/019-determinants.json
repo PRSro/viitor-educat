@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhceex0010m2p35687leoq",
+  "courseId": "cmlzhceex000wm2p3nbsjhs58",
+  "courseTitle": "Linear Algebra Fundamentals",
+  "title": "Determinants",
+  "description": "Computing determinants",
+  "content": "# Determinants\n\nThe determinant of a square matrix encodes scaling and orientation information about the associated linear transformation.\n\n## Resources\n\n- [Resource 1](https://www.3blue1brown.com/topics/linear-algebra)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.3blue1brown.com/topics/linear-algebra"
+  ],
+  "createdAt": "2026-02-23T17:58:07.354Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5rq002v8fnujrkkypif",
+  "courseId": "cmlzhz5rq002s8fnuzfn5gvcm",
+  "courseTitle": "Ancient Civilizations",
+  "title": "Ancient Egypt",
+  "description": "Pharaohs and pyramids",
+  "content": "# Ancient Egypt\n\nEgyptian civilization thrived along the Nile for 3,000 years, building pyramids and developing hieroglyphics.\n\n## Resources\n\n- [Resource 1](https://www.worldhistory.org/egypt/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.worldhistory.org/egypt/"
+  ],
+  "createdAt": "2026-02-23T18:15:49.238Z"
+}

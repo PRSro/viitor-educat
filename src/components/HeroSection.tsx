@@ -13,8 +13,7 @@ const stats = [
 export const HeroSection = () => {
   const { registerElement, unregisterElement, isMobile } = useParallax();
   
-  // Refs for parallax elements
-  const bgRef = useRef<HTMLDivElement>(null);
+  // Refs for parallax elements (only decorative, not the background image)
   const bubble1Ref = useRef<HTMLDivElement>(null);
   const bubble2Ref = useRef<HTMLDivElement>(null);
   const bubble3Ref = useRef<HTMLDivElement>(null);
@@ -25,17 +24,17 @@ export const HeroSection = () => {
   useEffect(() => {
     if (isMobile) return;
     
-    // Register elements with different parallax speeds
-    registerElement(bgRef.current, 0.1, 0);
-    registerElement(bubble1Ref.current, 0.25, 20);
-    registerElement(bubble2Ref.current, 0.35, 25);
-    registerElement(bubble3Ref.current, 0.4, 18);
-    registerElement(bubble4Ref.current, 0.3, 30);
-    registerElement(glow1Ref.current, 0.08, 8);
-    registerElement(glow2Ref.current, 0.06, 6);
+    // Floating bubbles - very subtle movement only (no rotation, no scale)
+    registerElement(bubble1Ref.current, 0.15, 12, { depth: 1 });
+    registerElement(bubble2Ref.current, 0.2, 15, { depth: 1 });
+    registerElement(bubble3Ref.current, 0.18, 10, { depth: 0.8 });
+    registerElement(bubble4Ref.current, 0.12, 18, { depth: 1.1 });
+    
+    // Glows - very subtle movement
+    registerElement(glow1Ref.current, 0.03, 5, { depth: 0.3 });
+    registerElement(glow2Ref.current, 0.02, 4, { depth: 0.4 });
 
     return () => {
-      unregisterElement(bgRef.current);
       unregisterElement(bubble1Ref.current);
       unregisterElement(bubble2Ref.current);
       unregisterElement(bubble3Ref.current);
@@ -47,8 +46,8 @@ export const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background Image with Aero Overlay */}
-      <div ref={bgRef} className="absolute inset-0 will-change-transform">
+      {/* Background Image - NO parallax, stays fixed */}
+      <div className="absolute inset-0 will-change-transform">
         <img
           src={heroCampus}
           alt="Campus Colegiul Național de Informatică Tudor Vianu"
@@ -136,7 +135,7 @@ export const HeroSection = () => {
             <Button 
               variant="heroOutline" 
               size="lg"
-              className="aero-button bg-white/15 hover:bg-white/25 text-white border-white/40"
+              className="aero-button bg-white/15 hover:bg-white/25 text-foreground dark:text-white border-white/40 dark:border-white/40"
             >
               Vizitează Campusul
             </Button>

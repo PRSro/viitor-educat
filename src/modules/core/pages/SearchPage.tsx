@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { CourseCard } from '@/components/CourseCard';
 import { TeacherCard } from '@/components/TeacherCard';
-import { 
+import {
   Search as SearchIcon,
   GraduationCap,
   BookOpen,
@@ -32,14 +32,15 @@ import {
   FileText,
   ExternalLink
 } from 'lucide-react';
-import { 
-  search, 
+import {
+  search,
   getSearchFilters,
   SearchResponse,
   SearchFiltersResponse,
   SearchResultCourse,
   SearchResultTeacher,
-  SearchResultArticle
+  SearchResultArticle,
+  SearchFilters
 } from '@/services/searchService';
 import { useFeatureEnabled } from '@/contexts/SettingsContext';
 
@@ -47,16 +48,16 @@ export default function SearchPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const showArticles = useFeatureEnabled('showArticles');
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<string>('all');
   const [results, setResults] = useState<SearchResponse['results'] | null>(null);
   const [filters, setFilters] = useState<SearchFiltersResponse['filters'] | null>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
@@ -78,22 +79,22 @@ export default function SearchPage() {
     if (!searchQuery.trim() && selectedCategory === 'ALL' && selectedLevel === 'ALL' && selectedTeacher === 'ALL') {
       return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
-      
-      const filterParams: any = {};
+
+      const filterParams: SearchFilters = {};
       if (selectedCategory !== 'ALL') filterParams.category = selectedCategory;
       if (selectedLevel !== 'ALL') filterParams.level = selectedLevel;
       if (selectedTeacher !== 'ALL') filterParams.teacherId = selectedTeacher;
-      
+
       const data = await search(
         searchQuery.trim() || undefined,
         Object.keys(filterParams).length > 0 ? filterParams : undefined,
         searchType === 'all' ? undefined : searchType
       );
-      
+
       setResults(data.results);
       setHasSearched(true);
     } catch (err) {
@@ -178,7 +179,7 @@ export default function SearchPage() {
               </Button>
             )}
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>

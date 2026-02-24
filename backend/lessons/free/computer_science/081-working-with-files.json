@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd5c0042we8ol0b4xbg8",
+  "courseId": "cmm10bd5c003wwe8o16q3e1s7",
+  "courseTitle": "Python for Beginners",
+  "title": "Working with Files",
+  "description": "Reading and writing files",
+  "content": "# Working with Files\n\nUse open() with context managers (with statement) to safely read and write files in Python.\n\n## Resources\n\n- [Resource 1](https://docs.python.org/3/tutorial/inputoutput.html#reading-and-writing-files)",
+  "order": 4,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://docs.python.org/3/tutorial/inputoutput.html#reading-and-writing-files"
+  ],
+  "createdAt": "2026-02-24T19:36:57.936Z"
+}

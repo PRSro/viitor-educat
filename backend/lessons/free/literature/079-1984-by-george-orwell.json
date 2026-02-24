@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd4p002wwe8o2j6yzl0h",
+  "courseId": "cmm10bd4p002twe8oazw34khh",
+  "courseTitle": "Classic Novels Analysis",
+  "title": "1984 by George Orwell",
+  "description": "Dystopian masterpiece",
+  "content": "# 1984 by George Orwell\n\nOrwell's novel warns against totalitarianism, surveillance, and the manipulation of truth by authoritarian regimes.\n\n## Resources\n\n- [Resource 1](https://www.george-orwell.org/1984)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.george-orwell.org/1984"
+  ],
+  "createdAt": "2026-02-24T19:36:57.913Z"
+}

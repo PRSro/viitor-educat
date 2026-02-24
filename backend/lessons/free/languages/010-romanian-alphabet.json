@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcehf0061m2p3h2xxew6l",
+  "courseId": "cmlzhcehe005zm2p3qjf249yo",
+  "courseTitle": "Romanian Language Basics",
+  "title": "Romanian Alphabet",
+  "description": "Letters and pronunciation",
+  "content": "# Romanian Alphabet\n\nRomanian uses the Latin alphabet with 5 special characters: ă, â, î, ș, ț. Most letters sound as expected.\n\n## Resources\n\n- [Resource 1](https://www.romanianpod101.com/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.romanianpod101.com/"
+  ],
+  "createdAt": "2026-02-23T17:58:07.443Z"
+}

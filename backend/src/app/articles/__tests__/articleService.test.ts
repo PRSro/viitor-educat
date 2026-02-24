@@ -11,10 +11,10 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fileArticleService, FileArticle } from '../articleService.js';
-import { 
-  validateArticleInput, 
-  isValidSlug, 
-  sanitizeHtmlContent, 
+import {
+  validateArticleInput,
+  isValidSlug,
+  sanitizeHtmlContent,
   checkRateLimit,
   validateTitle,
   validateExcerpt,
@@ -119,7 +119,7 @@ describe('Security Validation', () => {
         content: '<p>Content</p>',
         authorId: 'user_123'
       });
-      
+
       expect(result.valid).toBe(true);
       expect(result.sanitized.title).toBe('Test Article');
       expect(result.sanitized.slug).toBeDefined();
@@ -131,7 +131,7 @@ describe('Security Validation', () => {
         content: '<p>Content</p>',
         authorId: 'user_123'
       });
-      
+
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
@@ -148,30 +148,30 @@ describe('Rate Limiting', () => {
     vi.useRealTimers();
   });
 
-  it('should allow requests within limit', () => {
-    const result = checkRateLimit('test_key', 5, 60000);
+  it('should allow requests within limit', async () => {
+    const result = await checkRateLimit('test_key', 5, 60000);
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(4);
   });
 
-  it('should block requests exceeding limit', () => {
+  it('should block requests exceeding limit', async () => {
     // Make 5 requests
     for (let i = 0; i < 5; i++) {
-      checkRateLimit('test_key2', 5, 60000);
+      await checkRateLimit('test_key2', 5, 60000);
     }
-    
-    const result = checkRateLimit('test_key2', 5, 60000);
+
+    const result = await checkRateLimit('test_key2', 5, 60000);
     expect(result.allowed).toBe(false);
     expect(result.remaining).toBe(0);
   });
 
-  it('should reset after window expires', () => {
-    const r1 = checkRateLimit('test_key3', 2, 60000);
-    checkRateLimit('test_key3', 2, 60000);
-    
+  it('should reset after window expires', async () => {
+    const r1 = await checkRateLimit('test_key3', 2, 60000);
+    await checkRateLimit('test_key3', 2, 60000);
+
     vi.advanceTimersByTime(60001);
-    
-    const r2 = checkRateLimit('test_key3', 2, 60000);
+
+    const r2 = await checkRateLimit('test_key3', 2, 60000);
     expect(r2.allowed).toBe(true);
   });
 });
@@ -185,9 +185,9 @@ describe('Article Input Integration', () => {
       authorId: 'teacher_123',
       sourceUrl: 'https://example.com'
     };
-    
+
     const result = validateArticleInput(input);
-    
+
     expect(result.valid).toBe(true);
     expect(result.sanitized.title).toBe('My Test Article');
     expect(result.sanitized.slug).toMatch(/^my-test-article-/);
@@ -199,9 +199,9 @@ describe('Article Input Integration', () => {
       content: '<p>Content only</p>',
       authorId: 'user_1'
     };
-    
+
     const result = validateArticleInput(input);
-    
+
     expect(result.valid).toBe(true);
     expect(result.sanitized.excerpt).toBeUndefined();
     expect(result.sanitized.sourceUrl).toBeUndefined();
@@ -211,7 +211,7 @@ describe('Article Input Integration', () => {
 describe('Background Jobs', () => {
   it('should enqueue and process jobs', async () => {
     const handler = vi.fn().mockResolvedValue(undefined);
-    
+
     // Note: In actual tests, we'd use the job manager
     // This is a simplified test
     expect(jobs).toBeDefined();
@@ -229,10 +229,10 @@ describe('Background Jobs', () => {
 describe('Concurrent Operations', () => {
   it('should handle concurrent reads', async () => {
     // Simulate concurrent reads
-    const readPromises = Array(10).fill(null).map(() => 
+    const readPromises = Array(10).fill(null).map(() =>
       Promise.resolve({ data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 } })
     );
-    
+
     const results = await Promise.all(readPromises);
     expect(results.length).toBe(10);
   });

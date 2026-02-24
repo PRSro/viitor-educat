@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcefp002dm2p35sfqmboi",
+  "courseId": "cmlzhcefo002am2p3lpnr5zgu",
+  "courseTitle": "World Mythology",
+  "title": "Norse Mythology",
+  "description": "Odin, Thor, and Ragnarök",
+  "content": "# Norse Mythology\n\nNorse myths describe nine worlds connected by Yggdrasil, the World Tree, and the eventual Ragnarök.\n\n## Resources\n\n- [Resource 1](https://www.gutenberg.org/ebooks/14726)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.gutenberg.org/ebooks/14726"
+  ],
+  "createdAt": "2026-02-23T17:58:07.381Z"
+}

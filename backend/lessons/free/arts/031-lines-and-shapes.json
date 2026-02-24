@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqghe004tsls51r953jnp",
+  "courseId": "cmm0zqghe004rsls5h1oq3jyj",
+  "courseTitle": "Drawing Fundamentals",
+  "title": "Lines and Shapes",
+  "description": "Basic building blocks",
+  "content": "# Lines and Shapes\n\nAll complex drawings start with basic shapes: circles, squares, triangles. Practice confident line work.\n\n## Resources\n\n- [Resource 1](https://drawabox.com/lesson/1)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://drawabox.com/lesson/1"
+  ],
+  "createdAt": "2026-02-24T19:20:42.483Z"
+}

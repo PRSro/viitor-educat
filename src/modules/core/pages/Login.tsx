@@ -26,10 +26,10 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      const redirectPath = 
+      const redirectPath =
         user.role === 'ADMIN' ? '/admin' :
-        user.role === 'TEACHER' ? '/teacher' : 
-        '/student';
+          user.role === 'TEACHER' ? '/teacher' :
+            '/student';
       navigate(redirectPath);
     }
   }, [isAuthenticated, user, navigate]);
@@ -37,21 +37,28 @@ const Login = () => {
   useEffect(() => {
     if (isMobile) return;
 
-    registerElement(bubble1Ref.current, 0.25, 20);
-    registerElement(bubble2Ref.current, 0.35, 25);
-    registerElement(bubble3Ref.current, 0.3, 18);
-    registerElement(glow1Ref.current, 0.08, 8);
-    registerElement(glow2Ref.current, 0.06, 6);
+    const b1 = bubble1Ref.current;
+    const b2 = bubble2Ref.current;
+    const b3 = bubble3Ref.current;
+    const g1 = glow1Ref.current;
+    const g2 = glow2Ref.current;
+
+    registerElement(b1, 0.25, 20);
+    registerElement(b2, 0.35, 25);
+    registerElement(b3, 0.3, 18);
+    registerElement(g1, 0.08, 8);
+    registerElement(g2, 0.06, 6);
 
     return () => {
-      unregisterElement(bubble1Ref.current);
-      unregisterElement(bubble2Ref.current);
-      unregisterElement(bubble3Ref.current);
-      unregisterElement(glow1Ref.current);
-      unregisterElement(glow2Ref.current);
+      unregisterElement(b1);
+      unregisterElement(b2);
+      unregisterElement(b3);
+      unregisterElement(g1);
+      unregisterElement(g2);
     };
   }, [registerElement, unregisterElement, isMobile]);
 
+  // Clear errors when inputs change
   // Clear errors when inputs change
   useEffect(() => {
     if (error) clearError();
@@ -60,18 +67,18 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Sanitize inputs
     const sanitizedEmail = sanitizeEmail(email);
     const sanitizedPassword = sanitizeInput(password, 128);
-    
+
     // Client-side validation
     const validationErr = getFirstError(loginSchema, { email: sanitizedEmail, password: sanitizedPassword });
     if (validationErr) {
       setValidationError(validationErr);
       return;
     }
-    
+
     try {
       await login(sanitizedEmail, sanitizedPassword);
     } catch {
@@ -182,8 +189,8 @@ const Login = () => {
               />
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-12 aero-button-accent text-base font-semibold"
               disabled={isLoading || !email || !password}
             >

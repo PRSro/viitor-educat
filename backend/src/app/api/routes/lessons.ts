@@ -33,14 +33,12 @@ const lessonIdSchema = z.object({
 
 export async function lessonRoutes(server: FastifyInstance) {
 
-  // GET /lessons (Public lessons from published courses)
-  server.get('/', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request, reply) => {
+  // GET /lessons - Public lessons from published courses
+  server.get('/', async (request, reply) => {
     try {
       const lessons = await prisma.lesson.findMany({
         where: {
-          status: 'public',
+          status: 'PUBLIC',
           OR: [
             { courseId: null },
             { course: { published: true } }
@@ -74,7 +72,7 @@ export async function lessonRoutes(server: FastifyInstance) {
 
     if (teacherId !== currentUser.id && currentUser.role !== 'ADMIN') {
       const publicLessons = await prisma.lesson.findMany({
-        where: { teacherId, status: 'public', course: { published: true } },
+        where: { teacherId, status: 'PUBLIC', course: { published: true } },
         include: { course: { select: { id: true, title: true } } }
       });
       return { lessons: publicLessons };
@@ -90,45 +88,45 @@ export async function lessonRoutes(server: FastifyInstance) {
     return { lessons };
   });
 
-  // GET /lessons/:id
-  server.get<{ Params: { id: string } }>('/:id', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request, reply) => {
+  // GET /lessons/:id - Public for viewing public lessons
+  server.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     const { id } = lessonIdSchema.parse(request.params);
-    const currentUser = getCurrentUser(request);
 
     const lesson = await lessonService.getLessonById(id);
 
     if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
 
-    const isTeacher = lesson.teacherId === currentUser.id;
-    const isPublic = lesson.status === 'public';
+    const isPublic = lesson.status === 'PUBLIC';
+    const coursePublished = lesson.course?.published;
 
-    // Access Control:
-    // Teacher/Admin can always view any lesson.
-    if (!isTeacher && currentUser.role !== 'ADMIN') {
-      if (lesson.course) {
-        // Course-bound lesson: check if course is published and student is enrolled
-        if (!lesson.course.published) {
+    // Check if lesson is accessible without auth
+    if (!coursePublished && !isPublic) {
+      // Try to get user for enrollment check
+      try {
+        const currentUser = getCurrentUser(request);
+        const isTeacher = lesson.teacherId === currentUser.id;
+        
+        if (!isTeacher && currentUser.role !== 'ADMIN') {
+          if (lesson.course) {
+            const enrollment = await prisma.enrollment.findUnique({
+              where: { studentId_courseId: { studentId: currentUser.id, courseId: lesson.course.id } }
+            });
+            if (!enrollment) {
+              return reply.status(403).send({ error: 'Enrollment required' });
+            }
+          } else if (!isPublic) {
+            return reply.status(403).send({ error: 'Lesson not public' });
+          }
+        }
+      } catch {
+        // Not authenticated - only allow public lessons from published courses
+        if (!coursePublished || !isPublic) {
           return reply.status(404).send({ error: 'Lesson not found' });
-        }
-
-        const enrollment = await prisma.enrollment.findUnique({
-          where: { studentId_courseId: { studentId: currentUser.id, courseId: lesson.course.id } }
-        });
-
-        if (!enrollment && !isPublic) {
-          return reply.status(403).send({ error: 'Enrollment required' });
-        }
-      } else {
-        // Independent lesson: only accessible if public
-        if (!isPublic) {
-          return reply.status(403).send({ error: 'This lesson is private' });
         }
       }
     }
 
-    return { lesson, isTeacher };
+    return { lesson };
   });
 
   // POST /lessons

@@ -3,14 +3,14 @@
  * Browse all articles with filters by category, teacher, and recency
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,18 +18,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArticleCard, ArticleCardSkeleton, ArticleEmptyState } from '@/components/ArticleCard';
-import { 
-  getArticles, 
+import {
+  getArticles,
   getLatestArticles,
-  ArticleListItem, 
+  ArticleListItem,
   ArticleCategory,
   ArticleFilters,
-  categoryLabels 
+  categoryLabels
 } from '@/services/articleService';
-import { 
-  FileText, 
-  Search, 
-  Filter, 
+import {
+  FileText,
+  Search,
+  Filter,
   Loader2,
   Calendar,
   User,
@@ -39,13 +39,13 @@ import {
 export default function ArticlesPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [latestArticles, setLatestArticles] = useState<ArticleListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingLatest, setLoadingLatest] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [category, setCategory] = useState<ArticleCategory | 'ALL'>(
     (searchParams.get('category') as ArticleCategory) || 'ALL'
@@ -55,34 +55,27 @@ export default function ArticlesPage() {
   const [showLatest, setShowLatest] = useState(false);
 
   const categories: (ArticleCategory | 'ALL')[] = [
-    'ALL', 'MATH', 'SCIENCE', 'LITERATURE', 'HISTORY', 
+    'ALL', 'MATH', 'SCIENCE', 'LITERATURE', 'HISTORY',
     'COMPUTER_SCIENCE', 'ARTS', 'LANGUAGES', 'GENERAL'
   ];
 
-  useEffect(() => {
-    fetchArticles();
-  }, [category, page]);
 
-  useEffect(() => {
-    fetchLatestArticles();
-  }, []);
-
-  async function fetchArticles() {
+  const fetchArticles = useCallback(async () => {
     try {
       setLoading(true);
       const filters: ArticleFilters = {
         page,
         limit: 12,
       };
-      
+
       if (category !== 'ALL') {
         filters.category = category;
       }
-      
+
       if (search.trim()) {
         filters.search = search.trim();
       }
-      
+
       const response = await getArticles(filters);
       setArticles(response.articles);
       setTotalPages(response.pagination.totalPages);
@@ -92,9 +85,9 @@ export default function ArticlesPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [category, page, search]);
 
-  async function fetchLatestArticles() {
+  const fetchLatestArticles = useCallback(async () => {
     try {
       setLoadingLatest(true);
       const latest = await getLatestArticles();
@@ -104,7 +97,15 @@ export default function ArticlesPage() {
     } finally {
       setLoadingLatest(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchArticles();
+  }, [fetchArticles]);
+
+  useEffect(() => {
+    fetchLatestArticles();
+  }, [fetchLatestArticles]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +132,7 @@ export default function ArticlesPage() {
               <p className="text-muted-foreground">Browse educational articles and updates</p>
             </div>
             <div className="flex gap-2">
-              <Button 
+              <Button
                 variant={showLatest ? "default" : "outline"}
                 onClick={() => setShowLatest(!showLatest)}
               >
@@ -226,10 +227,10 @@ export default function ArticlesPage() {
               ))}
             </div>
           ) : articles.length === 0 ? (
-            <ArticleEmptyState 
+            <ArticleEmptyState
               title="No articles found"
-              description={search || category !== 'ALL' 
-                ? "Try adjusting your search or filters" 
+              description={search || category !== 'ALL'
+                ? "Try adjusting your search or filters"
                 : "Check back later for new content"}
             />
           ) : (

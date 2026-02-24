@@ -8,21 +8,34 @@
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/jwt": "^10.0.0",
     "@fastify/multipart": "^9.4.0",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.5",
     "@prisma/client": "^5.22.0",
+    "async-mutex": "^0.5.0",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.70.1",
     "fastify": "^5.7.4",
+    "ioredis": "^5.9.3",
     "isomorphic-dompurify": "^2.3.0",
-    "mammoth": "^1.6.0"
+    "mammoth": "^1.6.0",
+    "p-queue": "^9.1.0",
+    "sanitize-html": "^2.17.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.0",
+    "@types/sanitize-html": "^2.16.0",
     "prisma": "^5.22.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0",

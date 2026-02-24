@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5pq000f8fnu76472bsi",
+  "courseId": "cmlzhz5pp000b8fnuulmjpl1d",
+  "courseTitle": "Calculus I: Limits & Derivatives",
+  "title": "Continuity",
+  "description": "When functions are continuous",
+  "content": "# Continuity\n\nA function is continuous at a point if the limit exists, the function is defined, and they are equal.\n\n## Resources\n\n- [Resource 1](https://www.khanacademy.org/math/ap-calculus-ab/ab-limits-new/ab-1-12/a/continuity-at-a-point-algebraically)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.khanacademy.org/math/ap-calculus-ab/ab-limits-new/ab-1-12/a/continuity-at-a-point-algebraically"
+  ],
+  "createdAt": "2026-02-23T18:15:49.166Z"
+}

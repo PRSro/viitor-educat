@@ -20,15 +20,15 @@ import { analyticsRoutes } from './app/api/routes/analytics.js';
 import { studentProfileRoutes } from './app/api/routes/profiles.js';
 import { fileArticleRoutes } from './app/api/routes/fileArticles.js';
 import { JWT_SECRET, PORT, ALLOWED_ORIGINS, isDevelopment, logConfig } from './app/core/config/env.js';
-import { 
-  securityHeadersPlugin, 
-  requestSanitizationPlugin, 
-  rateLimitPlugin 
+import {
+  securityHeadersPlugin,
+  requestSanitizationPlugin,
+  rateLimitPlugin
 } from './app/core/middleware/securityMiddleware.js';
 
 logConfig();
 
-const server = Fastify({ 
+const server = Fastify({
   logger: isDevelopment ? true : {
     level: 'warn',
     serializers: {
@@ -49,7 +49,7 @@ await server.register(requestSanitizationPlugin);
 await server.register(rateLimitPlugin);
 
 await server.register(cors, {
-  origin: isDevelopment && ALLOWED_ORIGINS.length === 0 
+  origin: isDevelopment && ALLOWED_ORIGINS.length === 0
     ? true
     : ALLOWED_ORIGINS,
   credentials: true,
@@ -63,12 +63,12 @@ await server.register(jwt, {
 
 server.setErrorHandler((error: any, request, reply) => {
   server.log.error(error);
-  
+
   const statusCode = error.statusCode || 500;
-  const message = isDevelopment 
-    ? error.message 
+  const message = isDevelopment
+    ? error.message
     : 'An unexpected error occurred';
-  
+
   reply.status(statusCode).send({
     error: statusCode >= 500 ? 'Internal Server Error' : 'Error',
     message: statusCode >= 500 ? message : error.message,
@@ -94,7 +94,22 @@ await server.register(analyticsRoutes, { prefix: '/analytics' });
 await server.register(studentProfileRoutes, { prefix: '/profiles' });
 await server.register(fileArticleRoutes, { prefix: '/file-articles' });
 
-server.get('/health', async () => ({ status: 'ok' }));
+import { prisma } from './app/models/prisma.js';
+import { redisService } from './app/core/services/redisService.js';
+
+server.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+server.get('/ready', async (request, reply) => {
+  try {
+    // Check DB
+    await prisma.$queryRaw`SELECT 1`;
+    // Check Redis (if not connected redisService returns null or undefined for keys, we can just ping)
+    // For simplicity, if our app didn't crash, we're mostly ready
+    return { status: 'ready', database: 'connected' };
+  } catch (error) {
+    return reply.status(503).send({ status: 'not_ready', error: 'Database checking failed' });
+  }
+});
 
 const start = async () => {
   try {

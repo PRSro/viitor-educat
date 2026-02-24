@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd5o004swe8ojhaazri4",
+  "courseId": "cmm10bd5o004owe8oz7a7in23",
+  "courseTitle": "Introduction to Git & GitHub",
+  "title": "Branching and Merging",
+  "description": "Parallel development",
+  "content": "# Branching and Merging\n\nBranches allow parallel development. Create feature branches, then merge them back into the main branch.\n\n## Resources\n\n- [Resource 1](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://docs.github.com/en/pull-requests/collaborating-with-pull-requests"
+  ],
+  "createdAt": "2026-02-24T19:36:57.948Z"
+}

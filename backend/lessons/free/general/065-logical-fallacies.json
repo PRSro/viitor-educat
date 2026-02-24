@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd6q006rwe8oi4vqq6xb",
+  "courseId": "cmm10bd6q006owe8op5tessvw",
+  "courseTitle": "Critical Thinking",
+  "title": "Logical Fallacies",
+  "description": "Common reasoning errors",
+  "content": "# Logical Fallacies\n\nFallacies are errors in reasoning: ad hominem, straw man, false dilemma, slippery slope, appeal to authority.\n\n## Resources\n\n- [Resource 1](https://yourlogicalfallacyis.com/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://yourlogicalfallacyis.com/"
+  ],
+  "createdAt": "2026-02-24T19:36:57.986Z"
+}

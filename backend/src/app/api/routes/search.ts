@@ -201,7 +201,7 @@ export async function searchRoutes(fastify: FastifyInstance) {
         const resources = await prisma.externalResource.findMany({
           where: resourcesWhere,
           include: {
-            course: true,
+            courses: true,
             teacher: true
           },
           take: limitNum,

@@ -57,7 +57,7 @@ class AccessPolicy {
 
     this.register('course:enroll', (ctx) => {
       if (!ctx.resource) return false;
-      return ctx.resource.published && ctx.user.role === 'STUDENT';
+      return !!ctx.resource.published && ctx.user.role === 'STUDENT';
     });
 
     // Lesson policies
@@ -186,7 +186,7 @@ export function createPolicyMiddleware(
     reply: FastifyReply
   ): Promise<void> {
     const user = (request as any).user as JwtPayload | undefined;
-    
+
     if (!user) {
       return reply.status(401).send({
         error: 'Unauthorized',
@@ -207,12 +207,12 @@ export function createPolicyMiddleware(
 }
 
 export function requireAction(action: string) {
-  return async function(
+  return async function (
     request: FastifyRequest,
     reply: FastifyReply
   ): Promise<void> {
     const user = (request as any).user as JwtPayload | undefined;
-    
+
     if (!user) {
       return reply.status(401).send({
         error: 'Unauthorized',

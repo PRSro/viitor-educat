@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd6k006lwe8ocus1oazz",
+  "courseId": "cmm10bd6k006iwe8oh8f6f31s",
+  "courseTitle": "Study Skills & Learning Strategies",
+  "title": "Spaced Repetition",
+  "description": "Timing your reviews",
+  "content": "# Spaced Repetition\n\nSpaced repetition schedules reviews at increasing intervals to optimize long-term memory retention.\n\n## Resources\n\n- [Resource 1](https://ncase.me/remember/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://ncase.me/remember/"
+  ],
+  "createdAt": "2026-02-24T19:36:57.980Z"
+}

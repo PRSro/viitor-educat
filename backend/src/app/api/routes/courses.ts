@@ -17,7 +17,7 @@ const lessonInputSchema = z.object({
   content: z.string().min(1),
   description: z.string().optional(),
   order: z.number().default(0),
-  status: z.enum(['private', 'public', 'draft']).optional()
+  status: z.enum(['PRIVATE', 'PUBLIC', 'DRAFT']).optional()
 });
 
 const createCourseSchema = z.object({
@@ -40,8 +40,8 @@ const slugSchema = z.object({ slug: z.string().min(1) });
 
 export async function courseRoutes(server: FastifyInstance) {
 
-  // GET /courses
-  server.get('/', { preHandler: [authMiddleware, anyRole] }, async (request, reply) => {
+  // GET /courses - Public endpoint for published courses
+  server.get('/', async (request, reply) => {
     try {
       const courses = await prisma.course.findMany({
         where: { published: true },
@@ -130,18 +130,33 @@ export async function courseRoutes(server: FastifyInstance) {
     return { courses };
   });
 
-  // GET /courses/id/:id
-  server.get<{ Params: { id: string } }>('/id/:id', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request, reply) => {
+  // GET /courses/id/:id - Public for viewing published courses
+  server.get<{ Params: { id: string } }>('/id/:id', async (request, reply) => {
     const { id } = courseIdSchema.parse(request.params);
-    const currentUser = getCurrentUser(request);
 
-    const course = await courseService.getCourseById(id);
+    const course = await prisma.course.findUnique({
+      where: { id },
+      include: {
+        teacher: { select: { id: true, email: true, teacherProfile: true } },
+        _count: { select: { lessons: true, enrollments: true } },
+        lessons: { 
+          orderBy: { order: 'asc' },
+          select: { id: true, title: true, description: true, status: true }
+        }
+      }
+    });
+
     if (!course) return reply.status(404).send({ error: 'Course not found' });
 
-    const isTeacher = course.teacherId === currentUser.id;
-    return { course, isTeacher };
+    // Allow access to published courses without auth
+    if (!course.published) {
+      return reply.status(404).send({ error: 'Course not found' });
+    }
+
+    // Filter private lessons for guests
+    course.lessons = course.lessons.filter((l: any) => l.status !== 'PRIVATE');
+
+    return { course };
   });
 
   // GET /courses/:id/lessons
@@ -156,36 +171,41 @@ export async function courseRoutes(server: FastifyInstance) {
     return { lessons };
   });
 
-  // GET /courses/:slug
-  server.get<{ Params: { slug: string } }>('/:slug', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request, reply) => {
+  // GET /courses/:slug - Public endpoint for viewing published courses
+  server.get<{ Params: { slug: string } }>('/:slug', async (request, reply) => {
     const { slug } = slugSchema.parse(request.params);
-    const currentUser = getCurrentUser(request);
 
     const course = await courseService.getCourseBySlug(slug);
 
     if (!course) return reply.status(404).send({ error: 'Course not found' });
 
-    const isTeacher = course.teacherId === currentUser.id;
-    if (!course.published && !isTeacher && currentUser.role !== 'ADMIN') {
+    // Allow access to published courses without auth
+    if (!course.published) {
       return reply.status(404).send({ error: 'Course not found' });
     }
 
-    const enrollment = currentUser.role === 'STUDENT'
-      ? await prisma.enrollment.findUnique({
-        where: { studentId_courseId: { studentId: currentUser.id, courseId: course.id } }
-      })
-      : null;
+    // Try to get user info if authenticated
+    let enrollment = null;
+    let isTeacher = false;
+    let currentUser = null;
+    
+    try {
+      currentUser = getCurrentUser(request);
+      if (currentUser) {
+        isTeacher = course.teacherId === currentUser.id;
+        if (currentUser.role === 'STUDENT') {
+          enrollment = await prisma.enrollment.findUnique({
+            where: { studentId_courseId: { studentId: currentUser.id, courseId: course.id } }
+          });
+        }
+      }
+    } catch {
+      // Not authenticated - that's fine, user is guest
+    }
 
-    // Filter lessons for students if needed (though course is published, maybe some lessons are draft?)
-    // Prompt says "Lessons must belong to a course". Usually if course is published, lessons are available.
-    // But we might want to filter 'private' lessons if we support mixed visibility.
-    // For MVP, if course published, show all non-private lessons?
-    // Let's assume Published Course = All Public/Draft lessons visible? Or only Public?
-    // Let's filter out 'private' lessons for students
-    if (currentUser.role === 'STUDENT') {
-      (course as any).lessons = course.lessons.filter(l => l.status !== 'private');
+    // Filter out private lessons for non-teachers
+    if (!isTeacher && (!currentUser || currentUser.role !== 'ADMIN')) {
+      (course as any).lessons = course.lessons.filter((l: any) => l.status !== 'PRIVATE');
     }
 
     return { course, enrollment, isTeacher };
@@ -195,7 +215,7 @@ export async function courseRoutes(server: FastifyInstance) {
   server.post('/', { preHandler: [authMiddleware, teacherOnly] }, async (request, reply) => {
     try {
       const validated = createCourseSchema.parse(request.body);
-      const teacherId = getCurrentUser(request).id;
+      const currentUser = getCurrentUser(request);
 
       const newCourse = await courseService.create({
         title: validated.title,
@@ -204,9 +224,9 @@ export async function courseRoutes(server: FastifyInstance) {
         level: validated.level,
         category: validated.category,
         tags: validated.tags,
-        teacherId,
+        teacherId: currentUser.id,
         lessons: validated.lessons
-      });
+      }, currentUser.role);
 
       return reply.status(201).send({ message: 'Course created', course: newCourse });
     } catch (error) {
@@ -295,11 +315,11 @@ export async function courseRoutes(server: FastifyInstance) {
       course: {
         title: course.title,
         description: course.description,
-        status: 'draft', // Always export as draft for safety when re-importing? Or keep status.
-        lessons: course.lessons.map(l => ({
+        status: 'DRAFT', // Always export as draft for safety when re-importing? Or keep status.
+        lessons: course.lessons.map((l: any) => ({
           title: l.title,
           content: l.content,
-          status: 'draft' // Reset to draft
+          status: 'DRAFT' // Reset to draft
         }))
       }
     };

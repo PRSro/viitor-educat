@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcegn004em2p3o2tdbwn6",
+  "courseId": "cmlzhcegn004am2p3qkcijj1k",
+  "courseTitle": "Data Structures & Algorithms",
+  "title": "Trees and Graphs",
+  "description": "Hierarchical and network data",
+  "content": "# Trees and Graphs\n\nBinary trees, BSTs, and graphs model hierarchical and network relationships. Traversals: DFS, BFS.\n\n## Resources\n\n- [Resource 1](https://visualgo.net/en/bst)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://visualgo.net/en/bst"
+  ],
+  "createdAt": "2026-02-23T17:58:07.415Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqght005vsls5tqm1b17a",
+  "courseId": "cmm0zqght005rsls5u66k8m8u",
+  "courseTitle": "French for Beginners",
+  "title": "Present Tense Verbs",
+  "description": "Regular -er, -ir, -re verbs",
+  "content": "# Present Tense Verbs\n\nFrench regular verbs follow patterns. -er verbs (parler): je parle, tu parles, il parle, nous parlons...\n\n## Resources\n\n- [Resource 1](https://www.lawlessfrench.com/grammar/present-tense/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.lawlessfrench.com/grammar/present-tense/"
+  ],
+  "createdAt": "2026-02-24T19:20:42.497Z"
+}

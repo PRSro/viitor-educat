@@ -159,7 +159,20 @@ export async function getCourseAnalytics(limit?: number): Promise<CourseAnalytic
 /**
  * Get most popular courses (Admin only)
  */
-export async function getPopularCourses(limit?: number): Promise<any[]> {
+export interface PopularCourse {
+  id: string;
+  title: string;
+  teacher: {
+    id: string;
+    email: string;
+  };
+  _count: {
+    enrollments: number;
+    lessons: number;
+  };
+}
+
+export async function getPopularCourses(limit?: number): Promise<PopularCourse[]> {
   const params = limit ? `?limit=${limit}` : '';
   const response = await fetch(`${API_BASE_URL}/analytics/popular-courses${params}`, {
     headers: getAuthHeaders(),
@@ -219,9 +232,32 @@ export async function getStudentAnalytics(options?: {
 }
 
 /**
+ * Content analytics response structure
+ */
+export interface ContentAnalytics {
+  lessons: number;
+  articles: number;
+  flashcards: number;
+  resources: number;
+  quizzes: number;
+  lessonsByCourse: Array<{
+    courseId: string;
+    _count: { id: number };
+  }>;
+  articlesByCategory: Array<{
+    category: string;
+    count: number;
+  }>;
+  resourcesByType: Array<{
+    type: string;
+    count: number;
+  }>;
+}
+
+/**
  * Get content statistics (Admin only)
  */
-export async function getContentAnalytics(): Promise<any> {
+export async function getContentAnalytics(): Promise<ContentAnalytics> {
   const response = await fetch(`${API_BASE_URL}/analytics/content`, {
     headers: getAuthHeaders(),
   });

@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd4p002xwe8ofm61p7lj",
+  "courseId": "cmm10bd4p002twe8oazw34khh",
+  "courseTitle": "Classic Novels Analysis",
+  "title": "The Great Gatsby",
+  "description": "The American Dream",
+  "content": "# The Great Gatsby\n\nFitzgerald's novel explores wealth, idealism, and disillusionment in Jazz Age America through Jay Gatsby.\n\n## Resources\n\n- [Resource 1](https://www.gutenberg.org/ebooks/64317)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.gutenberg.org/ebooks/64317"
+  ],
+  "createdAt": "2026-02-24T19:36:57.913Z"
+}

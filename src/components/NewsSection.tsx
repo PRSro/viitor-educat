@@ -1,5 +1,6 @@
 import { Calendar, ArrowRight, Award, Users, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const news = [
   {
@@ -56,9 +57,11 @@ export const NewsSection = () => {
               <span className="text-gradient">Tudor Vianu</span>
             </h2>
           </div>
-          <Button className="aero-button group shrink-0 hover-glow" size="lg">
-            Vezi Toate Noutățile
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+          <Button asChild className="aero-button group shrink-0 hover-glow" size="lg">
+            <Link to="/noutati">
+              Vezi Toate Noutățile
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
           </Button>
         </div>
 
@@ -67,7 +70,7 @@ export const NewsSection = () => {
           {news.map((item) => (
             <article
               key={item.title}
-              className={`group aero-glass overflow-hidden transition-all duration-300 hover-lift hover-glow
+              className={`group aero-glass overflow-hidden transition-all duration-300 hover-lift hover-glow soft-shadow
                 ${item.featured ? "lg:col-span-2 lg:row-span-1" : ""}`}
             >
               <div className={`p-6 lg:p-8 h-full flex flex-col ${

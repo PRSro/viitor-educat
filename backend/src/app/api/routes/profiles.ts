@@ -116,7 +116,7 @@ export async function studentProfileRoutes(server: FastifyInstance) {
             id: l.lesson.id,
             title: l.lesson.title,
             courseId: l.lesson.courseId,
-            courseTitle: l.lesson.course.title
+            courseTitle: l.lesson.course?.title
           }
         })),
         stats: {
@@ -148,9 +148,12 @@ export async function studentProfileRoutes(server: FastifyInstance) {
       });
 
       if (!profile) {
+        // Get default school
+        const school = await prisma.school.findFirst();
         profile = await prisma.studentProfile.create({
           data: {
             userId: studentId,
+            schoolId: school?.id || '',
             ...validated
           }
         });

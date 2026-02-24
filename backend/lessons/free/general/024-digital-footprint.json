@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5ug006r8fnuz8iwdgtd",
+  "courseId": "cmlzhz5ug006n8fnu8ny50kgu",
+  "courseTitle": "Digital Literacy",
+  "title": "Digital Footprint",
+  "description": "Your online presence",
+  "content": "# Digital Footprint\n\nEverything you post online creates a digital footprint. Manage your presence carefully and think before sharing.\n\n## Resources\n\n- [Resource 1](https://www.internetsociety.org/tutorials/your-digital-footprint-matters/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://www.internetsociety.org/tutorials/your-digital-footprint-matters/"
+  ],
+  "createdAt": "2026-02-23T18:15:49.336Z"
+}

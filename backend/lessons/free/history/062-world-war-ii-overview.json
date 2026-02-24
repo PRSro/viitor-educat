@@ -1,0 +1,16 @@
+{
+  "id": "cmm1068kr0038u07kh0rpqsc7",
+  "courseId": "cmm1068kr0033u07kw68lb8eb",
+  "courseTitle": "World War I & II",
+  "title": "World War II Overview",
+  "description": "Global conflict",
+  "content": "# World War II Overview\n\nWWII (1939-1945) involved most of the world's nations. It resulted in an estimated 70-85 million deaths.\n\n## Resources\n\n- [Resource 1](https://www.nationalww2museum.org/)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.nationalww2museum.org/"
+  ],
+  "createdAt": "2026-02-24T19:32:58.731Z"
+}

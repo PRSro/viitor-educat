@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5re002c8fnurhu7kmzb",
+  "courseId": "cmlzhz5re002a8fnus8tanbsf",
+  "courseTitle": "World Mythology",
+  "title": "Greek Mythology",
+  "description": "Zeus, Athena, and Olympus",
+  "content": "# Greek Mythology\n\nGreek mythology centers on the twelve Olympian gods, heroes like Heracles, and epic journeys like the Odyssey.\n\n## Resources\n\n- [Resource 1](https://www.theoi.com/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.theoi.com/"
+  ],
+  "createdAt": "2026-02-23T18:15:49.226Z"
+}

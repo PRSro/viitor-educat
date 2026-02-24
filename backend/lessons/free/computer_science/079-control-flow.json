@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd5c0040we8ojxchzz80",
+  "courseId": "cmm10bd5c003wwe8o16q3e1s7",
+  "courseTitle": "Python for Beginners",
+  "title": "Control Flow",
+  "description": "If statements and loops",
+  "content": "# Control Flow\n\nUse if/elif/else for decisions. For loops iterate over sequences; while loops repeat until a condition is false.\n\n## Resources\n\n- [Resource 1](https://docs.python.org/3/tutorial/controlflow.html)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://docs.python.org/3/tutorial/controlflow.html"
+  ],
+  "createdAt": "2026-02-24T19:36:57.936Z"
+}

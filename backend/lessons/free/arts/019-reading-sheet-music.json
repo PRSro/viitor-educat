@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5t9004v8fnuaalqt7ni",
+  "courseId": "cmlzhz5t9004t8fnue9k1hob7",
+  "courseTitle": "Music Theory Basics",
+  "title": "Reading Sheet Music",
+  "description": "Notes and staff",
+  "content": "# Reading Sheet Music\n\nThe musical staff has five lines. Notes on the treble clef: Every Good Boy Does Fine (lines), FACE (spaces).\n\n## Resources\n\n- [Resource 1](https://www.musictheory.net/lessons)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.musictheory.net/lessons"
+  ],
+  "createdAt": "2026-02-23T18:15:49.293Z"
+}

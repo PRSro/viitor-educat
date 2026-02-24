@@ -4,6 +4,7 @@ import { teacherOnly, anyRole, requireRole } from '../../core/middleware/permiss
 import { z } from 'zod';
 import { formatZodError } from '../../schemas/validation/schemas.js';
 import { prisma } from '../../models/prisma.js';
+import { AiService } from '../../services/aiService.js';
 
 function getCurrentUser(request: FastifyRequest): JwtPayload {
   return (request as any).user as JwtPayload;
@@ -112,6 +113,34 @@ export async function flashcardRoutes(server: FastifyInstance) {
         id: true,
         question: true,
         answer: true,
+        courseId: true,
+        createdAt: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return {
+      flashcards,
+      totalCount: flashcards.length
+    };
+  });
+
+  /**
+   * GET /flashcards/lesson/:lessonId
+   * Get all flashcards for a specific lesson
+   */
+  server.get<{ Params: { lessonId: string } }>('/lesson/:lessonId', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request, reply) => {
+    const { lessonId } = request.params;
+
+    const flashcards = await prisma.flashcard.findMany({
+      where: { lessonId },
+      select: {
+        id: true,
+        question: true,
+        answer: true,
+        lessonId: true,
         courseId: true,
         createdAt: true
       },
@@ -309,7 +338,7 @@ export async function flashcardRoutes(server: FastifyInstance) {
       topic: lesson.title,
       lessonId: lesson.id,
       courseId: lesson.courseId,
-      courseTitle: lesson.course.title
+      courseTitle: lesson.course?.title || 'Course Content'
     }));
 
     return {
@@ -355,5 +384,90 @@ export async function flashcardRoutes(server: FastifyInstance) {
       article: { id: article.id, title: article.title, category: article.category },
       message: 'AI-powered prompt generation coming soon. These are basic prompts based on article content.'
     };
+  });
+
+  /**
+   * POST /flashcards/generate/lesson/:lessonId
+   * Generate flashcards using AI from lesson content
+   */
+  server.post<{ Params: { lessonId: string } }>('/generate/lesson/:lessonId', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request, reply) => {
+    const { lessonId } = request.params;
+    const { count = 5 } = (request.body as any) || {};
+
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId }
+    });
+
+    if (!lesson) {
+      return reply.status(404).send({ error: 'Lesson not found' });
+    }
+
+    try {
+      const generatedCards = await AiService.generateFlashcards(lesson.content, count);
+      const teacherId = getCurrentUser(request).id;
+
+      // Optionally save to DB immediately
+      const createdCards = await prisma.flashcard.createMany({
+        data: generatedCards.map(card => ({
+          ...card,
+          lessonId,
+          courseId: lesson.courseId,
+          teacherId
+        }))
+      });
+
+      return {
+        message: `Successfully generated and saved ${createdCards.count} flashcards`,
+        cards: generatedCards
+      };
+    } catch (error: any) {
+      return reply.status(500).send({
+        error: 'Failed to generate flashcards',
+        message: error.message
+      });
+    }
+  });
+
+  /**
+   * POST /flashcards/generate/article/:articleId
+   * Generate flashcards using AI from article content
+   */
+  server.post<{ Params: { articleId: string } }>('/generate/article/:articleId', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request, reply) => {
+    const { articleId } = request.params;
+    const { count = 5 } = (request.body as any) || {};
+
+    const article = await prisma.article.findUnique({
+      where: { id: articleId }
+    });
+
+    if (!article) {
+      return reply.status(404).send({ error: 'Article not found' });
+    }
+
+    try {
+      const generatedCards = await AiService.generateFlashcards(article.content, count);
+      const teacherId = getCurrentUser(request).id;
+
+      const createdCards = await prisma.flashcard.createMany({
+        data: generatedCards.map(card => ({
+          ...card,
+          teacherId
+        }))
+      });
+
+      return {
+        message: `Successfully generated and saved ${createdCards.count} flashcards`,
+        cards: generatedCards
+      };
+    } catch (error: any) {
+      return reply.status(500).send({
+        error: 'Failed to generate flashcards',
+        message: error.message
+      });
+    }
   });
 }

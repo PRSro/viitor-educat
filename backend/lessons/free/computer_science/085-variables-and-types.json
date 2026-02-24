@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd5j004cwe8ovixhnhww",
+  "courseId": "cmm10bd5j004awe8o9dwyo02t",
+  "courseTitle": "JavaScript Essentials",
+  "title": "Variables and Types",
+  "description": "let, const, and data types",
+  "content": "# Variables and Types\n\nJavaScript uses let and const for variable declarations. Types include string, number, boolean, object, and array.\n\n## Resources\n\n- [Resource 1](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"
+  ],
+  "createdAt": "2026-02-24T19:36:57.943Z"
+}

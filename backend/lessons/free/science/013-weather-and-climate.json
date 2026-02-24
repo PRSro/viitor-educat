@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcefc001pm2p3dckzyx1j",
+  "courseId": "cmlzhcefc001lm2p3mlgqpc0z",
+  "courseTitle": "Earth Science",
+  "title": "Weather and Climate",
+  "description": "Atmospheric phenomena",
+  "content": "# Weather and Climate\n\nWeather is short-term atmospheric conditions; climate is the long-term average of weather patterns.\n\n## Resources\n\n- [Resource 1](https://www.weather.gov/jetstream/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://www.weather.gov/jetstream/"
+  ],
+  "createdAt": "2026-02-23T17:58:07.368Z"
+}

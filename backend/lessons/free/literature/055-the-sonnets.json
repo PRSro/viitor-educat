@@ -1,0 +1,16 @@
+{
+  "id": "cmm1068kb002cu07k33qjrqyk",
+  "courseId": "cmm1068kb0027u07k6jm6cgsa",
+  "courseTitle": "Shakespeare's Greatest Works",
+  "title": "The Sonnets",
+  "description": "Shall I compare thee",
+  "content": "# The Sonnets\n\nShakespeare wrote 154 sonnets exploring love, beauty, mortality, and time. Most follow the English sonnet form.\n\n## Resources\n\n- [Resource 1](https://www.gutenberg.org/ebooks/1041)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.gutenberg.org/ebooks/1041"
+  ],
+  "createdAt": "2026-02-24T19:32:58.716Z"
+}

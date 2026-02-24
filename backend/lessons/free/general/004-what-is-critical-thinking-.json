@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcehn006jm2p31iggwr4e",
+  "courseId": "cmlzhcehn006hm2p3lyboxrr4",
+  "courseTitle": "Critical Thinking",
+  "title": "What is Critical Thinking?",
+  "description": "Objective analysis",
+  "content": "# What is Critical Thinking?\n\nCritical thinking is the ability to analyze information objectively, evaluate arguments, and form reasoned judgments.\n\n## Resources\n\n- [Resource 1](https://www.criticalthinking.org/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://www.criticalthinking.org/"
+  ],
+  "createdAt": "2026-02-23T17:58:07.451Z"
+}

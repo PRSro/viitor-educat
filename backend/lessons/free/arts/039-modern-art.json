@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqghj0057sls5ugjdxl7u",
+  "courseId": "cmm0zqghj0053sls51iow34u2",
+  "courseTitle": "Art History: Renaissance to Modern",
+  "title": "Modern Art",
+  "description": "Breaking conventions",
+  "content": "# Modern Art\n\nModern art (late 19th-mid 20th century) challenged traditions through abstraction, cubism, and expressionism.\n\n## Resources\n\n- [Resource 1](https://www.moma.org/learn/moma_learning/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.moma.org/learn/moma_learning/"
+  ],
+  "createdAt": "2026-02-24T19:20:42.488Z"
+}

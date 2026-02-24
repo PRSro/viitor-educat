@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcegn004fm2p3yxyn3o62",
+  "courseId": "cmlzhcegn004am2p3qkcijj1k",
+  "courseTitle": "Data Structures & Algorithms",
+  "title": "Sorting Algorithms",
+  "description": "Organizing data efficiently",
+  "content": "# Sorting Algorithms\n\nKey algorithms: bubble sort O(n²), merge sort O(n log n), quicksort O(n log n) average.\n\n## Resources\n\n- [Resource 1](https://www.toptal.com/developers/sorting-algorithms)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://www.toptal.com/developers/sorting-algorithms"
+  ],
+  "createdAt": "2026-02-23T17:58:07.415Z"
+}

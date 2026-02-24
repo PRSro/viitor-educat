@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5te00528fnut5oslrrs",
+  "courseId": "cmlzhz5td004z8fnu2u5obxhm",
+  "courseTitle": "Art History: Renaissance to Modern",
+  "title": "Impressionism",
+  "description": "Light and color",
+  "content": "# Impressionism\n\nImpressionists like Monet and Renoir captured fleeting moments with visible brushstrokes and vibrant color.\n\n## Resources\n\n- [Resource 1](https://www.metmuseum.org/toah/hd/imml/hd_imml.htm)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.metmuseum.org/toah/hd/imml/hd_imml.htm"
+  ],
+  "createdAt": "2026-02-23T18:15:49.298Z"
+}

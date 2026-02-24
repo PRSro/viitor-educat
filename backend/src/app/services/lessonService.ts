@@ -1,7 +1,9 @@
+import { Status } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 
+
 export const lessonService = {
-    async createLesson(teacherId: string, data: { title: string; content: string; description?: string; order?: number; courseId?: string; status?: string }) {
+    async createLesson(teacherId: string, data: { title: string; content: string; description?: string; order?: number; courseId?: string; status?: Status }) {
         return prisma.lesson.create({
             data: {
                 title: data.title,
@@ -10,12 +12,12 @@ export const lessonService = {
                 order: data.order,
                 courseId: data.courseId,
                 teacherId,
-                status: data.status || 'PRIVATE',
+                status: data.status || Status.PRIVATE,
             },
         });
     },
 
-    async updateLesson(id: string, data: { title?: string; content?: string; description?: string; status?: string; order?: number }) {
+    async updateLesson(id: string, data: { title?: string; content?: string; description?: string; status?: Status; order?: number }) {
         return prisma.lesson.update({
             where: { id },
             data,

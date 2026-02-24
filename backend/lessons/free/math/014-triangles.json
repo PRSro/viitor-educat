@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhceet000sm2p3j8zs8ob7",
+  "courseId": "cmlzhceet000pm2p30qty6t81",
+  "courseTitle": "Geometry Essentials",
+  "title": "Triangles",
+  "description": "Properties of triangles",
+  "content": "# Triangles\n\nThe sum of angles in a triangle is always 180°. Triangles are classified by sides (equilateral, isosceles, scalene) and angles.\n\n## Resources\n\n- [Resource 1](https://www.khanacademy.org/math/geometry/hs-geo-triangles)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.khanacademy.org/math/geometry/hs-geo-triangles"
+  ],
+  "createdAt": "2026-02-23T17:58:07.349Z"
+}

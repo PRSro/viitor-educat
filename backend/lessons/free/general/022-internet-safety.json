@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5ug006p8fnumjf3t9gy",
+  "courseId": "cmlzhz5ug006n8fnu8ny50kgu",
+  "courseTitle": "Digital Literacy",
+  "title": "Internet Safety",
+  "description": "Protecting yourself online",
+  "content": "# Internet Safety\n\nUse strong passwords, enable 2FA, recognize phishing attempts, and be careful with personal information.\n\n## Resources\n\n- [Resource 1](https://staysafeonline.org/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://staysafeonline.org/"
+  ],
+  "createdAt": "2026-02-23T18:15:49.336Z"
+}

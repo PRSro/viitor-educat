@@ -1,0 +1,16 @@
+{
+  "id": "cmm1068k6001zu07k5ea69cl7",
+  "courseId": "cmm1068k6001vu07k6suvth5h",
+  "courseTitle": "Astronomy: The Solar System",
+  "title": "Moons and Asteroids",
+  "description": "Smaller bodies",
+  "content": "# Moons and Asteroids\n\nMoons orbit planets. Our Moon stabilizes Earth's axial tilt. The asteroid belt lies between Mars and Jupiter.\n\n## Resources\n\n- [Resource 1](https://science.nasa.gov/solar-system/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://science.nasa.gov/solar-system/"
+  ],
+  "createdAt": "2026-02-24T19:32:58.710Z"
+}

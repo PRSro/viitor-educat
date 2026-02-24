@@ -4,11 +4,11 @@ import { anyRole, requireRole } from '../../core/middleware/permissionMiddleware
 import { z } from 'zod';
 import { formatZodError } from '../../schemas/validation/schemas.js';
 import { fileArticleService } from '../../articles/articleService.js';
-import { 
-  validateArticleInput, 
-  sanitizeSlug, 
-  isValidSlug, 
-  checkRateLimit 
+import {
+  validateArticleInput,
+  sanitizeSlug,
+  isValidSlug,
+  checkRateLimit
 } from '../../articles/security.js';
 import { auditLogger, logArticleAction } from '../../articles/auditLogger.js';
 import { articleSyncService } from '../../articles/syncService.js';
@@ -57,7 +57,7 @@ function sendResponse(reply: FastifyReply, result: any): FastifyReply {
   if (result.success) {
     return reply.send({ success: true, data: result.data });
   }
-  
+
   const statusCodes: Record<string, number> = {
     VALIDATION_ERROR: 400,
     NOT_FOUND: 404,
@@ -67,7 +67,7 @@ function sendResponse(reply: FastifyReply, result: any): FastifyReply {
     UPDATE_ERROR: 500,
     DELETE_ERROR: 500,
   };
-  
+
   const statusCode = statusCodes[result.errorCode] || 500;
   return reply.status(statusCode).send({
     success: false,
@@ -89,31 +89,31 @@ export async function fileArticleRoutes(server: FastifyInstance) {
     try {
       const query = listQuerySchema.parse(request.query);
       const user = getCurrentUser(request);
-      
+
       const filters: any = {};
-      
+
       // STUDENT: can only see published
       if (user.role === 'STUDENT') {
         filters.published = true;
       }
-      
+
       if (query.authorId) filters.authorId = query.authorId;
       if (query.category) filters.category = query.category;
       if (query.status) filters.status = query.status;
       if (query.published !== undefined) filters.published = query.published;
       if (query.search) filters.search = query.search;
-      
+
       const result = await fileArticleService.findAll(filters, {
         page: query.page,
         limit: query.limit
       });
-      
-      auditLogger.info('LIST', 'Articles listed', { 
-        userId: user.id, 
+
+      auditLogger.info('LIST', 'Articles listed', {
+        userId: user.id,
         filters: Object.keys(filters),
-        count: result.data.length 
+        count: result.data.length
       });
-      
+
       return { success: true, data: result.data, pagination: result.pagination };
     } catch (error) {
       auditLogger.error('LIST_ERROR', 'Failed to list articles', { error: String(error) });
@@ -130,27 +130,27 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
     const { slug } = request.params;
     const user = getCurrentUser(request);
-    
+
     // Validate slug to prevent path traversal
     if (!isValidSlug(slug)) {
       auditLogger.warn('INVALID_SLUG', `Invalid slug attempted: ${slug}`, { userId: user.id });
       return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug format' });
     }
-    
+
     const result = await fileArticleService.findBySlug(slug);
-    
+
     if (!result) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
-    
+
     const isOwner = result.authorId === user.id;
     const isAdmin = user.role === 'ADMIN';
     const isPublished = result.published;
-    
+
     if (!isPublished && !isOwner && !isAdmin) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
-    
+
     return { success: true, data: result };
   });
 
@@ -164,19 +164,19 @@ export async function fileArticleRoutes(server: FastifyInstance) {
     try {
       // Rate limiting for write operations
       const user = getCurrentUser(request);
-      const rateLimit = checkRateLimit(`write_${user.id}`, 10, 60000);
-      
+      const rateLimit = await checkRateLimit(`write_${user.id}`, 10, 60000);
+
       if (!rateLimit.allowed) {
         auditLogger.warn('RATE_LIMIT', 'Rate limit exceeded', { userId: user.id, action: 'CREATE' });
-        return reply.status(429).send({ 
-          success: false, 
-          errorCode: 'RATE_LIMIT_EXCEEDED', 
-          message: `Too many requests. Try again in ${Math.ceil((rateLimit.resetAt - Date.now()) / 1000)} seconds` 
+        return reply.status(429).send({
+          success: false,
+          errorCode: 'RATE_LIMIT_EXCEEDED',
+          message: `Too many requests. Try again in ${Math.ceil((rateLimit.resetAt - Date.now()) / 1000)} seconds`
         });
       }
-      
+
       const validated = createFileArticleSchema.parse(request.body);
-      
+
       // Validate using security helper
       const validation = validateArticleInput({
         title: validated.title,
@@ -185,23 +185,23 @@ export async function fileArticleRoutes(server: FastifyInstance) {
         authorId: user.id,
         sourceUrl: validated.sourceUrl
       });
-      
+
       if (!validation.valid) {
         logArticleAction('VALIDATION_ERROR', user.id, 'new', { errors: validation.errors });
-        return reply.status(400).send({ 
-          success: false, 
-          errorCode: 'VALIDATION_ERROR', 
-          message: validation.errors.join('; ') 
+        return reply.status(400).send({
+          success: false,
+          errorCode: 'VALIDATION_ERROR',
+          message: validation.errors.join('; ')
         });
       }
-      
+
       const slug = generateSlug(validation.sanitized.title);
-      
+
       const exists = await fileArticleService.exists(slug);
       if (exists) {
         return reply.status(409).send({ success: false, errorCode: 'CONFLICT', message: 'Article with this title already exists' });
       }
-      
+
       const saveResult = await fileArticleService.save({
         id: `article_${Date.now()}`,
         title: validation.sanitized.title,
@@ -216,23 +216,23 @@ export async function fileArticleRoutes(server: FastifyInstance) {
         status: (validated.published || false) ? 'published' : 'draft',
         createdAt: new Date().toISOString()
       });
-      
+
       if (saveResult.success) {
-        logArticleAction('CREATE', user.id, slug, { 
+        logArticleAction('CREATE', user.id, slug, {
           title: validation.sanitized.title,
-          published: validated.published 
+          published: validated.published
         });
-        
+
         // Sync to database in background
         if (saveResult.data) {
           jobs.syncDatabase().catch(console.error);
         }
       }
-      
+
       return sendResponse(reply, saveResult);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({ 
+        return reply.status(400).send({
           success: false,
           errorCode: 'VALIDATION_ERROR',
           message: formatZodError(error)
@@ -253,31 +253,31 @@ export async function fileArticleRoutes(server: FastifyInstance) {
     try {
       const { slug } = request.params;
       const user = getCurrentUser(request);
-      
+
       // Rate limiting
-      const rateLimit = checkRateLimit(`write_${user.id}`, 10, 60000);
+      const rateLimit = await checkRateLimit(`write_${user.id}`, 10, 60000);
       if (!rateLimit.allowed) {
         return reply.status(429).send({ success: false, errorCode: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' });
       }
-      
+
       // Validate slug
       if (!isValidSlug(slug)) {
         return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
       }
-      
+
       const validated = updateFileArticleSchema.parse(request.body);
-      
+
       const existing = await fileArticleService.findBySlug(slug);
       if (!existing) {
         return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
       }
-      
+
       // RBAC check
       if (existing.authorId !== user.id && user.role !== 'ADMIN') {
         logArticleAction('PERMISSION_DENIED', user.id, slug, { action: 'UPDATE', reason: 'not_owner' });
         return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'You can only update your own articles' });
       }
-      
+
       // Validate content if provided
       let validation;
       if (validated.content) {
@@ -286,16 +286,16 @@ export async function fileArticleRoutes(server: FastifyInstance) {
           content: validated.content,
           authorId: user.id
         });
-        
+
         if (!validation.valid) {
-          return reply.status(400).send({ 
-            success: false, 
-            errorCode: 'VALIDATION_ERROR', 
-            message: validation.errors.join('; ') 
+          return reply.status(400).send({
+            success: false,
+            errorCode: 'VALIDATION_ERROR',
+            message: validation.errors.join('; ')
           });
         }
       }
-      
+
       const data: any = { ...validated };
       if (validation?.sanitized) {
         data.content = validation.sanitized.content;
@@ -303,16 +303,16 @@ export async function fileArticleRoutes(server: FastifyInstance) {
           data.title = validation.sanitized.title;
         }
       }
-      
+
       const result = await fileArticleService.update(slug, data);
-      
+
       if (result.success) {
-        logArticleAction('UPDATE', user.id, slug, { 
+        logArticleAction('UPDATE', user.id, slug, {
           oldVersion: existing.metadata?.version,
-          newVersion: result.data?.metadata?.version 
+          newVersion: result.data?.metadata?.version
         });
       }
-      
+
       return sendResponse(reply, result);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -332,33 +332,33 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
     const { slug } = request.params;
     const user = getCurrentUser(request);
-    
+
     // Rate limiting
-    const rateLimit = checkRateLimit(`write_${user.id}`, 10, 60000);
+    const rateLimit = await checkRateLimit(`write_${user.id}`, 10, 60000);
     if (!rateLimit.allowed) {
       return reply.status(429).send({ success: false, errorCode: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' });
     }
-    
+
     if (!isValidSlug(slug)) {
       return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
     }
-    
+
     const existing = await fileArticleService.findBySlug(slug);
     if (!existing) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
-    
+
     if (existing.authorId !== user.id && user.role !== 'ADMIN') {
       logArticleAction('PERMISSION_DENIED', user.id, slug, { action: 'DELETE' });
       return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'You can only delete your own articles' });
     }
-    
+
     const result = await fileArticleService.delete(slug);
-    
+
     if (result.success) {
       logArticleAction('DELETE', user.id, slug, { title: existing.title });
     }
-    
+
     return sendResponse(reply, result);
   });
 
@@ -371,24 +371,24 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
     const { slug } = request.params;
     const user = getCurrentUser(request);
-    
+
     if (!isValidSlug(slug)) {
       return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
     }
-    
+
     const article = await fileArticleService.findBySlug(slug);
-    
+
     if (!article) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
-    
+
     const isOwner = article.authorId === user.id;
     const isAdmin = user.role === 'ADMIN';
-    
+
     if (!article.published && !isOwner && !isAdmin) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
-    
+
     return { success: true, data: article.paths };
   });
 
@@ -401,20 +401,20 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
     const { slug } = request.params;
     const user = getCurrentUser(request);
-    
+
     if (!isValidSlug(slug)) {
       return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
     }
-    
+
     const existing = await fileArticleService.findBySlug(slug);
     if (!existing) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
-    
+
     if (existing.authorId !== user.id && user.role !== 'ADMIN') {
       return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'Access denied' });
     }
-    
+
     const result = await fileArticleService.getHistory(slug);
     return sendResponse(reply, result);
   });
@@ -428,31 +428,31 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: VersionParams }>, reply: FastifyReply) => {
     const { slug, version } = request.params;
     const user = getCurrentUser(request);
-    
+
     if (!isValidSlug(slug)) {
       return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
     }
-    
+
     const existing = await fileArticleService.findBySlug(slug);
     if (!existing) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
-    
+
     if (existing.authorId !== user.id && user.role !== 'ADMIN') {
       return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'Access denied' });
     }
-    
+
     const versionNum = parseInt(version, 10);
     if (isNaN(versionNum)) {
       return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid version number' });
     }
-    
+
     const result = await fileArticleService.restoreVersion(slug, versionNum);
-    
+
     if (result.success) {
       logArticleAction('RESTORE', user.id, slug, { version: versionNum });
     }
-    
+
     return sendResponse(reply, result);
   });
 
@@ -465,23 +465,23 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
     const { slug } = request.params;
     const user = getCurrentUser(request);
-    
+
     if (!isValidSlug(slug)) {
       return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
     }
-    
+
     const existing = await fileArticleService.findBySlug(slug);
     if (!existing) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
-    
+
     if (existing.authorId !== user.id && user.role !== 'ADMIN') {
       return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'Access denied' });
     }
-    
+
     // Get audit logs for this article
     const logs = auditLogger.getLogs({ action: slug });
-    
+
     return { success: true, data: logs };
   });
 }

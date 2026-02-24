@@ -329,7 +329,7 @@ export async function getCourseAnalytics(courseId: string): Promise<CourseAnalyt
 /**
  * Export course as JSON
  */
-export async function exportCourse(courseId: string): Promise<any> {
+export async function exportCourse(courseId: string): Promise<unknown> {
   const response = await fetch(`${API_BASE_URL}/courses/${courseId}/export`, {
     headers: getAuthHeaders(),
   });

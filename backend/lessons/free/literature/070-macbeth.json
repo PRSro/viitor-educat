@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd4f002ewe8o1ky2o352",
+  "courseId": "cmm10bd4f002awe8oecpi2qiz",
+  "courseTitle": "Shakespeare's Greatest Works",
+  "title": "Macbeth",
+  "description": "Ambition and guilt",
+  "content": "# Macbeth\n\nMacbeth, a Scottish general, descends into madness after murdering King Duncan to seize the throne.\n\n## Resources\n\n- [Resource 1](https://www.gutenberg.org/ebooks/1533)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.gutenberg.org/ebooks/1533"
+  ],
+  "createdAt": "2026-02-24T19:36:57.904Z"
+}

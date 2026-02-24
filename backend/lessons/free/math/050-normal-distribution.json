@@ -1,0 +1,16 @@
+{
+  "id": "cmm0zqgf9000rsls5gjmskwfk",
+  "courseId": "cmm0zqgf9000nsls5wqlvfe5n",
+  "courseTitle": "Statistics & Probability",
+  "title": "Normal Distribution",
+  "description": "The bell curve",
+  "content": "# Normal Distribution\n\nThe normal distribution is a symmetric, bell-shaped curve described by its mean and standard deviation.\n\n## Resources\n\n- [Resource 1](https://www.mathsisfun.com/data/standard-normal-distribution.html)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.mathsisfun.com/data/standard-normal-distribution.html"
+  ],
+  "createdAt": "2026-02-24T19:20:42.405Z"
+}

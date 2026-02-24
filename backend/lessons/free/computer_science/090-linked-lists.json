@@ -1,0 +1,16 @@
+{
+  "id": "cmm10bd5l004kwe8ofqqkb892",
+  "courseId": "cmm10bd5l004hwe8onal53gx3",
+  "courseTitle": "Data Structures & Algorithms",
+  "title": "Linked Lists",
+  "description": "Dynamic data structures",
+  "content": "# Linked Lists\n\nLinked lists store data in nodes with pointers. They allow efficient insertion/deletion but slow random access.\n\n## Resources\n\n- [Resource 1](https://visualgo.net/en/list)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://visualgo.net/en/list"
+  ],
+  "createdAt": "2026-02-24T19:36:57.946Z"
+}

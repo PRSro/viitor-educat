@@ -22,8 +22,8 @@ export const registerSchema = z.object({
     .min(8, { message: 'Password must be at least 8 characters' })
     .max(128, { message: 'Password must be less than 128 characters' }),
   role: z
-    .enum(['STUDENT', 'TEACHER'], { 
-      errorMap: () => ({ message: 'Role must be STUDENT or TEACHER' }) 
+    .enum(['STUDENT', 'TEACHER'], {
+      errorMap: () => ({ message: 'Role must be STUDENT or TEACHER' })
     })
     .optional()
     .default('STUDENT'),
@@ -124,7 +124,7 @@ const dockerConfigSchema = z.object({
     .string()
     .min(1, { message: 'Docker image is required' })
     .max(500, { message: 'Docker image must be less than 500 characters' })
-    .regex(/^[a-z0-9\/.:-]+$/i, { message: 'Invalid Docker image format' }),
+    .regex(new RegExp('^[a-z0-9/.:-]+$', 'i'), { message: 'Invalid Docker image format' }),
   tag: z
     .string()
     .max(100, { message: 'Docker tag must be less than 100 characters' })

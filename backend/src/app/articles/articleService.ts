@@ -1,6 +1,8 @@
 import { writeFile, readFile, mkdir, access, readdir, unlink, stat } from 'fs/promises';
 import { join, extname } from 'path';
 import { existsSync, renameSync } from 'fs';
+import { redisService } from '../core/services/redisService.js';
+import { Mutex } from 'async-mutex';
 
 const ARTICLES_DIR = join(process.cwd(), 'articles');
 const HISTORY_DIR = join(ARTICLES_DIR, 'history');
@@ -78,11 +80,11 @@ const fileLocks = new Map<string, Promise<void>>();
 
 async function acquireLock(slug: string): Promise<() => Promise<void>> {
   const lockKey = `${slug}.lock`;
-  
+
   while (fileLocks.has(lockKey)) {
     await fileLocks.get(lockKey);
   }
-  
+
   let releaseLock: (() => Promise<void>) | undefined;
   const lockPromise = new Promise<void>((resolve) => {
     releaseLock = async () => {
@@ -90,9 +92,9 @@ async function acquireLock(slug: string): Promise<() => Promise<void>> {
       resolve();
     };
   });
-  
+
   fileLocks.set(lockKey, lockPromise);
-  
+
   return releaseLock!;
 }
 
@@ -111,7 +113,7 @@ async function ensureDir(dir: string): Promise<void> {
 
 function extractPaths(html: string): ArticlePath[] {
   const paths: ArticlePath[] = [];
-  
+
   const headingRegex = /<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi;
   let match;
   while ((match = headingRegex.exec(html)) !== null) {
@@ -120,7 +122,7 @@ function extractPaths(html: string): ArticlePath[] {
     const path = `/heading-${level}/${text.toLowerCase().replace(/\s+/g, '-')}`;
     paths.push({ path, type: 'heading', level, text });
   }
-  
+
   const paraRegex = /<p[^>]*>([\s\S]*?)<\/p>/gi;
   let paraIndex = 0;
   while ((match = paraRegex.exec(html)) !== null) {
@@ -130,28 +132,28 @@ function extractPaths(html: string): ArticlePath[] {
       paraIndex++;
     }
   }
-  
+
   const linkRegex = /<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
   while ((match = linkRegex.exec(html)) !== null) {
     paths.push({ path: `/link/${paths.length}`, type: 'link', href: match[1], text: match[2].trim() });
   }
-  
+
   const imgRegex = /<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi;
   while ((match = imgRegex.exec(html)) !== null) {
     paths.push({ path: `/image/${paths.length}`, type: 'image', src: match[1], text: match[2] });
   }
-  
+
   const codeRegex = /<code[^>]*>([\s\S]*?)<\/code>/gi;
   while ((match = codeRegex.exec(html)) !== null) {
     paths.push({ path: `/code/${paths.length}`, type: 'code', text: match[1].trim() });
   }
-  
+
   const quoteRegex = /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi;
   while ((match = quoteRegex.exec(html)) !== null) {
     const text = match[1].replace(/<[^>]+>/g, '').trim();
     paths.push({ path: `/quote/${paths.length}`, type: 'quote', text });
   }
-  
+
   const ulRegex = /<ul[^>]*>([\s\S]*?)<\/ul>/gi;
   while ((match = ulRegex.exec(html)) !== null) {
     const items: string[] = [];
@@ -164,7 +166,7 @@ function extractPaths(html: string): ArticlePath[] {
       paths.push({ path: `/list/${paths.length}`, type: 'list', items });
     }
   }
-  
+
   return paths;
 }
 
@@ -188,92 +190,80 @@ function validateArticle(data: any): { valid: boolean; errors: string[] } {
     authorId: 'string',
     createdAt: 'string'
   };
-  
+
   for (const field of requiredFields) {
     if (data[field] === undefined || data[field] === null) {
       errors.push(`Missing required field: ${field}`);
     }
   }
-  
+
   for (const [field, expectedType] of Object.entries(requiredTypes)) {
     if (data[field] !== undefined && typeof data[field] !== expectedType) {
       errors.push(`Field ${field} must be of type ${expectedType}`);
     }
   }
-  
+
   if (data.title && (data.title.length < 1 || data.title.length > 300)) {
     errors.push('Title must be between 1 and 300 characters');
   }
-  
+
   if (data.content && data.content.length > MAX_FILE_SIZE) {
     errors.push(`Content exceeds maximum size of ${MAX_FILE_SIZE} bytes`);
   }
-  
+
   if (data.slug && !/^[a-z0-9-]+$/.test(data.slug)) {
     errors.push('Slug must contain only lowercase letters, numbers, and hyphens');
   }
-  
+
   if (data.authorId && !/^[^/]+$/.test(data.authorId)) {
     errors.push('Invalid authorId format');
   }
-  
+
   return { valid: errors.length === 0, errors };
 }
 
-// In-memory cache
-interface CacheEntry<T> {
-  data: T;
-  expiresAt: number;
-}
-
+// In-memory / Redis cache
 class ArticleCache {
-  private indexCache: CacheEntry<FileArticle[]> | null = null;
-  private slugCache: Map<string, CacheEntry<FileArticle>> = new Map();
-  
-  getIndex(): FileArticle[] | null {
-    if (this.indexCache && this.indexCache.expiresAt > Date.now()) {
-      return this.indexCache.data;
+  async getIndex(): Promise<FileArticle[] | null> {
+    return redisService.get<FileArticle[]>('article:index');
+  }
+
+  async setIndex(data: FileArticle[]): Promise<void> {
+    await redisService.set('article:index', data, CACHE_TTL / 1000); // converting ms to seconds
+  }
+
+  async invalidateIndex(): Promise<void> {
+    await redisService.del('article:index');
+  }
+
+  async getSlug(slug: string): Promise<FileArticle | null> {
+    return redisService.get<FileArticle>(`article:${slug}`);
+  }
+
+  async setSlug(slug: string, data: FileArticle): Promise<void> {
+    await redisService.set(`article:${slug}`, data, CACHE_TTL / 1000);
+  }
+
+  async invalidateSlug(slug: string): Promise<void> {
+    await redisService.del(`article:${slug}`);
+  }
+
+  async clear(): Promise<void> {
+    const keys = await redisService.keys('article:*');
+    for (const key of keys) {
+      await redisService.del(key);
     }
-    return null;
-  }
-  
-  setIndex(data: FileArticle[]): void {
-    this.indexCache = { data, expiresAt: Date.now() + CACHE_TTL };
-  }
-  
-  invalidateIndex(): void {
-    this.indexCache = null;
-  }
-  
-  getSlug(slug: string): FileArticle | null {
-    const entry = this.slugCache.get(slug);
-    if (entry && entry.expiresAt > Date.now()) {
-      return entry.data;
-    }
-    return null;
-  }
-  
-  setSlug(slug: string, data: FileArticle): void {
-    this.slugCache.set(slug, { data, expiresAt: Date.now() + CACHE_TTL });
-  }
-  
-  invalidateSlug(slug: string): void {
-    this.slugCache.delete(slug);
-  }
-  
-  clear(): void {
-    this.indexCache = null;
-    this.slugCache.clear();
   }
 }
 
 const articleCache = new ArticleCache();
 
+
 // History management
 async function saveVersion(slug: string, article: FileArticle): Promise<void> {
   const versionDir = join(HISTORY_DIR, slug);
   await ensureDir(versionDir);
-  
+
   const versionFile = join(versionDir, `v${article.metadata?.version || 1}.json`);
   const versionData: ArticleVersion = {
     version: article.metadata?.version || 1,
@@ -281,7 +271,7 @@ async function saveVersion(slug: string, article: FileArticle): Promise<void> {
     content: article.content,
     title: article.title
   };
-  
+
   await atomicWrite(versionFile, JSON.stringify(versionData, null, 2));
 }
 
@@ -290,7 +280,7 @@ async function getVersions(slug: string): Promise<ArticleVersion[]> {
     const versionDir = join(HISTORY_DIR, slug);
     await ensureDir(versionDir);
     const files = await readdir(versionDir);
-    
+
     const versions: ArticleVersion[] = [];
     for (const file of files) {
       if (file.endsWith('.json')) {
@@ -298,7 +288,7 @@ async function getVersions(slug: string): Promise<ArticleVersion[]> {
         versions.push(JSON.parse(content));
       }
     }
-    
+
     return versions.sort((a, b) => b.version - a.version);
   } catch {
     return [];
@@ -323,12 +313,12 @@ export const fileArticleService = {
 
   async save(article: Omit<FileArticle, 'paths' | 'metadata' | 'updatedAt'>): Promise<ApiResponse<FileArticle>> {
     const releaseLock = await acquireLock(article.slug);
-    
+
     try {
       const paths = extractPaths(article.content);
       const wordCount = calculateWordCount(article.content);
       const now = new Date().toISOString();
-      
+
       const fileArticle: FileArticle = {
         ...article,
         paths,
@@ -340,20 +330,20 @@ export const fileArticleService = {
         },
         updatedAt: now
       };
-      
+
       const validation = validateArticle(fileArticle);
       if (!validation.valid) {
         return { success: false, errorCode: 'VALIDATION_ERROR', message: validation.errors.join('; ') };
       }
-      
+
       await saveVersion(article.slug, fileArticle);
-      
+
       const filePath = join(ARTICLES_DIR, `${article.slug}.json`);
       await atomicWrite(filePath, JSON.stringify(fileArticle, null, 2));
-      
-      articleCache.invalidateIndex();
-      articleCache.setSlug(article.slug, fileArticle);
-      
+
+      await articleCache.invalidateIndex();
+      await articleCache.setSlug(article.slug, fileArticle);
+
       return { success: true, data: fileArticle };
     } catch (error: any) {
       return { success: false, errorCode: 'WRITE_ERROR', message: error.message };
@@ -364,17 +354,17 @@ export const fileArticleService = {
 
   async update(slug: string, data: Partial<FileArticle>): Promise<ApiResponse<FileArticle>> {
     const releaseLock = await acquireLock(slug);
-    
+
     try {
       const existing = await this.findBySlug(slug);
       if (!existing) {
         return { success: false, errorCode: 'NOT_FOUND', message: 'Article not found' };
       }
-      
+
       const paths = data.content ? extractPaths(data.content) : existing.paths;
       const wordCount = data.content ? calculateWordCount(data.content) : existing.metadata?.wordCount || 0;
       const now = new Date().toISOString();
-      
+
       const updated: FileArticle = {
         ...existing,
         ...data,
@@ -388,20 +378,20 @@ export const fileArticleService = {
         },
         updatedAt: now
       };
-      
+
       const validation = validateArticle(updated);
       if (!validation.valid) {
         return { success: false, errorCode: 'VALIDATION_ERROR', message: validation.errors.join('; ') };
       }
-      
+
       await saveVersion(slug, updated);
-      
+
       const filePath = join(ARTICLES_DIR, `${slug}.json`);
       await atomicWrite(filePath, JSON.stringify(updated, null, 2));
-      
-      articleCache.invalidateIndex();
-      articleCache.setSlug(slug, updated);
-      
+
+      await articleCache.invalidateIndex();
+      await articleCache.setSlug(slug, updated);
+
       return { success: true, data: updated };
     } catch (error: any) {
       return { success: false, errorCode: 'UPDATE_ERROR', message: error.message };
@@ -411,14 +401,14 @@ export const fileArticleService = {
   },
 
   async findBySlug(slug: string): Promise<FileArticle | null> {
-    const cached = articleCache.getSlug(slug);
+    const cached = await articleCache.getSlug(slug);
     if (cached) return cached;
-    
+
     try {
       const filePath = join(ARTICLES_DIR, `${slug}.json`);
       const content = await readFile(filePath, 'utf-8');
       const article = JSON.parse(content) as FileArticle;
-      articleCache.setSlug(slug, article);
+      await articleCache.setSlug(slug, article);
       return article;
     } catch {
       return null;
@@ -432,7 +422,7 @@ export const fileArticleService = {
 
   async findAll(filters?: SearchFilters, pagination?: { page: number; limit: number }): Promise<PaginatedResponse<FileArticle>> {
     if (!filters && !pagination) {
-      const cached = articleCache.getIndex();
+      const cached = await articleCache.getIndex();
       if (cached) {
         return {
           data: cached,
@@ -440,12 +430,12 @@ export const fileArticleService = {
         };
       }
     }
-    
+
     try {
       await ensureDir(ARTICLES_DIR);
       const files = await readdir(ARTICLES_DIR);
       let articles: FileArticle[] = [];
-      
+
       for (const file of files) {
         if (extname(file) === '.json') {
           try {
@@ -457,7 +447,7 @@ export const fileArticleService = {
           }
         }
       }
-      
+
       if (filters) {
         if (filters.authorId) {
           articles = articles.filter(a => a.authorId === filters.authorId);
@@ -473,26 +463,26 @@ export const fileArticleService = {
         }
         if (filters.search) {
           const searchLower = filters.search.toLowerCase();
-          articles = articles.filter(a => 
+          articles = articles.filter(a =>
             a.title.toLowerCase().includes(searchLower) ||
             a.content.toLowerCase().includes(searchLower) ||
             a.paths.some(p => p.text?.toLowerCase().includes(searchLower))
           );
         }
       }
-      
+
       articles.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      
+
       if (!filters && !pagination) {
-        articleCache.setIndex(articles);
+        await articleCache.setIndex(articles);
       }
-      
+
       const page = pagination?.page || 1;
       const limit = pagination?.limit || articles.length;
       const total = articles.length;
       const totalPages = Math.ceil(total / limit);
       const paginatedData = articles.slice((page - 1) * limit, page * limit);
-      
+
       return {
         data: paginatedData,
         pagination: { page, limit, total, totalPages }
@@ -512,16 +502,16 @@ export const fileArticleService = {
 
   async delete(slug: string): Promise<ApiResponse<null>> {
     const releaseLock = await acquireLock(slug);
-    
+
     try {
       const existing = await this.findBySlug(slug);
       if (!existing) {
         return { success: false, errorCode: 'NOT_FOUND', message: 'Article not found' };
       }
-      
+
       const filePath = join(ARTICLES_DIR, `${slug}.json`);
       await unlink(filePath);
-      
+
       try {
         const historyDir = join(HISTORY_DIR, slug);
         const historyFiles = await readdir(historyDir);
@@ -531,10 +521,10 @@ export const fileArticleService = {
       } catch {
         // History may not exist
       }
-      
-      articleCache.invalidateIndex();
-      articleCache.invalidateSlug(slug);
-      
+
+      await articleCache.invalidateIndex();
+      await articleCache.invalidateSlug(slug);
+
       return { success: true, data: null };
     } catch (error: any) {
       return { success: false, errorCode: 'DELETE_ERROR', message: error.message };
@@ -563,7 +553,7 @@ export const fileArticleService = {
     if (!versionData) {
       return { success: false, errorCode: 'NOT_FOUND', message: 'Version not found' };
     }
-    
+
     return this.update(slug, {
       content: versionData.content,
       title: versionData.title

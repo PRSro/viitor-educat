@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcehx0072m2p3wxnh60af",
+  "courseId": "cmlzhcehx006zm2p3dwuxrd0p",
+  "courseTitle": "Environmental Awareness",
+  "title": "Renewable Energy",
+  "description": "Solar, wind, hydro",
+  "content": "# Renewable Energy\n\nRenewable sources—solar, wind, hydro, geothermal—provide clean energy alternatives to fossil fuels.\n\n## Resources\n\n- [Resource 1](https://www.energy.gov/eere/renewable-energy)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://www.energy.gov/eere/renewable-energy"
+  ],
+  "createdAt": "2026-02-23T17:58:07.461Z"
+}

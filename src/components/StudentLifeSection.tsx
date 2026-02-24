@@ -59,7 +59,7 @@ export const StudentLifeSection = () => {
               {activities.map((activity) => (
                 <div
                   key={activity.name}
-                  className="group aero-glass p-5 flex items-center gap-4 hover-lift hover-glow cursor-default"
+                  className="group aero-glass p-5 flex items-center gap-4 hover-lift hover-glow cursor-default soft-shadow"
                 >
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-teal-500/20 flex items-center justify-center group-hover:from-accent group-hover:to-teal-500 transition-all duration-300 relative overflow-hidden">
                     <activity.icon className="w-5 h-5 text-accent group-hover:text-white transition-colors" />
@@ -76,7 +76,7 @@ export const StudentLifeSection = () => {
 
           {/* Image - Aero Frame */}
           <div className="relative">
-            <div className="aero-glass p-2 rounded-3xl">
+            <div className="aero-glass aero-glass-img p-2 rounded-3xl">
               <img
                 src={scienceLab}
                 alt="Elevi în laboratorul de științe"

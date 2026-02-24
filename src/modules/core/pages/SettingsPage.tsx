@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -27,12 +27,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { 
-  Settings, 
-  Palette, 
-  BookOpen, 
-  Bell, 
-  Shield, 
+import {
+  Settings,
+  Palette,
+  BookOpen,
+  Bell,
+  Shield,
   Wrench,
   Sun,
   Moon,
@@ -48,14 +48,16 @@ import {
   Layers,
   Check
 } from 'lucide-react';
-import { 
-  Theme, 
-  DashboardView, 
+import {
+  Theme,
+  DashboardView,
   ContentPriority,
   ResourceType,
   themeLabels,
   dashboardViewLabels,
-  categoryLabels
+  categoryLabels,
+  UserSettings,
+  UpdateSettingsData
 } from '@/services/settingsService';
 
 const categories = Object.keys(categoryLabels);
@@ -64,10 +66,10 @@ export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { settings, loading, updateUserSettings, resetUserSettings, isSettingsLoaded } = useSettings();
   const navigate = useNavigate();
-  
+
   const [activeTab, setActiveTab] = useState('general');
   const [saving, setSaving] = useState(false);
-  const [localSettings, setLocalSettings] = useState<any>({});
+  const [localSettings, setLocalSettings] = useState<Partial<UserSettings>>({});
 
   const isTeacher = user?.role === 'TEACHER' || user?.role === 'ADMIN';
 
@@ -80,7 +82,7 @@ export default function SettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await updateUserSettings(localSettings);
+      await updateUserSettings(localSettings as UpdateSettingsData);
       toast.success('Settings saved successfully');
     } catch (err) {
       toast.error('Failed to save settings');
@@ -102,8 +104,8 @@ export default function SettingsPage() {
     }
   };
 
-  const updateLocalSetting = (key: string, value: any) => {
-    setLocalSettings((prev: any) => ({ ...prev, [key]: value }));
+  const updateLocalSetting = (key: keyof UserSettings, value: unknown) => {
+    setLocalSettings((prev) => ({ ...prev, [key]: value }));
   };
 
   if (!isSettingsLoaded || loading) {
@@ -220,11 +222,10 @@ export default function SettingsPage() {
                     {(['light', 'dark', 'system'] as Theme[]).map((theme) => (
                       <div
                         key={theme}
-                        className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          localSettings.theme === theme
-                            ? 'border-primary bg-primary/5'
-                            : 'border-transparent hover:bg-muted/50'
-                        }`}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all ${localSettings.theme === theme
+                          ? 'border-primary bg-primary/5'
+                          : 'border-transparent hover:bg-muted/50'
+                          }`}
                         onClick={() => updateLocalSetting('theme', theme)}
                       >
                         {theme === 'light' && <Sun className="h-6 w-6" />}
@@ -242,8 +243,8 @@ export default function SettingsPage() {
                 {/* Language */}
                 <div className="space-y-3">
                   <Label>Language</Label>
-                  <Select 
-                    value={localSettings.language || 'en'} 
+                  <Select
+                    value={localSettings.language || 'en'}
                     onValueChange={(value) => updateLocalSetting('language', value)}
                   >
                     <SelectTrigger className="w-48">
@@ -269,8 +270,8 @@ export default function SettingsPage() {
                 {/* Default Dashboard View */}
                 <div className="space-y-3">
                   <Label>Default Dashboard View</Label>
-                  <Select 
-                    value={localSettings.defaultDashboardView || 'courses'} 
+                  <Select
+                    value={localSettings.defaultDashboardView || 'courses'}
                     onValueChange={(value) => updateLocalSetting('defaultDashboardView', value)}
                   >
                     <SelectTrigger className="w-64">
@@ -289,8 +290,8 @@ export default function SettingsPage() {
                 {/* Content Priority */}
                 <div className="space-y-3">
                   <Label>Content Priority</Label>
-                  <Select 
-                    value={localSettings.contentPriority || 'courses'} 
+                  <Select
+                    value={localSettings.contentPriority || 'courses'}
                     onValueChange={(value) => updateLocalSetting('contentPriority', value)}
                   >
                     <SelectTrigger className="w-64">
@@ -382,8 +383,8 @@ export default function SettingsPage() {
                   {categories.map((category) => (
                     <Badge
                       key={category}
-                      variant={(localSettings.preferredCategories || []).includes(category) 
-                        ? 'default' 
+                      variant={(localSettings.preferredCategories || []).includes(category)
+                        ? 'default'
                         : 'outline'}
                       className="cursor-pointer"
                       onClick={() => {
@@ -415,8 +416,8 @@ export default function SettingsPage() {
                     {categories.map((category) => (
                       <Badge
                         key={`hidden-${category}`}
-                        variant={(localSettings.hiddenCategories || []).includes(category) 
-                          ? 'destructive' 
+                        variant={(localSettings.hiddenCategories || []).includes(category)
+                          ? 'destructive'
                           : 'outline'}
                         className="cursor-pointer"
                         onClick={() => {
@@ -628,8 +629,8 @@ export default function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Select 
-                    value={localSettings.defaultResourceType || 'LINK'} 
+                  <Select
+                    value={localSettings.defaultResourceType || 'LINK'}
                     onValueChange={(value) => updateLocalSetting('defaultResourceType', value)}
                   >
                     <SelectTrigger className="w-48">

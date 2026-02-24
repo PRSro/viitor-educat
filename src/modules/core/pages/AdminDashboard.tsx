@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, Users, Server, Settings, Activity, Shield, BookOpen, FileText, GraduationCap, TrendingUp, BarChart3 } from 'lucide-react';
 import { api, checkApiHealth, ApiError } from '@/lib/apiClient';
 import { ErrorDisplay, ErrorType } from '@/components/ErrorDisplay';
-import { getOverviewAnalytics, getAnalyticsTrends, getPopularCourses } from '@/services/analyticsService';
+import { getOverviewAnalytics, getAnalyticsTrends, getPopularCourses, PopularCourse } from '@/services/analyticsService';
 
 interface AdminUser {
   id: string;
@@ -77,7 +77,7 @@ export default function AdminDashboard() {
   });
   const [checkingHealth, setCheckingHealth] = useState(false);
   const [analytics, setAnalytics] = useState<OverviewData | null>(null);
-  const [popularCourses, setPopularCourses] = useState<any[]>([]);
+  const [popularCourses, setPopularCourses] = useState<PopularCourse[]>([]);
 
   // Fetch data on mount
   useEffect(() => {
@@ -88,13 +88,13 @@ export default function AdminDashboard() {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Fetch users and check health in parallel
       const [usersData, healthOk] = await Promise.all([
         api.get<AdminUser[]>('/admin/users'),
         checkApiHealth(),
       ]);
-      
+
       setUsers(usersData);
       setSystemStatus({
         apiHealth: healthOk,
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
       try {
         const analyticsData = await getOverviewAnalytics('month');
         setAnalytics(analyticsData);
-        
+
         const courses = await getPopularCourses(5);
         setPopularCourses(courses);
       } catch (analyticsErr) {
@@ -117,9 +117,9 @@ export default function AdminDashboard() {
       if (err instanceof ApiError) {
         setError({ type: err.type, message: err.message });
       } else {
-        setError({ 
-          type: 'unknown', 
-          message: err instanceof Error ? err.message : 'Failed to load admin data' 
+        setError({
+          type: 'unknown',
+          message: err instanceof Error ? err.message : 'Failed to load admin data'
         });
       }
     } finally {
@@ -187,9 +187,9 @@ export default function AdminDashboard() {
                     {systemStatus.apiHealth ? 'Online' : 'Offline'}
                   </span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleHealthCheck}
                   disabled={checkingHealth}
                 >
@@ -304,9 +304,9 @@ export default function AdminDashboard() {
                       <TableCell className="font-medium">{u.email}</TableCell>
                       <TableCell>
                         <Badge variant={
-                          u.role === 'ADMIN' ? 'destructive' : 
-                          u.role === 'TEACHER' ? 'default' : 
-                          'secondary'
+                          u.role === 'ADMIN' ? 'destructive' :
+                            u.role === 'TEACHER' ? 'default' :
+                              'secondary'
                         }>
                           {u.role}
                         </Badge>

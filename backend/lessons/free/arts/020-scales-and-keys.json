@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhz5t9004w8fnu4dlc598u",
+  "courseId": "cmlzhz5t9004t8fnue9k1hob7",
+  "courseTitle": "Music Theory Basics",
+  "title": "Scales and Keys",
+  "description": "Major and minor scales",
+  "content": "# Scales and Keys\n\nA major scale follows the pattern W-W-H-W-W-W-H. Keys define which notes are sharp or flat.\n\n## Resources\n\n- [Resource 1](https://www.musictheory.net/lessons/21)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.musictheory.net/lessons/21"
+  ],
+  "createdAt": "2026-02-23T18:15:49.293Z"
+}
