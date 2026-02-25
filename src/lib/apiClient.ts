@@ -8,7 +8,7 @@
  * - Request logging for debugging
  */
 
-import { getToken, logout } from '@/services/authService';
+import { getToken, logout } from '@/modules/core/services/authService';
 
 export type ApiErrorType = 'offline' | 'unauthorized' | 'forbidden' | 'server' | 'unknown';
 
@@ -79,7 +79,9 @@ export async function apiRequest<T>(
   }
   
   try {
-    console.log(`[API] ${options.method || 'GET'} ${endpoint}`);
+    if (import.meta.env.DEV) {
+      console.log(`[API] ${options.method || 'GET'} ${endpoint}`);
+    }
     
     const response = await fetch(url, {
       ...options,
@@ -93,7 +95,9 @@ export async function apiRequest<T>(
       const errorType = getErrorType(null, response.status);
       const message = data?.error || data?.message || `Request failed with status ${response.status}`;
       
-      console.error(`[API Error] ${response.status}: ${message}`);
+      if (import.meta.env.DEV) {
+        console.error(`[API Error] ${response.status}: ${message}`);
+      }
       
       // Auto-logout on 401
       if (response.status === 401) {
@@ -116,7 +120,9 @@ export async function apiRequest<T>(
       ? 'Unable to connect to server. Please check your connection.'
       : (error instanceof Error ? error.message : 'An unexpected error occurred');
     
-    console.error(`[API Error] ${errorType}: ${message}`);
+    if (import.meta.env.DEV) {
+      console.error(`[API Error] ${errorType}: ${message}`);
+    }
     throw new ApiError(errorType, message);
   }
 }
@@ -152,5 +158,29 @@ export async function checkApiHealth(): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Verify session - validates token with server
+ * Returns user data if valid, throws if invalid
+ */
+export interface VerifySessionResponse {
+  user: {
+    id: string;
+    email: string;
+    role: 'STUDENT' | 'TEACHER' | 'ADMIN';
+  };
+}
+
+export async function verifySession(): Promise<VerifySessionResponse['user'] | null> {
+  try {
+    const response = await apiRequest<VerifySessionResponse>('/profile');
+    return response.user;
+  } catch (error) {
+    if (error instanceof ApiError && error.type === 'unauthorized') {
+      return null;
+    }
+    throw error;
   }
 }

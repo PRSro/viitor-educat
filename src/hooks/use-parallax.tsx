@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 interface ParallaxValues {
   scrollY: number;
@@ -15,6 +15,11 @@ interface ParallaxElement {
   depth: number;
 }
 
+function getIsMobile(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768 || 'ontouchstart' in window;
+}
+
 export const useParallax = () => {
   const valuesRef = useRef<ParallaxValues>({ scrollY: 0, mouseX: 0, mouseY: 0, velocityY: 0 });
   const lastScrollRef = useRef(0);
@@ -22,10 +27,23 @@ export const useParallax = () => {
   const elementsRef = useRef<Map<HTMLElement, ParallaxElement>>(new Map());
   const rafRef = useRef<number | null>(null);
   const isRunningRef = useRef(false);
-  
-  const isMobile = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    return window.innerWidth < 768 || 'ontouchstart' in window;
+  const [isMobile, setIsMobile] = useState(getIsMobile);
+
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        setIsMobile(getIsMobile());
+      }, 150);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(debounceTimer);
+    };
   }, []);
 
   const updateElements = useCallback(() => {

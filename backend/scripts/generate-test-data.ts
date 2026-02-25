@@ -1,10 +1,13 @@
 
 import { PrismaClient, Role, ResourceType, ArticleCategory, CourseLevel } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
     console.log('🌱 Starting database seeding...');
+
+    const hashedPw = await bcrypt.hash('TestPassword123!', 10);
 
     // 1. Clean up existing data (optional, careful in prod)
     // await prisma.transaction([ ... ]) - Skipping for now to avoid accidental data loss if not intended
@@ -16,7 +19,7 @@ async function main() {
         update: {},
         create: {
             email: 'teacher@example.com',
-            password: 'hashed_password_123', // In real app, hash this
+            password: hashedPw,
             role: Role.TEACHER,
             teacherProfile: {
                 create: {

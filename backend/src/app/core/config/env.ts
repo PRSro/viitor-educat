@@ -40,6 +40,11 @@ export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
 // Database URL - Required
 export const DATABASE_URL = getRequiredEnv('DATABASE_URL');
 
+// Redis URL - Required in production for distributed rate limiting
+export const REDIS_URL = isDevelopment
+  ? getOptionalEnv('REDIS_URL', '')
+  : getRequiredEnv('REDIS_URL');
+
 // Log configuration on startup (without sensitive values)
 export function logConfig(): void {
   console.log('[Config] Environment:', isDevelopment ? 'development' : 'production');

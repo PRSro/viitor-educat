@@ -8,7 +8,8 @@ import {
   logout as logoutService,
   login as loginService,
   register as registerService,
-} from '@/services/authService';
+} from '@/modules/core/services/authService';
+import { verifySession } from '@/lib/apiClient';
 
 interface AuthContextType {
   user: User | null;
@@ -29,15 +30,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check for existing session on mount
+  // Check for existing session on mount - verify with server
   useEffect(() => {
     const storedUser = getUser();
     const token = getToken();
     
     if (storedUser && token) {
-      setUser(storedUser);
+      verifySession()
+        .then((verifiedUser) => {
+          if (verifiedUser) {
+            setUser(verifiedUser as User);
+          } else {
+            logoutService();
+          }
+        })
+        .catch(() => {
+          logoutService();
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {

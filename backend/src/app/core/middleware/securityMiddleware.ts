@@ -5,7 +5,8 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { isDevelopment } from '../config/env.js';
+import { isDevelopment, REDIS_URL } from '../config/env.js';
+import Redis from 'ioredis';
 
 /**
  * Security Headers Plugin
@@ -78,37 +79,82 @@ export async function requestSanitizationPlugin(server: FastifyInstance) {
 }
 
 /**
- * Rate Limiting State (simple in-memory implementation)
- * In production, use Redis or similar for distributed rate limiting
+ * Rate Limiting
+ * Uses Redis in production for distributed rate limiting.
+ * Falls back to in-memory Map only in development.
  */
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+let redis: Redis | null = null;
+let useRedis = false;
+
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX = 100; // requests per window
 const AUTH_RATE_LIMIT_MAX = 10; // stricter limit for auth endpoints
 
+// In-memory fallback (development only)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+async function checkRateLimit(
+  key: string,
+  maxRequests: number
+): Promise<{ allowed: boolean; count: number; resetTime: number }> {
+  const now = Date.now();
+
+  if (useRedis && redis) {
+    const current = await redis.get(key);
+    if (current) {
+      const { count, resetTime } = JSON.parse(current);
+      if (now > resetTime) {
+        await redis.set(key, JSON.stringify({ count: 1, resetTime: now + RATE_LIMIT_WINDOW }), 'EX', 60);
+        return { allowed: true, count: 1, resetTime: now + RATE_LIMIT_WINDOW };
+      }
+      if (count > maxRequests) {
+        return { allowed: false, count, resetTime };
+      }
+      await redis.set(key, JSON.stringify({ count: count + 1, resetTime }), 'EX', 60);
+      return { allowed: true, count: count + 1, resetTime };
+    }
+    await redis.set(key, JSON.stringify({ count: 1, resetTime: now + RATE_LIMIT_WINDOW }), 'EX', 60);
+    return { allowed: true, count: 1, resetTime: now + RATE_LIMIT_WINDOW };
+  }
+
+  // In-memory fallback (development only)
+  let entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetTime) {
+    entry = { count: 1, resetTime: now + RATE_LIMIT_WINDOW };
+    rateLimitMap.set(key, entry);
+  } else {
+    entry.count++;
+  }
+  return { allowed: entry.count <= maxRequests, count: entry.count, resetTime: entry.resetTime };
+}
+
 export async function rateLimitPlugin(server: FastifyInstance) {
+  // Initialize Redis in production
+  if (!isDevelopment) {
+    if (!REDIS_URL) {
+      throw new Error('REDIS_URL is required in production for distributed rate limiting');
+    }
+    redis = new Redis(REDIS_URL);
+    useRedis = true;
+    console.log('[RateLimit] Using Redis for distributed rate limiting');
+  } else {
+    console.log('[RateLimit] Using in-memory rate limiting (development only)');
+  }
+
   server.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
     const ip = request.ip;
-    const now = Date.now();
     const isAuthEndpoint = request.url.startsWith('/auth/');
     const maxRequests = isAuthEndpoint ? AUTH_RATE_LIMIT_MAX : RATE_LIMIT_MAX;
     
-    const key = `${ip}:${isAuthEndpoint ? 'auth' : 'general'}`;
-    let entry = rateLimitMap.get(key);
-    
-    if (!entry || now > entry.resetTime) {
-      entry = { count: 1, resetTime: now + RATE_LIMIT_WINDOW };
-      rateLimitMap.set(key, entry);
-    } else {
-      entry.count++;
-    }
+    const key = `ratelimit:${ip}:${isAuthEndpoint ? 'auth' : 'general'}`;
+    const result = await checkRateLimit(key, maxRequests);
     
     // Set rate limit headers
     reply.header('X-RateLimit-Limit', maxRequests.toString());
-    reply.header('X-RateLimit-Remaining', Math.max(0, maxRequests - entry.count).toString());
-    reply.header('X-RateLimit-Reset', Math.ceil(entry.resetTime / 1000).toString());
+    reply.header('X-RateLimit-Remaining', Math.max(0, maxRequests - result.count).toString());
+    reply.header('X-RateLimit-Reset', Math.ceil(result.resetTime / 1000).toString());
     
-    if (entry.count > maxRequests) {
+    if (!result.allowed) {
       return reply.status(429).send({
         error: 'Too Many Requests',
         message: 'Rate limit exceeded. Please try again later.',
@@ -116,13 +162,31 @@ export async function rateLimitPlugin(server: FastifyInstance) {
     }
   });
   
-  // Clean up old entries periodically
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of rateLimitMap.entries()) {
-      if (now > entry.resetTime) {
-        rateLimitMap.delete(key);
+  // Clean up old entries periodically (in-memory only)
+  if (!isDevelopment) {
+    setInterval(async () => {
+      if (redis) {
+        const keys = await redis.keys('ratelimit:*');
+        const now = Date.now();
+        for (const key of keys) {
+          const data = await redis.get(key);
+          if (data) {
+            const { resetTime } = JSON.parse(data);
+            if (now > resetTime) {
+              await redis.del(key);
+            }
+          }
+        }
       }
-    }
-  }, RATE_LIMIT_WINDOW);
+    }, RATE_LIMIT_WINDOW);
+  } else {
+    setInterval(() => {
+      const now = Date.now();
+      for (const [key, entry] of rateLimitMap.entries()) {
+        if (now > entry.resetTime) {
+          rateLimitMap.delete(key);
+        }
+      }
+    }, RATE_LIMIT_WINDOW);
+  }
 }

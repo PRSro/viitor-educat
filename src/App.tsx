@@ -51,18 +51,18 @@ const App = () => (
                   <Sonner />
                   <BrowserRouter>
                     <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/register" element={<Register />} />
-                      <Route path="/access-denied" element={<AccessDenied />} />
-                      <Route path="/noutati" element={<NewsPage />} />
+                      <Route path="/" element={<ErrorBoundary><Index /></ErrorBoundary>} />
+                      <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
+                      <Route path="/register" element={<ErrorBoundary><Register /></ErrorBoundary>} />
+                      <Route path="/access-denied" element={<ErrorBoundary><AccessDenied /></ErrorBoundary>} />
+                      <Route path="/noutati" element={<ErrorBoundary><NewsPage /></ErrorBoundary>} />
 
                       {/* Protected Routes - Admin Only */}
                       <Route
                         path="/admin"
                         element={
                           <ProtectedRoute allowedRoles={['ADMIN']} redirectTo="/access-denied">
-                            <AdminDashboard />
+                            <ErrorBoundary><AdminDashboard /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -72,7 +72,7 @@ const App = () => (
                         path="/teacher"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER']}>
-                            <TeacherDashboard />
+                            <ErrorBoundary><TeacherDashboard /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -82,7 +82,7 @@ const App = () => (
                         path="/student"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT']}>
-                            <StudentDashboard />
+                            <ErrorBoundary><StudentDashboard /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -92,7 +92,7 @@ const App = () => (
                         path="/courses/:slug"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <CourseDetail />
+                            <ErrorBoundary><CourseDetail /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -102,7 +102,7 @@ const App = () => (
                         path="/profile"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <Profile />
+                            <ErrorBoundary><Profile /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -112,7 +112,7 @@ const App = () => (
                         path="/articles/:slug"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <ArticleDetail />
+                            <ErrorBoundary><ArticleDetail /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -122,7 +122,7 @@ const App = () => (
                         path="/teachers"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <Teachers />
+                            <ErrorBoundary><Teachers /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -132,7 +132,7 @@ const App = () => (
                         path="/teachers/:teacherId"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <TeacherProfilePage />
+                            <ErrorBoundary><TeacherProfilePage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -142,7 +142,7 @@ const App = () => (
                         path="/student/articles"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <ArticlesPage />
+                            <ErrorBoundary><ArticlesPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -152,7 +152,7 @@ const App = () => (
                         path="/student/resources"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <ResourcesPage />
+                            <ErrorBoundary><ResourcesPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -162,7 +162,7 @@ const App = () => (
                         path="/student/flashcards"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <FlashcardsPage />
+                            <ErrorBoundary><FlashcardsPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -172,7 +172,7 @@ const App = () => (
                         path="/student/study"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <StudyDashboard />
+                            <ErrorBoundary><StudyDashboard /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -182,7 +182,7 @@ const App = () => (
                         path="/settings"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <SettingsPage />
+                            <ErrorBoundary><SettingsPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -192,7 +192,7 @@ const App = () => (
                         path="/student/profile"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT']}>
-                            <StudentProfilePage />
+                            <ErrorBoundary><StudentProfilePage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -202,7 +202,7 @@ const App = () => (
                         path="/lessons/:lessonId"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <LessonViewerPage />
+                            <ErrorBoundary><LessonViewerPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -212,7 +212,7 @@ const App = () => (
                         path="/search"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <SearchPage />
+                            <ErrorBoundary><SearchPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -222,7 +222,7 @@ const App = () => (
                         path="/articles/new"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
-                            <ArticleEditorPage />
+                            <ErrorBoundary><ArticleEditorPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -231,7 +231,7 @@ const App = () => (
                         path="/articles/:slug/edit"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
-                            <ArticleEditorPage />
+                            <ErrorBoundary><ArticleEditorPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -241,7 +241,7 @@ const App = () => (
                         path="/courses/new"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
-                            <CourseEditorPage />
+                            <ErrorBoundary><CourseEditorPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -250,7 +250,7 @@ const App = () => (
                         path="/courses/:courseId/edit"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
-                            <CourseEditorPage />
+                            <ErrorBoundary><CourseEditorPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -260,7 +260,7 @@ const App = () => (
                         path="/courses/:courseId/lessons/new"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
-                            <LessonEditorPage />
+                            <ErrorBoundary><LessonEditorPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
@@ -269,13 +269,13 @@ const App = () => (
                         path="/courses/:courseId/lessons/:lessonId/edit"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
-                            <LessonEditorPage />
+                            <ErrorBoundary><LessonEditorPage /></ErrorBoundary>
                           </ProtectedRoute>
                         }
                       />
 
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                      <Route path="*" element={<NotFound />} />
+                      <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />
                     </Routes>
                   </BrowserRouter>
                 </TooltipProvider>
