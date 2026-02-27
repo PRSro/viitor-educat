@@ -20,7 +20,7 @@ import {
   editComment, 
   deleteComment,
   Comment as CommentType
-} from '@/services/commentService';
+} from '@/modules/core/services/commentService';
 
 interface CommentThreadProps {
   lessonId: string;

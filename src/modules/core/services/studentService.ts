@@ -118,6 +118,45 @@ export interface UpdateStudentProfileData {
 }
 
 /**
+ * Get enrolled courses for current student (with progress)
+ */
+export async function getStudentCourses(): Promise<CourseWithProgress[]> {
+  const response = await fetch(`${API_BASE_URL}/courses/student`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch student courses');
+  }
+
+  return data.courses;
+}
+
+/**
+ * Get student progress stats (completion stats)
+ */
+export async function getStudentProgress(): Promise<{
+  totalEnrolled: number;
+  totalCompleted: number;
+  totalInProgress: number;
+  percentComplete: number;
+}> {
+  const response = await fetch(`${API_BASE_URL}/student/progress`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch student progress');
+  }
+
+  return data;
+}
+
+/**
  * Get current student's profile with enrolled courses and progress
  */
 export async function getStudentProfile(): Promise<StudentProfileResponse> {

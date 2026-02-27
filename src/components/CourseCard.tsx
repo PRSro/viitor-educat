@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ProgressBar } from './ProgressBar';
+import { BookmarkButton } from './BookmarkButton';
 import { BookOpen, Users, Clock, ChevronRight, User } from 'lucide-react';
 
 interface CourseCardProps {
@@ -71,11 +72,19 @@ export function CourseCard({
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
-          {course.level && (
-            <Badge variant="secondary" className={levelColors[course.level] || ''}>
-              {course.level}
-            </Badge>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            <BookmarkButton 
+              resourceId={course.id} 
+              resourceType="LESSON" 
+              title={course.title}
+              size="sm"
+            />
+            {course.level && (
+              <Badge variant="secondary" className={levelColors[course.level] || ''}>
+                {course.level}
+              </Badge>
+            )}
+          </div>
         </div>
         {course.description && (
           <CardDescription className="line-clamp-2">

@@ -265,7 +265,10 @@ export function LessonViewer({
         </Card>
       )}
 
-      <CommentThread lessonId={lesson.id} />
+      {/* Comments Section */}
+      <div className="border-t pt-8 mt-8">
+        <CommentThread lessonId={lesson.id} />
+      </div>
 
       {/* Navigation */}
       <div className="flex items-center justify-between">

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   Lesson,
-  getLessons,
+  getTeacherLessons,
   createLesson,
   updateLesson,
   deleteLesson,
@@ -145,7 +145,7 @@ export default function TeacherDashboard() {
         setLoading(true);
         setError(null);
         const [lessonsData, coursesData, articlesData] = await Promise.all([
-          getLessons(),
+          getTeacherLessons(user.id),
           getTeacherCourses(),
           user?.id ? getTeacherArticles(user.id).catch(() => []) : Promise.resolve([])
         ]);
@@ -178,7 +178,7 @@ export default function TeacherDashboard() {
       });
       
       const [lessonsData, coursesData] = await Promise.all([
-        getLessons(),
+        getTeacherLessons(user.id),
         getTeacherCourses()
       ]);
       setLessons(lessonsData || []);
@@ -230,7 +230,7 @@ export default function TeacherDashboard() {
 
     try {
       await deleteLesson(id);
-      const data = await getLessons();
+      const data = await getTeacherLessons(user.id);
       setLessons(data || []);
       setSuccess('Lesson deleted successfully!');
       setTimeout(() => setSuccess(null), 3000);
@@ -296,7 +296,7 @@ export default function TeacherDashboard() {
       }
       
       const [lessonsData, coursesData] = await Promise.all([
-        getLessons(),
+        getTeacherLessons(user.id),
         getTeacherCourses()
       ]);
       setLessons(lessonsData || []);

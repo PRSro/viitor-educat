@@ -58,6 +58,12 @@ await server.register(cors, {
   allowedHeaders: ['Content-Type', 'Authorization'],
 });
 
+await server.register(import('@fastify/multipart'), {
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+});
+
 await server.register(jwt, {
   secret: JWT_SECRET,
 });
@@ -83,7 +89,7 @@ await server.register(adminRoutes, { prefix: '/admin' });
 await server.register(courseRoutes, { prefix: '/courses' });
 await server.register(articleRoutes, { prefix: '/articles' });
 await server.register(profileRoutes, { prefix: '/profile' });
-await server.register(uploadRoutes);
+await server.register(uploadRoutes, { prefix: '/upload' });
 await server.register(resourceRoutes, { prefix: '/resources' });
 await server.register(flashcardRoutes, { prefix: '/flashcards' });
 await server.register(settingsRoutes, { prefix: '/settings' });

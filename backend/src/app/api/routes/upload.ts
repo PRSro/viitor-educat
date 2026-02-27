@@ -40,12 +40,6 @@ function getCurrentUser(request: FastifyRequest): JwtPayload {
 
 export async function uploadRoutes(server: FastifyInstance) {
   
-  await server.register(import('@fastify/multipart'), {
-    limits: {
-      fileSize: MAX_FILE_SIZE,
-    },
-  });
-
   /**
    * POST * General file upload /upload
    - accessible by teachers

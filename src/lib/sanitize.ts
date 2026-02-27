@@ -16,8 +16,6 @@ export function sanitizeHtml(dirty: string): string {
     ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre'],
     ALLOWED_ATTR: ['href', 'rel'],
     ALLOW_DATA_ATTR: false,
-    ADD_ATTR: ['rel'],
-    ADD_TAGS: ['iframe'],
   });
 }
 

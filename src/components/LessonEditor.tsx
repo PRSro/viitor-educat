@@ -35,6 +35,7 @@ import {
   FileStack
 } from 'lucide-react';
 import { GlassCard } from './ParallaxLayout';
+import { FileUploader } from './FileUploader';
 import { Lesson, CreateLessonData, UpdateLessonData } from '@/modules/lessons/services/lessonService';
 
 interface LessonEditorProps {
@@ -61,6 +62,7 @@ export function LessonEditor({
   const [content, setContent] = useState(lesson?.content || '');
   const [order, setOrder] = useState(lesson?.order || 0);
   const [status, setStatus] = useState<'DRAFT' | 'PRIVATE' | 'PUBLIC'>(lesson?.status as any || 'DRAFT');
+  const [attachmentUrl, setAttachmentUrl] = useState<string>(lesson?.attachmentUrl || '');
   const [activeTab, setActiveTab] = useState('edit');
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -105,9 +107,10 @@ export function LessonEditor({
       description: description || undefined,
       order,
       status: status,
+      attachmentUrl: attachmentUrl || undefined,
     };
     await onSave(data);
-  }, [title, content, description, order, status, onSave]);
+  }, [title, content, description, order, status, attachmentUrl, onSave]);
 
   const handleExport = () => {
     const draftData = {
@@ -295,6 +298,20 @@ You can use HTML tags:
                     </div>
                   </TabsContent>
                 </Tabs>
+              </div>
+
+              {/* Attachment */}
+              <div className="mt-6">
+                <Label>Attachment (optional)</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Attach a file (PDF, video, etc.) to this lesson
+                </p>
+                <FileUploader
+                  value={attachmentUrl}
+                  onChange={(url) => setAttachmentUrl(url)}
+                  accept="video/*,application/pdf,.doc,.docx,.ppt,.pptx"
+                  maxSize={100 * 1024 * 1024}
+                />
               </div>
             </div>
           </GlassCard>

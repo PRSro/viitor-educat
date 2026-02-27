@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArticleListItem, categoryLabels, categoryColors } from '@/modules/articles/services/articleService';
+import { BookmarkButton } from './BookmarkButton';
 import { Clock, User, ExternalLink, Tag } from 'lucide-react';
 
 interface ArticleCardProps {
@@ -26,17 +27,25 @@ export function ArticleCard({ article, showTags = true }: ArticleCardProps) {
           >
             {categoryLabels[article.category]}
           </Badge>
-          {article.sourceUrl && (
-            <a 
-              href={article.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-primary"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          )}
+          <div className="flex items-center gap-1">
+            <BookmarkButton 
+              resourceId={article.id} 
+              resourceType="ARTICLE" 
+              title={article.title}
+              size="sm"
+            />
+            {article.sourceUrl && (
+              <a 
+                href={article.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+          </div>
         </div>
         <CardHeader className="p-0 pt-2">
           <Link 

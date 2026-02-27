@@ -87,7 +87,7 @@ export async function courseRoutes(server: FastifyInstance) {
       orderBy: { updatedAt: 'desc' }
     });
     return {
-      enrollments: enrollments.map(e => ({
+      courses: enrollments.map(e => ({
         id: e.id,
         progress: e.progress,
         enrolledAt: e.createdAt,

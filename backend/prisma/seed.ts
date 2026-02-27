@@ -6,7 +6,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, readdirSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -547,6 +547,13 @@ async function main() {
 
     console.log(`👑 Principal: ${admin.email} (${admin.id})`);
 
+    // Create default settings for admin
+    await prisma.userSettings.upsert({
+        where: { userId: admin.id },
+        update: {},
+        create: { userId: admin.id }
+    });
+
     // Ensure we have a teacher user
     const hashedPwTeacher = await bcrypt.hash('SeedTeacher123!', 12);
     const teacher = await prisma.user.upsert({
@@ -570,7 +577,20 @@ async function main() {
         },
     });
 
+    // Create default settings for teacher
+    await prisma.userSettings.upsert({
+        where: { userId: teacher.id },
+        update: {},
+        create: { userId: teacher.id }
+    });
+
     console.log(`👨‍🏫 Teacher: ${teacher.email} (${teacher.id})`);
+
+    // Seed lessons from existing JSON files
+    const jsonLessonCount = await seedLessonsFromJson(prisma, teacher.id);
+    if (jsonLessonCount > 0) {
+        console.log(`📚 Seeded ${jsonLessonCount} lessons from JSON files`);
+    }
 
     // Ensure we have a student user
     const hashedPwStudent = await bcrypt.hash('SeedStudent123!', 12);
@@ -594,6 +614,13 @@ async function main() {
             section: 'A',
             bio: 'Curious learner passionate about technology and science.',
         },
+    });
+
+    // Create default settings for student
+    await prisma.userSettings.upsert({
+        where: { userId: student.id },
+        update: {},
+        create: { userId: student.id }
     });
 
     console.log(`🎓 Student: ${student.email} (${student.id})`);
@@ -706,6 +733,55 @@ async function main() {
     console.log(`   ${courseCount} courses, ${lessonCount} lessons, ${ARTICLES.length} articles`);
     console.log(`   📁 ${lessonFileCount} lesson JSON files written to ${lessonsDir}`);
     console.log(`   📁 ${articleFileCount} article JSON files written to ${articlesDir}`);
+}
+
+// Seed lessons from existing JSON files in backend/lessons/free/
+async function seedLessonsFromJson(prisma: PrismaClient, teacherId: string) {
+    const subjects = ['math', 'science', 'history', 'arts', 'literature', 'languages', 'computer_science', 'general'];
+    const lessonsDir = join(ROOT, 'lessons', 'free');
+    let seededCount = 0;
+
+    for (const subject of subjects) {
+        const subjectDir = join(lessonsDir, subject);
+        if (!existsSync(subjectDir)) {
+            console.log(`⚠️  Directory not found: ${subjectDir}`);
+            continue;
+        }
+
+        const files = readdirSync(subjectDir).filter(f => f.endsWith('.json'));
+        console.log(`📂 Processing ${subject}: ${files.length} files`);
+
+        for (const file of files) {
+            try {
+                const raw = JSON.parse(readFileSync(join(subjectDir, file), 'utf-8'));
+                
+                await prisma.lesson.upsert({
+                    where: { id: raw.id },
+                    update: {
+                        title: raw.title,
+                        content: raw.content,
+                        description: raw.description,
+                        status: 'PUBLIC',
+                        order: parseInt(file.split('-')[0]) || 0,
+                    },
+                    create: {
+                        id: raw.id,
+                        title: raw.title,
+                        content: raw.content,
+                        description: raw.description,
+                        status: 'PUBLIC',
+                        teacherId: teacherId,
+                        order: parseInt(file.split('-')[0]) || 0,
+                    },
+                });
+                seededCount++;
+            } catch (err) {
+                console.error(`  ❌ Failed to seed ${file}:`, err);
+            }
+        }
+    }
+
+    return seededCount;
 }
 
 main()

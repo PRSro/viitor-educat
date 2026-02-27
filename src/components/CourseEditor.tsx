@@ -24,8 +24,8 @@ import {
   FileStack
 } from 'lucide-react';
 import { GlassCard } from './ParallaxLayout';
-import { Course, CreateCourseData } from '../services/courseService';
-import { Lesson, CreateLessonData } from '../services/lessonService';
+import { Course, CreateCourseData } from '@/modules/courses/services/courseService';
+import { Lesson, CreateLessonData } from '@/modules/lessons/services/lessonService';
 
 interface CourseEditorProps {
   course?: Course;

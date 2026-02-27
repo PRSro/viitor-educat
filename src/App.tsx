@@ -18,6 +18,7 @@ import StudentDashboard from "@/modules/core/pages/StudentDashboard";
 import AdminDashboard from "@/modules/core/pages/AdminDashboard";
 import ArticleDetail from "@/modules/articles/pages/ArticleDetail";
 import CourseDetail from "@/modules/courses/pages/CourseDetail";
+import CoursesPage from "@/modules/courses/pages/CoursesPage";
 import AccessDenied from "@/modules/core/pages/AccessDenied";
 import NotFound from "@/modules/core/pages/NotFound";
 import Profile from "@/modules/core/pages/Profile";
@@ -35,6 +36,7 @@ import SearchPage from "@/modules/core/pages/SearchPage";
 import ArticleEditorPage from "@/modules/articles/pages/ArticleEditorPage";
 import CourseEditorPage from "@/modules/courses/pages/CourseEditorPage";
 import LessonEditorPage from "@/modules/lessons/pages/LessonEditorPage";
+import { MusicPlayer } from "@/components/MusicPlayer";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +96,14 @@ const App = () => (
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
                             <ErrorBoundary><CourseDetail /></ErrorBoundary>
                           </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Course Catalog - Public */}
+                      <Route
+                        path="/courses"
+                        element={
+                          <ErrorBoundary><CoursesPage /></ErrorBoundary>
                         }
                       />
 
@@ -277,6 +287,7 @@ const App = () => (
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />
                     </Routes>
+                    <MusicPlayer />
                   </BrowserRouter>
                 </TooltipProvider>
               </ErrorBoundary>

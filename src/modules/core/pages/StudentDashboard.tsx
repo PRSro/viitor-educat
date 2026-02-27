@@ -46,11 +46,10 @@ import {
 } from 'lucide-react';
 import {
   getCourses,
-  getEnrolledCourses,
   enrollInCourse,
   Course,
-  Enrollment
 } from '@/modules/courses/services/courseService';
+import { getStudentCourses, getStudentProgress, CourseWithProgress } from '@/modules/core/services/studentService';
 import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -74,7 +73,13 @@ export default function StudentDashboard() {
   const showResources = useFeatureEnabled('showResources');
 
   // Courses state
-  const [enrolledCourses, setEnrolledCourses] = useState<Enrollment[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<CourseWithProgress[]>([]);
+  const [studentProgress, setStudentProgress] = useState<{
+    totalEnrolled: number;
+    totalCompleted: number;
+    totalInProgress: number;
+    percentComplete: number;
+  } | null>(null);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [enrollingId, setEnrollingId] = useState<string | null>(null);
@@ -130,11 +135,13 @@ export default function StudentDashboard() {
     async function fetchCourses() {
       try {
         setLoadingCourses(true);
-        const [enrolled, all] = await Promise.all([
-          getEnrolledCourses(),
+        const [enrolled, progress, all] = await Promise.all([
+          getStudentCourses(),
+          getStudentProgress(),
           getCourses()
         ]);
         setEnrolledCourses(enrolled);
+        setStudentProgress(progress);
         setAllCourses(all);
         setError(null);
       } catch (err) {
@@ -200,11 +207,13 @@ export default function StudentDashboard() {
       setEnrollingId(courseId);
       await enrollInCourse(courseId);
       // Refresh courses
-      const [enrolled, all] = await Promise.all([
-        getEnrolledCourses(),
+      const [enrolled, progress, all] = await Promise.all([
+        getStudentCourses(),
+        getStudentProgress(),
         getCourses()
       ]);
       setEnrolledCourses(enrolled);
+      setStudentProgress(progress);
       setAllCourses(all);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to enroll');
@@ -218,6 +227,24 @@ export default function StudentDashboard() {
     new Set(enrolledCourses.map(e => e.course.id)),
     [enrolledCourses]
   );
+
+  // Categorize enrolled courses
+  const inProgressCourses = useMemo(() =>
+    enrolledCourses.filter(e => e.progress > 0 && e.progress < 100),
+    [enrolledCourses]
+  );
+
+  const completedCourses = useMemo(() =>
+    enrolledCourses.filter(e => e.progress === 100),
+    [enrolledCourses]
+  );
+
+  // Recommended courses - published courses not enrolled in (limit 3)
+  const recommendedCourses = useMemo(() => {
+    return allCourses
+      .filter(c => c.published && !enrolledCourseIds.has(c.id))
+      .slice(0, 3);
+  }, [allCourses, enrolledCourseIds]);
 
   const availableCourses = useMemo(() => {
     let courses = allCourses.filter(c => !enrolledCourseIds.has(c.id));
@@ -373,16 +400,67 @@ export default function StudentDashboard() {
                 </Button>
               </Card>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {enrolledCourses.map((enrollment) => (
-                  <CourseCard
-                    key={enrollment.id}
-                    course={enrollment.course}
-                    progress={enrollment.progress}
-                    enrolledAt={enrollment.enrolledAt}
-                  />
-                ))}
-              </div>
+              <>
+                {/* Continue Learning Section - In Progress */}
+                {inProgressCourses.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      Continue Learning
+                    </h3>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {inProgressCourses.map((enrollment) => (
+                        <CourseCard
+                          key={enrollment.id}
+                          course={enrollment.course}
+                          progress={enrollment.progress}
+                          enrolledAt={enrollment.enrolledAt}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Completed Section - 100% */}
+                {completedCourses.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      <GraduationCap className="h-5 w-5" />
+                      Completed
+                    </h3>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {completedCourses.map((enrollment) => (
+                        <CourseCard
+                          key={enrollment.id}
+                          course={enrollment.course}
+                          progress={enrollment.progress}
+                          enrolledAt={enrollment.enrolledAt}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recommended Section - Not Enrolled */}
+                {recommendedCourses.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      <Layers className="h-5 w-5" />
+                      Recommended for You
+                    </h3>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {recommendedCourses.map((course) => (
+                        <CourseCard
+                          key={course.id}
+                          course={course}
+                          onEnroll={() => handleEnroll(course.id)}
+                          enrolling={enrollingId === course.id}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 
@@ -848,7 +926,28 @@ export default function StudentDashboard() {
 
 // Course Card Component
 interface CourseCardProps {
-  course: Course;
+  course: {
+    id: string;
+    title: string;
+    slug: string;
+    description?: string | null;
+    imageUrl?: string | null;
+    level: string;
+    category?: string;
+    teacher: {
+      id: string;
+      email: string;
+      teacherProfile?: {
+        bio: string | null;
+        pictureUrl: string | null;
+      } | null;
+    };
+    _count?: {
+      lessons: number;
+      enrollments: number;
+    };
+    totalLessons?: number;
+  };
   progress?: number;
   enrolledAt?: string;
   onEnroll?: () => void;
@@ -857,6 +956,7 @@ interface CourseCardProps {
 
 function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: CourseCardProps) {
   const isEnrolled = progress !== undefined;
+  const lessonCount = course._count?.lessons ?? course.totalLessons ?? 0;
 
   return (
     <Card className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
@@ -901,13 +1001,13 @@ function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: Cours
               : course.teacher.email}
           </Link>
         </div>
-        {course._count && (
+        {lessonCount > 0 && (
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <BookOpen className="h-4 w-4" />
-              {course._count.lessons} lessons
+              {lessonCount} lessons
             </span>
-            {!isEnrolled && course._count.enrollments > 0 && (
+            {!isEnrolled && course._count && course._count.enrollments > 0 && (
               <span className="flex items-center gap-1">
                 <GraduationCap className="h-4 w-4" />
                 {course._count.enrollments} enrolled

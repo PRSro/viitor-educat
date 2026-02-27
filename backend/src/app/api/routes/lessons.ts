@@ -129,6 +129,79 @@ export async function lessonRoutes(server: FastifyInstance) {
     return { lesson };
   });
 
+  // GET /lessons/:id/view - Full lesson view with progress and navigation
+  // Public for PUBLIC lessons, authenticated for progress tracking
+  server.get<{ Params: { id: string } }>('/:id/view', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const user = getCurrentUser(request);
+
+    const lesson = await prisma.lesson.findUnique({
+      where: { id },
+      include: {
+        course: { select: { id: true, title: true, slug: true, published: true, teacherId: true } },
+        teacher: { select: { id: true, email: true } }
+      }
+    });
+
+    if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
+
+    const progress = await prisma.lessonCompletion.findUnique({
+      where: { lessonId_studentId: { lessonId: id, studentId: user.id } }
+    });
+
+    const siblings = lesson.courseId ? await prisma.lesson.findMany({
+      where: { courseId: lesson.courseId },
+      orderBy: { order: 'asc' },
+      select: { id: true, title: true, order: true }
+    }) : [];
+
+    const idx = siblings.findIndex(l => l.id === id);
+
+    return {
+      lesson,
+      isCompleted: !!progress?.completedAt,
+      completedAt: progress?.completedAt ?? null,
+      enrollmentProgress: null,
+      navigation: {
+        previousLesson: siblings[idx - 1] ?? null,
+        nextLesson: siblings[idx + 1] ?? null,
+      }
+    };
+  });
+
+  // POST /lessons/:id/complete - Mark lesson as complete
+  server.post<{ Params: { id: string } }>('/:id/complete', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request, reply) => {
+    const { id } = request.params;
+    const user = getCurrentUser(request);
+
+    const lesson = await prisma.lesson.findUnique({ where: { id } });
+    if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
+
+    const progress = await prisma.lessonCompletion.upsert({
+      where: { lessonId_studentId: { lessonId: id, studentId: user.id } },
+      update: { completedAt: new Date() },
+      create: { lessonId: id, studentId: user.id, completedAt: new Date() }
+    });
+
+    const siblings = lesson.courseId ? await prisma.lesson.findMany({
+      where: { courseId: lesson.courseId },
+      orderBy: { order: 'asc' },
+      select: { id: true, title: true, order: true }
+    }) : [];
+
+    const idx = siblings.findIndex(l => l.id === id);
+
+    return {
+      lessonId: id,
+      completed: true,
+      nextLesson: siblings[idx + 1] ?? null,
+    };
+  });
+
   // POST /lessons
   server.post('/', {
     preHandler: [authMiddleware, teacherOnly]

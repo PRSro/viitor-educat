@@ -10,7 +10,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle, ArrowLeft, BookOpen } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft, BookOpen, LogIn } from 'lucide-react';
 import { LessonViewer } from '@/components/LessonViewer';
 import { viewLesson, completeLesson, LessonViewResponse, LessonCompleteResponse } from '@/modules/lessons/services/lessonService';
 
@@ -25,15 +25,10 @@ export default function LessonViewerPage() {
   const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    
     if (lessonId) {
       fetchLesson(lessonId);
     }
-  }, [lessonId, isAuthenticated, navigate]);
+  }, [lessonId]);
 
   async function fetchLesson(id: string) {
     try {
@@ -93,7 +88,7 @@ export default function LessonViewerPage() {
     );
   }
 
-  const { lesson, isCompleted, completedAt, enrollmentProgress, navigation } = lessonData;
+  const { lesson, isCompleted, completedAt, isAuthenticated: isLessonAuthenticated, navigation } = lessonData;
 
   return (
     <div className="min-h-screen bg-background">
@@ -120,13 +115,28 @@ export default function LessonViewerPage() {
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Login Banner for unauthenticated users viewing public lessons */}
+        {!isLessonAuthenticated && (
+          <Card className="mb-6 bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+            <CardContent className="py-4 flex items-center justify-between">
+              <div>
+                <p className="font-medium">Preview Mode</p>
+                <p className="text-sm text-muted-foreground">Log in to track your progress and earn certificates</p>
+              </div>
+              <Button onClick={() => navigate('/login', { state: { from: `/lessons/${lessonId}` } })}>
+                <LogIn className="h-4 w-4 mr-2" />
+                Log In
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         <LessonViewer
           lesson={lesson}
           isCompleted={isCompleted}
           completedAt={completedAt}
-          progress={enrollmentProgress?.progress || 0}
-          completedLessonsCount={enrollmentProgress?.completedLessonsCount || 0}
-          totalLessons={navigation.nextLesson || navigation.previousLesson ? 1 : 0}
+          progress={0}
+          completedLessonsCount={0}
+          totalLessons={0}
           navigation={navigation}
           onMarkComplete={handleMarkComplete}
           isCompleting={completing}

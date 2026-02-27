@@ -10,8 +10,8 @@ import {
   getCourseLessons,
   CreateCourseData,
   Course
-} from '../services/courseService';
-import { createLesson, deleteLesson, CreateLessonData, Lesson } from '../../lessons/services/lessonService';
+} from '@/modules/courses/services/courseService';
+import { createLesson, deleteLesson, CreateLessonData, Lesson } from '@/modules/lessons/services/lessonService';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface CourseEditorPageProps {

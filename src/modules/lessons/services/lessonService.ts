@@ -26,6 +26,7 @@ export interface Lesson {
     id: string;
     email: string;
   };
+  attachmentUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,12 +38,14 @@ export interface CreateLessonData {
   courseId?: string;
   order?: number;
   status?: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
+  attachmentUrl?: string;
 }
 
 export interface UpdateLessonData {
   title?: string;
   description?: string;
   content?: string;
+  attachmentUrl?: string;
 }
 
 function getAuthHeaders(): HeadersInit {
@@ -224,6 +227,7 @@ export interface LessonViewResponse {
   };
   isCompleted: boolean;
   completedAt: string | null;
+  isAuthenticated: boolean;
   navigation: {
     nextLesson: { id: string; title: string; order: number } | null;
     previousLesson: { id: string; title: string; order: number } | null;

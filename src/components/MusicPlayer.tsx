@@ -71,6 +71,8 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
           if (savedTrack) {
             play(savedTrack, response.preference.volume);
           }
+        } else if (tracks.length > 0) {
+          play(tracks[0], 0.25);
         }
       } catch (error) {
         console.error('Failed to fetch preference:', error);
@@ -193,7 +195,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
           side="top"
         >
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm">Solfeggio Frequencies</h3>
+            <h3 className="font-semibold text-sm">Ambient Music</h3>
             <Button
               variant="ghost"
               size="icon"
@@ -224,7 +226,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
           <div className="space-y-1 max-h-48 overflow-y-auto mb-3">
             {isLoading ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Loading frequencies...
+                Loading ambient tracks...
               </p>
             ) : (
               tracks.map((track) => (
@@ -239,7 +241,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{track.name}</p>
-                    <p className="text-xs text-muted-foreground">{track.frequencyHz}Hz</p>
+                    <p className="text-xs text-muted-foreground">{track.benefit}</p>
                   </div>
                   {currentTrack?.id === track.id && isPlaying ? (
                     <Pause className="h-4 w-4 text-primary flex-shrink-0" />

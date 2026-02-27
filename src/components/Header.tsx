@@ -11,6 +11,7 @@ const navLinks = [
   { name: "Viața Școlară", href: "#viata" },
   { name: "Noutăți", href: "#noutati" },
   { name: "Contact", href: "#contact" },
+  { name: "Cursuri", href: "/courses", isRoute: true },
 ];
 
 export const Header = () => {
@@ -63,17 +64,31 @@ export const Header = () => {
               : "bg-white/10 backdrop-blur-md border border-white/20"
           }`}>
             {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className={`px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200 relative ${
-                  isScrolled
-                    ? "text-muted-foreground hover:text-foreground hover:bg-accent/10 dark:hover:bg-accent/20"
-                    : "text-white/80 hover:text-white hover:bg-white/20"
-                }`}
-              >
-                {link.name}
-              </a>
+              link.isRoute ? (
+                <Link
+                  key={link.name}
+                  to={link.href}
+                  className={`px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200 relative ${
+                    isScrolled
+                      ? "text-muted-foreground hover:text-foreground hover:bg-accent/10 dark:hover:bg-accent/20"
+                      : "text-white/80 hover:text-white hover:bg-white/20"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ) : (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  className={`px-4 py-2 rounded-xl font-medium text-sm transition-all duration-200 relative ${
+                    isScrolled
+                      ? "text-muted-foreground hover:text-foreground hover:bg-accent/10 dark:hover:bg-accent/20"
+                      : "text-white/80 hover:text-white hover:bg-white/20"
+                  }`}
+                >
+                  {link.name}
+                </a>
+              )
             ))}
           </nav>
 
@@ -110,14 +125,25 @@ export const Header = () => {
           <div className="lg:hidden mt-4 bg-background/95 dark:bg-background/98 backdrop-blur-xl rounded-2xl p-4 border border-border/50 shadow-lg animate-scale-in">
             <nav className="flex flex-col gap-2">
               {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="px-4 py-3 rounded-xl text-foreground font-medium hover:bg-accent/10 dark:hover:bg-accent/20 transition-colors"
-                >
-                  {link.name}
-                </a>
+                link.isRoute ? (
+                  <Link
+                    key={link.name}
+                    to={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="px-4 py-3 rounded-xl text-foreground font-medium hover:bg-accent/10 dark:hover:bg-accent/20 transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                ) : (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="px-4 py-3 rounded-xl text-foreground font-medium hover:bg-accent/10 dark:hover:bg-accent/20 transition-colors"
+                  >
+                    {link.name}
+                  </a>
+                )
               ))}
               <Button className="aero-button-accent mt-4" size="lg" asChild>
                 <Link to="/login">Înscrie-te Acum</Link>
