@@ -163,30 +163,12 @@ export async function rateLimitPlugin(server: FastifyInstance) {
   });
   
   // Clean up old entries periodically (in-memory only)
-  if (!isDevelopment) {
-    setInterval(async () => {
-      if (redis) {
-        const keys = await redis.keys('ratelimit:*');
-        const now = Date.now();
-        for (const key of keys) {
-          const data = await redis.get(key);
-          if (data) {
-            const { resetTime } = JSON.parse(data);
-            if (now > resetTime) {
-              await redis.del(key);
-            }
-          }
-        }
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitMap.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitMap.delete(key);
       }
-    }, RATE_LIMIT_WINDOW);
-  } else {
-    setInterval(() => {
-      const now = Date.now();
-      for (const [key, entry] of rateLimitMap.entries()) {
-        if (now > entry.resetTime) {
-          rateLimitMap.delete(key);
-        }
-      }
-    }, RATE_LIMIT_WINDOW);
-  }
+    }
+  }, RATE_LIMIT_WINDOW);
 }

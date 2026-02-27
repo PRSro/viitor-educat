@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, ArrowLeft, BookOpen } from 'lucide-react';
 import { LessonViewer } from '@/components/LessonViewer';
-import { viewLesson, completeLesson, LessonViewResponse, LessonCompleteResponse } from '@/services/lessonService';
+import { viewLesson, completeLesson, LessonViewResponse, LessonCompleteResponse } from '@/modules/lessons/services/lessonService';
 
 export default function LessonViewerPage() {
   const { lessonId } = useParams<{ lessonId: string }>();

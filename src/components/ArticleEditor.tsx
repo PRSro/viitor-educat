@@ -32,7 +32,7 @@ import {
   Heading3
 } from 'lucide-react';
 import { GlassCard, GlowButton } from './ParallaxLayout';
-import { Article, ArticleCategory, CreateArticleData } from '@/services/articleService';
+import { Article, ArticleCategory, CreateArticleData } from '@/modules/articles/services/articleService';
 
 interface ArticleEditorProps {
   article?: Article;

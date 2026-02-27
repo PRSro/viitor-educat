@@ -31,7 +31,10 @@ export interface SearchResultCourse {
   level: string;
   category: string;
   tags: string[];
-  teacher: {
+  teacherId?: string;
+  teacherEmail?: string;
+  rank?: number;
+  teacher?: {
     id: string;
     email: string;
     teacherProfile: {
@@ -39,10 +42,20 @@ export interface SearchResultCourse {
       pictureUrl: string | null;
     } | null;
   };
-  _count: {
+  _count?: {
     lessons: number;
     enrollments: number;
   };
+}
+
+export interface SearchResultLesson {
+  id: string;
+  title: string;
+  description: string | null;
+  order: number;
+  teacherId?: string;
+  teacherEmail?: string;
+  rank?: number;
 }
 
 export interface SearchResultTeacher {
@@ -93,6 +106,7 @@ export interface SearchResponse {
   filters: SearchFilters;
   results: {
     courses: SearchResultCourse[];
+    lessons: SearchResultLesson[];
     teachers: SearchResultTeacher[];
     articles: SearchResultArticle[];
     resources: SearchResultResource[];

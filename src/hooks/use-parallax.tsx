@@ -114,6 +114,10 @@ export const useParallax = () => {
     };
   }, [animate, isMobile]);
 
+  // NOTE: isMobile MUST remain in this dependency array.
+  // When the viewport crosses the 768px threshold, registerElement receives a new function reference.
+  // This triggers HeroSection's useEffect to re-run, which re-registers all parallax elements.
+  // Removing isMobile from here would break element re-registration on resize.
   const registerElement = useCallback((
     element: HTMLElement | null,
     scrollSpeed: number = 0.3,
@@ -130,6 +134,8 @@ export const useParallax = () => {
     });
   }, [isMobile]);
 
+  // NOTE: isMobile in deps ensures HeroSection's useEffect re-fires when viewport changes.
+  // This keeps the dependency chain intact: isMobile → registerElement → HeroSection effect.
   const unregisterElement = useCallback((element: HTMLElement | null) => {
     if (!element) return;
     elementsRef.current.delete(element);

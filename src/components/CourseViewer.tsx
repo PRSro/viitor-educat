@@ -16,8 +16,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { GlassCard, ParallaxBackground, FloatingElement } from './ParallaxLayout';
-import { Course } from '@/services/courseService';
-import { Lesson } from '@/services/lessonService';
+import { Course } from '@/modules/courses/services/courseService';
+import { Lesson } from '@/modules/lessons/services/lessonService';
 
 interface CourseViewerProps {
   course: Course;

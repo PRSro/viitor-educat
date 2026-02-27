@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FlashcardListItem } from '@/services/flashcardService';
+import { FlashcardListItem } from '@/modules/core/services/flashcardService';
 import { ChevronLeft, ChevronRight, RotateCcw, Layers, CheckCircle } from 'lucide-react';
 
 interface FlashcardDeckProps {

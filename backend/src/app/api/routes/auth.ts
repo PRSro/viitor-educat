@@ -4,8 +4,21 @@ import bcrypt from 'bcryptjs';
 import { registerSchema, loginSchema, formatZodError } from '../../schemas/validation/schemas.js';
 import { prisma } from '../../models/prisma.js';
 import { z } from 'zod';
+import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware.js';
 
 export async function authRoutes(server: FastifyInstance) {
+  /**
+   * GET /auth/me
+   * Lightweight endpoint to verify JWT token
+   * Returns user info from token payload without DB lookup
+   */
+  server.get('/me', {
+    preHandler: [authMiddleware]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const user = (request as any).user as JwtPayload;
+    return reply.send({ user: { id: user.id, email: user.email, role: user.role } });
+  });
+
   /**
    * POST /auth/register
    * Creates new user with validated input

@@ -12,7 +12,7 @@ import {
   UpdateSettingsData,
   defaultSettings,
   Theme 
-} from '@/services/settingsService';
+} from '@/modules/core/services/settingsService';
 
 interface SettingsContextType {
   settings: UserSettings | null;

@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, Users, Server, Settings, Activity, Shield, BookOpen, FileText, GraduationCap, TrendingUp, BarChart3 } from 'lucide-react';
 import { api, checkApiHealth, ApiError } from '@/lib/apiClient';
 import { ErrorDisplay, ErrorType } from '@/components/ErrorDisplay';
-import { getOverviewAnalytics, getAnalyticsTrends, getPopularCourses, PopularCourse } from '@/services/analyticsService';
+import { getOverviewAnalytics, getAnalyticsTrends, getPopularCourses, PopularCourse } from '@/modules/core/services/analyticsService';
 
 interface AdminUser {
   id: string;

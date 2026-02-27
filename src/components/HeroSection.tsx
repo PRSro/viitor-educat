@@ -21,6 +21,10 @@ export const HeroSection = () => {
   const glow1Ref = useRef<HTMLDivElement>(null);
   const glow2Ref = useRef<HTMLDivElement>(null);
 
+  // NOTE: The isMobile dependency is critical here.
+  // When viewport crosses 768px, useParallax's registerElement gets a new reference
+  // (due to its [isMobile] useCallback dep). This causes this effect to re-run,
+  // properly re-registering elements for the new viewport state.
   useEffect(() => {
     if (isMobile) return;
     

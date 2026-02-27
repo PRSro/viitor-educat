@@ -38,7 +38,7 @@ export function ProtectedRoute({ children, allowedRoles, redirectTo }: Protected
 
   // Redirect to login if not authenticated
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={redirectTo || '/login'} replace />;
   }
 
   // Note: This is UI-only protection. All security enforcement

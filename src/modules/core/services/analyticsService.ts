@@ -287,3 +287,120 @@ export async function getTeacherOverview(): Promise<TeacherOverview> {
 
   return data;
 }
+
+export interface LessonCompletionData {
+  lessonId: string;
+  title: string;
+  courseTitle: string;
+  completions: number;
+  enrolledStudents: number;
+}
+
+export interface LessonCompletionResponse {
+  lessons: LessonCompletionData[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export async function getLessonCompletionRates(page: number = 1, limit: number = 20): Promise<LessonCompletionResponse> {
+  const response = await fetch(`${API_BASE_URL}/analytics/lessons?page=${page}&limit=${limit}`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch lesson completion rates');
+  }
+
+  return data;
+}
+
+export interface DropoffDistribution {
+  range: string;
+  count: number;
+}
+
+export interface LessonDropoffResponse {
+  lessonId: string;
+  title: string;
+  totalStudents: number;
+  completedCount: number;
+  completionRate: number;
+  distribution: DropoffDistribution[];
+}
+
+export async function getLessonDropoff(lessonId: string): Promise<LessonDropoffResponse> {
+  const response = await fetch(`${API_BASE_URL}/analytics/lessons/${lessonId}/dropoff`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch lesson dropoff');
+  }
+
+  return data;
+}
+
+export interface WeeklyActiveData {
+  weekStart: string;
+  weekEnd: string;
+  activeStudents: number;
+}
+
+export interface WeeklyActiveResponse {
+  weeklyActive: WeeklyActiveData[];
+}
+
+export async function getWeeklyActiveStudents(weeks: number = 8): Promise<WeeklyActiveResponse> {
+  const response = await fetch(`${API_BASE_URL}/analytics/students/active?weeks=${weeks}`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch active students');
+  }
+
+  return data;
+}
+
+export interface QuizPerformanceData {
+  quizId: string;
+  title: string;
+  courseTitle: string;
+  totalAttempts: number;
+  averageScore: number;
+  hasAttempts: boolean;
+}
+
+export interface QuizPerformanceResponse {
+  quizzes: QuizPerformanceData[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export async function getQuizPerformance(page: number = 1, limit: number = 20): Promise<QuizPerformanceResponse> {
+  const response = await fetch(`${API_BASE_URL}/analytics/quizzes?page=${page}&limit=${limit}`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch quiz performance');
+  }
+
+  return data;
+}

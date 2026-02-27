@@ -25,7 +25,7 @@ import {
   ArticleCategory,
   ArticleFilters,
   categoryLabels
-} from '@/services/articleService';
+} from '@/modules/articles/services/articleService';
 import {
   FileText,
   Search,

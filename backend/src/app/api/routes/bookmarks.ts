@@ -9,12 +9,18 @@ import { anyRole, adminOnly } from '../../core/middleware/permissionMiddleware.j
 import { z } from 'zod';
 import { prisma } from '../../models/prisma.js';
 
+const MAX_BOOKMARKS = 500;
+const VALID_RESOURCE_TYPES = ['LESSON', 'ARTICLE'];
+
 function getCurrentUser(request: FastifyRequest): JwtPayload {
   return (request as any).user as JwtPayload;
 }
 
 const createBookmarkSchema = z.object({
-  resourceType: z.string().min(1, 'Resource type is required'),
+  resourceType: z.string().refine(
+    (val) => VALID_RESOURCE_TYPES.includes(val),
+    { message: `Resource type must be one of: ${VALID_RESOURCE_TYPES.join(', ')}` }
+  ),
   resourceId: z.string().min(1, 'Resource ID is required'),
   title: z.string().min(1, 'Title is required'),
   url: z.string().url().optional(),
@@ -26,6 +32,17 @@ const updateBookmarkSchema = createBookmarkSchema.partial().extend({
 
 interface BookmarkParams {
   id: string;
+}
+
+async function validateResourceExists(resourceType: string, resourceId: string): Promise<boolean> {
+  if (resourceType === 'LESSON') {
+    const lesson = await prisma.lesson.findUnique({ where: { id: resourceId } });
+    return !!lesson;
+  } else if (resourceType === 'ARTICLE') {
+    const article = await prisma.article.findUnique({ where: { id: resourceId } });
+    return !!article;
+  }
+  return false;
 }
 
 export async function bookmarkRoutes(fastify: FastifyInstance) {
@@ -113,6 +130,27 @@ export async function bookmarkRoutes(fastify: FastifyInstance) {
       const validated = createBookmarkSchema.parse(request.body);
       const user = getCurrentUser(request);
 
+      // Check bookmark count limit
+      const bookmarkCount = await prisma.bookmark.count({
+        where: { userId: user.id }
+      });
+
+      if (bookmarkCount >= MAX_BOOKMARKS) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: `Maximum ${MAX_BOOKMARKS} bookmarks allowed`
+        });
+      }
+
+      // Validate resource exists
+      const resourceExists = await validateResourceExists(validated.resourceType, validated.resourceId);
+      if (!resourceExists) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'Resource not found'
+        });
+      }
+
       // Check for duplicate bookmark
       const existing = await prisma.bookmark.findUnique({
         where: {
@@ -125,8 +163,8 @@ export async function bookmarkRoutes(fastify: FastifyInstance) {
       });
 
       if (existing) {
-        return reply.status(400).send({ 
-          error: 'Bad Request',
+        return reply.status(409).send({ 
+          error: 'Conflict',
           message: 'This resource is already bookmarked'
         });
       }
@@ -228,6 +266,40 @@ export async function bookmarkRoutes(fastify: FastifyInstance) {
       }
 
       await prisma.bookmark.delete({ where: { id } });
+
+      return { message: 'Bookmark deleted successfully' };
+    } catch (error) {
+      fastify.log.error(error, 'Error deleting bookmark');
+      throw error;
+    }
+  });
+
+  /**
+   * DELETE /bookmarks/by-resource/:resourceType/:resourceId
+   * Delete bookmark by resource (more convenient for frontend)
+   */
+  fastify.delete<{ Params: { resourceType: string; resourceId: string } }>('/by-resource/:resourceType/:resourceId', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request: FastifyRequest<{ Params: { resourceType: string; resourceId: string } }>, reply: FastifyReply) => {
+    try {
+      const { resourceType, resourceId } = request.params;
+      const user = getCurrentUser(request);
+
+      const existing = await prisma.bookmark.findUnique({
+        where: {
+          userId_resourceType_resourceId: {
+            userId: user.id,
+            resourceType,
+            resourceId
+          }
+        }
+      });
+
+      if (!existing) {
+        return reply.status(404).send({ error: 'Bookmark not found' });
+      }
+
+      await prisma.bookmark.delete({ where: { id: existing.id } });
 
       return { message: 'Bookmark deleted successfully' };
     } catch (error) {

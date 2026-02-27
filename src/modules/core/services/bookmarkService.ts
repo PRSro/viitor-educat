@@ -137,6 +137,21 @@ export async function deleteBookmark(id: string): Promise<void> {
 }
 
 /**
+ * Delete a bookmark by resource
+ */
+export async function deleteBookmarkByResource(resourceType: string, resourceId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/bookmarks/by-resource/${resourceType}/${resourceId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.error || 'Failed to delete bookmark');
+  }
+}
+
+/**
  * Check if a resource is bookmarked
  */
 export async function checkBookmark(resourceType: string, resourceId: string): Promise<{

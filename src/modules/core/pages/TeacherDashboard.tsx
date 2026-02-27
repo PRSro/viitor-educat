@@ -24,10 +24,18 @@ import {
   createLesson,
   updateLesson,
   deleteLesson,
-} from '@/services/lessonService';
-import { getCourses, Course, createCourse, updateCourse, deleteCourse, getTeacherCourses, getCourseAnalytics, getCourseStudents, CourseAnalytics, CourseStudent } from '@/services/courseService';
-import { getTeacherArticles, uploadArticleFile, uploadLessonMaterial, TeacherLesson } from '@/services/authService';
-import { ArticleListItem, ArticleCategory, createArticle, getArticles, categoryLabels } from '@/services/articleService';
+} from '@/modules/lessons/services/lessonService';
+import { getCourses, Course, createCourse, updateCourse, deleteCourse, getTeacherCourses, getCourseAnalytics, getCourseStudents, CourseAnalytics, CourseStudent } from '@/modules/courses/services/courseService';
+import { getTeacherArticles, uploadArticleFile, uploadLessonMaterial, TeacherLesson } from '@/modules/core/services/authService';
+import { ArticleListItem, ArticleCategory, createArticle, getArticles, categoryLabels } from '@/modules/articles/services/articleService';
+import { 
+  getLessonCompletionRates, 
+  getWeeklyActiveStudents, 
+  getQuizPerformance, 
+  LessonCompletionResponse,
+  WeeklyActiveResponse,
+  QuizPerformanceResponse
+} from '@/modules/core/services/analyticsService';
 import { sanitizeInput, containsXssPatterns } from '@/lib/sanitize';
 import { lessonSchema, getFirstError } from '@/lib/validation';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -64,6 +72,17 @@ import {
   Target,
   Activity
 } from 'lucide-react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  LineChart,
+  Line
+} from 'recharts';
 
 export default function TeacherDashboard() {
   const { user, logout } = useAuth();
@@ -113,6 +132,12 @@ export default function TeacherDashboard() {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [students, setStudents] = useState<CourseStudent[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+
+  // Detailed Analytics state
+  const [lessonCompletions, setLessonCompletions] = useState<LessonCompletionResponse | null>(null);
+  const [weeklyActive, setWeeklyActive] = useState<WeeklyActiveResponse | null>(null);
+  const [quizPerformance, setQuizPerformance] = useState<QuizPerformanceResponse | null>(null);
+  const [loadingDetailedAnalytics, setLoadingDetailedAnalytics] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -359,7 +384,7 @@ export default function TeacherDashboard() {
     if (!confirm('Are you sure you want to delete this article?')) return;
 
     try {
-      const { deleteArticle } = await import('@/services/articleService');
+      const { deleteArticle } = await import('@/modules/articles/services/articleService');
       await deleteArticle(id);
       setArticles(articles.filter(a => a.id !== id));
       setSuccess('Article deleted successfully!');
@@ -404,6 +429,30 @@ export default function TeacherDashboard() {
       fetchCourseStudents(courseId)
     ]);
   }
+
+  async function fetchDetailedAnalytics() {
+    try {
+      setLoadingDetailedAnalytics(true);
+      const [lessonsData, activeData, quizData] = await Promise.all([
+        getLessonCompletionRates(1, 10),
+        getWeeklyActiveStudents(8),
+        getQuizPerformance(1, 10)
+      ]);
+      setLessonCompletions(lessonsData);
+      setWeeklyActive(activeData);
+      setQuizPerformance(quizData);
+    } catch (err) {
+      console.error('Failed to fetch detailed analytics:', err);
+    } finally {
+      setLoadingDetailedAnalytics(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'detailed-analytics') {
+      fetchDetailedAnalytics();
+    }
+  }, [activeTab]);
 
   function openArticleForm() {
     setArticleFormData({ title: '', content: '', excerpt: '', category: 'GENERAL', file: null });
@@ -501,12 +550,13 @@ export default function TeacherDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-xl grid-cols-6 aero-glass p-1">
+          <TabsList className="grid w-full max-w-2xl grid-cols-7 aero-glass p-1">
             <TabsTrigger value="overview" className="data-[state=active]:bg-primary/20">Overview</TabsTrigger>
             <TabsTrigger value="courses" className="data-[state=active]:bg-primary/20">Courses</TabsTrigger>
             <TabsTrigger value="lessons" className="data-[state=active]:bg-primary/20">Lessons</TabsTrigger>
             <TabsTrigger value="articles" className="data-[state=active]:bg-primary/20">Articles</TabsTrigger>
             <TabsTrigger value="analytics" className="data-[state=active]:bg-primary/20">Analytics</TabsTrigger>
+            <TabsTrigger value="detailed-analytics" className="data-[state=active]:bg-primary/20">Details</TabsTrigger>
             <TabsTrigger value="builder" className="data-[state=active]:bg-primary/20">Builder</TabsTrigger>
           </TabsList>
 
@@ -924,6 +974,126 @@ export default function TeacherDashboard() {
                   Choose a course above to view student analytics
                 </p>
               </Card>
+            )}
+          </TabsContent>
+
+          {/* Detailed Analytics Tab */}
+          <TabsContent value="detailed-analytics" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Detailed Analytics</h2>
+              <p className="text-muted-foreground">Lesson completions, student activity, and quiz performance</p>
+            </div>
+
+            {loadingDetailedAnalytics ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                {/* Weekly Active Students Chart */}
+                <Card className="aero-glass">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      Weekly Active Students
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {weeklyActive && weeklyActive.weeklyActive.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={weeklyActive.weeklyActive}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="weekStart" 
+                            tick={{ fontSize: 12 }}
+                            tickFormatter={(value) => new Date(value).toLocaleDateString('ro-RO', { month: 'short', day: 'numeric' })}
+                          />
+                          <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                            labelFormatter={(value) => `Week of ${new Date(value).toLocaleDateString('ro-RO')}`}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="activeStudents" 
+                            stroke="#8b5cf6" 
+                            strokeWidth={2}
+                            dot={{ fill: '#8b5cf6' }}
+                            name="Active Students"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">No activity data available yet</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Lesson Completion Rates */}
+                <Card className="aero-glass">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5" />
+                      Lesson Completion Rates
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {lessonCompletions && lessonCompletions.lessons.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={lessonCompletions.lessons} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+                          <YAxis 
+                            type="category" 
+                            dataKey="title" 
+                            width={150} 
+                            tick={{ fontSize: 11 }}
+                            tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
+                          />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                          />
+                          <Bar dataKey="completions" fill="#22c55e" name="Completions" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">No lesson completion data available</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Quiz Performance */}
+                <Card className="aero-glass">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      Quiz Performance
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {quizPerformance && quizPerformance.quizzes.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={quizPerformance.quizzes.filter(q => q.hasAttempts)}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="title" 
+                            tick={{ fontSize: 11 }}
+                            tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
+                          />
+                          <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                            formatter={(value: number) => [`${value}%`, 'Average Score']}
+                          />
+                          <Bar dataKey="averageScore" fill="#06b6d4" name="Average Score" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <p className="text-muted-foreground text-center py-8">No quiz data available</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
             )}
           </TabsContent>
 

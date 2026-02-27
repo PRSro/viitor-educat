@@ -40,7 +40,9 @@ import {
   Users,
   Settings,
   Layers,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Bookmark as BookmarkIcon,
+  Trash2
 } from 'lucide-react';
 import {
   getCourses,
@@ -48,8 +50,8 @@ import {
   enrollInCourse,
   Course,
   Enrollment
-} from '@/services/courseService';
-import { getAllTeachers, TeacherWithProfile } from '@/services/authService';
+} from '@/modules/courses/services/courseService';
+import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
 import { useNavigate } from 'react-router-dom';
 import {
   getArticles,
@@ -58,7 +60,8 @@ import {
   ArticleFilters,
   categoryLabels,
   categoryColors
-} from '@/services/articleService';
+} from '@/modules/articles/services/articleService';
+import { getBookmarks, deleteBookmarkByResource, Bookmark, BookmarkResponse } from '@/modules/core/services/bookmarkService';
 
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
@@ -92,7 +95,36 @@ export default function StudentDashboard() {
   const [teacherList, setTeacherList] = useState<TeacherWithProfile[]>([]);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
 
+  // Bookmarks state
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [loadingBookmarks, setLoadingBookmarks] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch bookmarks
+  useEffect(() => {
+    async function fetchBookmarks() {
+      try {
+        setLoadingBookmarks(true);
+        const data = await getBookmarks();
+        setBookmarks(data.bookmarks);
+      } catch (err) {
+        console.error('Failed to fetch bookmarks:', err);
+      } finally {
+        setLoadingBookmarks(false);
+      }
+    }
+    fetchBookmarks();
+  }, []);
+
+  async function handleRemoveBookmark(resourceType: string, resourceId: string) {
+    try {
+      await deleteBookmarkByResource(resourceType, resourceId);
+      setBookmarks(prev => prev.filter(b => !(b.resourceType === resourceType && b.resourceId === resourceId)));
+    } catch (err) {
+      console.error('Failed to remove bookmark:', err);
+    }
+  }
 
   useEffect(() => {
     async function fetchCourses() {
@@ -311,6 +343,10 @@ export default function StudentDashboard() {
             <TabsTrigger value="study-hub" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
               <GraduationCap className="h-4 w-4" />
               Study Hub
+            </TabsTrigger>
+            <TabsTrigger value="bookmarks" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+              <BookmarkIcon className="h-4 w-4" />
+              Saved
             </TabsTrigger>
           </TabsList>
 
@@ -705,6 +741,75 @@ export default function StudentDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Bookmarks Tab */}
+          <TabsContent value="bookmarks" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Saved Items</h2>
+              <p className="text-muted-foreground">Your bookmarked lessons and articles</p>
+            </div>
+
+            {loadingBookmarks ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : bookmarks.length === 0 ? (
+              <Card className="p-12 text-center">
+                <BookmarkIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No saved items</h3>
+                <p className="text-muted-foreground mb-4">
+                  Bookmark lessons and articles to access them quickly later
+                </p>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {bookmarks.map((bookmark) => (
+                  <Card key={bookmark.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${bookmark.resourceType === 'LESSON' ? 'bg-primary/10' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
+                            {bookmark.resourceType === 'LESSON' ? (
+                              <BookOpen className="h-5 w-5 text-primary" />
+                            ) : (
+                              <FileText className="h-5 w-5 text-blue-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{bookmark.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {bookmark.resourceType === 'LESSON' ? 'Lesson' : 'Article'} • {new Date(bookmark.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {bookmark.url ? (
+                            <Link to={bookmark.url}>
+                              <Button variant="outline" size="sm">
+                                Open
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Button variant="outline" size="sm" disabled>
+                              Unavailable
+                            </Button>
+                          )}
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => handleRemoveBookmark(bookmark.resourceType, bookmark.resourceId)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">

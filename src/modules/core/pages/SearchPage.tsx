@@ -4,7 +4,7 @@
  * Global search with filters for courses, teachers, and articles
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -35,13 +35,16 @@ import {
 import {
   search,
   getSearchFilters,
+  getSearchSuggestions,
   SearchResponse,
   SearchFiltersResponse,
   SearchResultCourse,
+  SearchResultLesson,
   SearchResultTeacher,
   SearchResultArticle,
-  SearchFilters
-} from '@/services/searchService';
+  SearchFilters,
+  SearchSuggestionsResponse
+} from '@/modules/core/services/searchService';
 import { useFeatureEnabled } from '@/contexts/SettingsContext';
 
 export default function SearchPage() {
@@ -58,11 +61,56 @@ export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Debounced search state
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<SearchSuggestionsResponse['suggestions'] | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
   const [selectedTeacher, setSelectedTeacher] = useState<string>('ALL');
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch suggestions when query changes
+  useEffect(() => {
+    if (debouncedQuery.length < 2) {
+      setSuggestions(null);
+      return;
+    }
+
+    async function fetchSuggestions() {
+      setLoadingSuggestions(true);
+      try {
+        const data = await getSearchSuggestions(debouncedQuery);
+        setSuggestions(data.suggestions);
+      } catch (err) {
+        console.warn('Failed to fetch suggestions');
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    }
+
+    const timer = setTimeout(fetchSuggestions, 200);
+    return () => clearTimeout(timer);
+  }, [debouncedQuery]);
+
+  // Auto-search when debounced query or filters change
+  useEffect(() => {
+    if (debouncedQuery || selectedCategory !== 'ALL' || selectedLevel !== 'ALL' || selectedTeacher !== 'ALL') {
+      handleSearch();
+    }
+  }, [debouncedQuery, selectedCategory, selectedLevel, selectedTeacher, searchType]);
+
+  // Fetch filters on mount
   useEffect(() => {
     async function fetchFilters() {
       try {
@@ -75,8 +123,8 @@ export default function SearchPage() {
     fetchFilters();
   }, []);
 
-  async function handleSearch() {
-    if (!searchQuery.trim() && selectedCategory === 'ALL' && selectedLevel === 'ALL' && selectedTeacher === 'ALL') {
+  const handleSearch = useCallback(async () => {
+    if (!debouncedQuery.trim() && selectedCategory === 'ALL' && selectedLevel === 'ALL' && selectedTeacher === 'ALL') {
       return;
     }
 
@@ -90,7 +138,7 @@ export default function SearchPage() {
       if (selectedTeacher !== 'ALL') filterParams.teacherId = selectedTeacher;
 
       const data = await search(
-        searchQuery.trim() || undefined,
+        debouncedQuery.trim() || undefined,
         Object.keys(filterParams).length > 0 ? filterParams : undefined,
         searchType === 'all' ? undefined : searchType
       );
@@ -102,7 +150,7 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [debouncedQuery, selectedCategory, selectedLevel, selectedTeacher, searchType]);
 
   function clearFilters() {
     setSelectedCategory('ALL');

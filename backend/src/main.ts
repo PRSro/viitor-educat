@@ -19,6 +19,7 @@ import { bookmarkRoutes } from './app/api/routes/bookmarks.js';
 import { analyticsRoutes } from './app/api/routes/analytics.js';
 import { studentProfileRoutes } from './app/api/routes/profiles.js';
 import { fileArticleRoutes } from './app/api/routes/fileArticles.js';
+import { musicRoutes } from './app/api/routes/music.js';
 import { JWT_SECRET, PORT, ALLOWED_ORIGINS, isDevelopment, logConfig } from './app/core/config/env.js';
 import {
   securityHeadersPlugin,
@@ -93,6 +94,11 @@ await server.register(bookmarkRoutes, { prefix: '/bookmarks' });
 await server.register(analyticsRoutes, { prefix: '/analytics' });
 await server.register(studentProfileRoutes, { prefix: '/profiles' });
 await server.register(fileArticleRoutes, { prefix: '/file-articles' });
+await server.register(musicRoutes, { prefix: '/music' });
+import { studentRoutes } from './app/api/routes/student.js';
+await server.register(studentRoutes, { prefix: '/student' });
+import { commentRoutes } from './app/api/routes/comments.js';
+await server.register(commentRoutes);
 
 import { prisma } from './app/models/prisma.js';
 import { redisService } from './app/core/services/redisService.js';

@@ -10,7 +10,7 @@ import {
   CreateLessonData,
   UpdateLessonData,
   Lesson 
-} from '@/services/lessonService';
+} from '@/modules/lessons/services/lessonService';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LessonEditorPage() {

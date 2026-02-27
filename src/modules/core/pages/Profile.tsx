@@ -8,8 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { User, Mail, Shield, Calendar, Loader2, Save, Moon, Sun, Camera, Upload, Globe, Linkedin, Twitter, BookOpen, GraduationCap, ArrowRight, LayoutDashboard } from 'lucide-react';
-import { getProfile, uploadProfilePicture, User as UserType, TeacherProfile as TeacherProfileType } from '@/services/authService';
-import { getToken } from '@/services/authService';
+import { getProfile, uploadProfilePicture, User as UserType, TeacherProfile as TeacherProfileType } from '@/modules/core/services/authService';
+import { getToken } from '@/modules/core/services/authService';
 import { Link, useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';

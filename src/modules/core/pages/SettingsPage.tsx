@@ -58,7 +58,7 @@ import {
   categoryLabels,
   UserSettings,
   UpdateSettingsData
-} from '@/services/settingsService';
+} from '@/modules/core/services/settingsService';
 
 const categories = Object.keys(categoryLabels);
 

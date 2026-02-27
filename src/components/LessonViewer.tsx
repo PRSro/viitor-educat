@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ProgressBar } from './ProgressBar';
+import { CommentThread } from './CommentThread';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -263,6 +264,8 @@ export function LessonViewer({
           )}
         </Card>
       )}
+
+      <CommentThread lessonId={lesson.id} />
 
       {/* Navigation */}
       <div className="flex items-center justify-between">

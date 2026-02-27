@@ -20,11 +20,11 @@ import {
   FlashcardListItem,
   FlashcardDeck as FlashcardDeckType,
   CreateFlashcardData
-} from '../../../services/flashcardService';
+} from '@/modules/core/services/flashcardService';
 import {
   getCourses,
   Course
-} from '../../../services/courseService';
+} from '@/modules/courses/services/courseService';
 import {
   Layers,
   Loader2,

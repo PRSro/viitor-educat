@@ -280,25 +280,6 @@ export async function courseRoutes(server: FastifyInstance) {
     }
   });
 
-  // POST /courses/:id/enroll
-  server.post<{ Params: { id: string } }>('/:id/enroll', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request, reply) => {
-    const { id } = courseIdSchema.parse(request.params);
-    const studentId = getCurrentUser(request).id;
-
-    const course = await prisma.course.findUnique({ where: { id } });
-    if (!course || !course.published) return reply.status(404).send({ error: 'Course not found' });
-
-    const existing = await prisma.enrollment.findUnique({ where: { studentId_courseId: { studentId, courseId: id } } });
-    if (existing) return reply.status(400).send({ error: 'Already enrolled' });
-
-    const enrollment = await prisma.enrollment.create({
-      data: { studentId, courseId: id }
-    });
-    return reply.status(201).send({ message: 'Enrolled', enrollment });
-  });
-
   // GET /courses/:id/export (JSON Draft)
   server.get<{ Params: { id: string } }>('/:id/export', {
     preHandler: [authMiddleware, teacherOnly]
@@ -326,5 +307,177 @@ export async function courseRoutes(server: FastifyInstance) {
 
     reply.header('Content-Disposition', `attachment; filename="${course.slug}.json"`);
     return exportData;
+  });
+
+  // POST /courses/:courseId/enroll - Enroll in a course (Student only)
+  server.post('/:courseId/enroll', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, async (request, reply) => {
+    try {
+      const user = getCurrentUser(request);
+      const courseId = (request.params as any).courseId;
+
+      const course = await prisma.course.findUnique({
+        where: { id: courseId }
+      });
+
+      if (!course) {
+        return reply.status(404).send({ error: 'Course not found' });
+      }
+
+      if (!course.published) {
+        return reply.status(403).send({ error: 'Course not available for enrollment' });
+      }
+
+      const existingEnrollment = await prisma.enrollment.findUnique({
+        where: {
+          studentId_courseId: {
+            studentId: user.id,
+            courseId
+          }
+        }
+      });
+
+      if (existingEnrollment) {
+        if (existingEnrollment.status === 'COMPLETED') {
+          return reply.status(403).send({ 
+            error: 'Course already completed. Use re-enroll action to enroll again.' 
+          });
+        }
+        if (existingEnrollment.status === 'ACTIVE') {
+          return reply.status(409).send({ error: 'Already enrolled in this course' });
+        }
+        if (existingEnrollment.status === 'DROPPED') {
+          const updated = await prisma.enrollment.update({
+            where: { id: existingEnrollment.id },
+            data: { status: 'ACTIVE', enrolledAt: new Date() }
+          });
+          await prisma.auditLog.create({
+            data: {
+              userId: user.id,
+              action: 'RE_ENROLL',
+              resource: 'enrollment',
+              resourceId: updated.id,
+              metadata: { courseId }
+            }
+          });
+          return { enrollment: updated };
+        }
+      }
+
+      const activeEnrollments = await prisma.enrollment.count({
+        where: { studentId: user.id, status: 'ACTIVE' }
+      });
+
+      if (activeEnrollments >= 50) {
+        return reply.status(400).send({ error: 'Maximum 50 active courses allowed' });
+      }
+
+      const enrollment = await prisma.enrollment.create({
+        data: {
+          studentId: user.id,
+          courseId
+        }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'ENROLL',
+          resource: 'enrollment',
+          resourceId: enrollment.id,
+          metadata: { courseId }
+        }
+      });
+
+      return reply.status(201).send({ enrollment });
+    } catch (error) {
+      server.log.error(error, 'Error enrolling in course');
+      throw error;
+    }
+  });
+
+  // DELETE /courses/:courseId/enroll - Drop a course
+  server.delete('/:courseId/enroll', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, async (request, reply) => {
+    try {
+      const user = getCurrentUser(request);
+      const courseId = (request.params as any).courseId;
+
+      const enrollment = await prisma.enrollment.findUnique({
+        where: {
+          studentId_courseId: {
+            studentId: user.id,
+            courseId
+          }
+        }
+      });
+
+      if (!enrollment) {
+        return reply.status(404).send({ error: 'Not enrolled in this course' });
+      }
+
+      if (enrollment.status !== 'ACTIVE') {
+        return reply.status(400).send({ error: 'Enrollment is not active' });
+      }
+
+      const updated = await prisma.enrollment.update({
+        where: { id: enrollment.id },
+        data: { status: 'DROPPED' }
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'DROP_COURSE',
+          resource: 'enrollment',
+          resourceId: updated.id,
+          metadata: { courseId }
+        }
+      });
+
+      return { enrollment: updated };
+    } catch (error) {
+      server.log.error(error, 'Error dropping course');
+      throw error;
+    }
+  });
+
+  // GET /courses/:courseId/enrollment - Check enrollment status
+  server.get('/:courseId/enrollment', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, async (request, reply) => {
+    try {
+      const user = getCurrentUser(request);
+      const courseId = (request.params as any).courseId;
+
+      const enrollment = await prisma.enrollment.findUnique({
+        where: {
+          studentId_courseId: {
+            studentId: user.id,
+            courseId
+          }
+        }
+      });
+
+      if (!enrollment) {
+        return { enrolled: false, enrollment: null };
+      }
+
+      return { 
+        enrolled: enrollment.status === 'ACTIVE', 
+        enrollment: {
+          id: enrollment.id,
+          status: enrollment.status,
+          progress: enrollment.progress,
+          enrolledAt: enrollment.enrolledAt,
+          completedAt: enrollment.completedAt
+        }
+      };
+    } catch (error) {
+      server.log.error(error, 'Error checking enrollment status');
+      throw error;
+    }
   });
 }

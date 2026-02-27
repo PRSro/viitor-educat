@@ -35,7 +35,7 @@ import {
   FileStack
 } from 'lucide-react';
 import { GlassCard } from './ParallaxLayout';
-import { Lesson, CreateLessonData, UpdateLessonData } from '@/services/lessonService';
+import { Lesson, CreateLessonData, UpdateLessonData } from '@/modules/lessons/services/lessonService';
 
 interface LessonEditorProps {
   lesson?: Lesson;

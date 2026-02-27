@@ -7,9 +7,30 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware.js';
 import { teacherOnly, anyRole, adminOnly, requireRole } from '../../core/middleware/permissionMiddleware.js';
 import { prisma } from '../../models/prisma.js';
+import { 
+  getLessonCompletionRates, 
+  getLessonDropoff, 
+  getWeeklyActiveStudents, 
+  getQuizPerformance 
+} from '../../services/analyticsService.js';
 
 function getCurrentUser(request: FastifyRequest): JwtPayload {
   return (request as any).user as JwtPayload;
+}
+
+async function logAnalyticsRequest(teacherId: string, endpoint: string) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        userId: teacherId,
+        action: 'VIEW_ANALYTICS',
+        resource: endpoint,
+        metadata: { timestamp: new Date().toISOString() }
+      }
+    });
+  } catch (error) {
+    console.error('Failed to log analytics request:', error);
+  }
 }
 
 export async function analyticsRoutes(fastify: FastifyInstance) {
@@ -456,6 +477,106 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       };
     } catch (error) {
       fastify.log.error(error, 'Error fetching teacher analytics');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /analytics/lessons
+   * Get completion rates per lesson for authenticated teacher (paginated)
+   */
+  fastify.get('/lessons', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = getCurrentUser(request);
+      const teacherId = user.role === 'ADMIN' ? user.id : user.id;
+      const page = parseInt((request.query as any).page || '1');
+      const limit = Math.min(parseInt((request.query as any).limit || '20'), 100);
+
+      await logAnalyticsRequest(teacherId, 'GET /analytics/lessons');
+      const result = await getLessonCompletionRates(teacherId, page, limit);
+      return result;
+    } catch (error) {
+      fastify.log.error(error, 'Error fetching lesson completion rates');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /analytics/lessons/:lessonId/dropoff
+   * Get percentComplete distribution for a specific lesson
+   */
+  fastify.get('/lessons/:lessonId/dropoff', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = getCurrentUser(request);
+      const lessonId = (request.params as any).lessonId;
+
+      const lesson = await prisma.lesson.findFirst({
+        where: { id: lessonId, teacherId: user.id }
+      });
+
+      if (!lesson) {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You do not have access to this lesson'
+        });
+      }
+
+      await logAnalyticsRequest(user.id, `GET /analytics/lessons/${lessonId}/dropoff`);
+      const result = await getLessonDropoff(user.id, lessonId);
+      return result;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: error.message
+        });
+      }
+      fastify.log.error(error, 'Error fetching lesson dropoff');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /analytics/students/active
+   * Get weekly active student count across teacher's courses
+   */
+  fastify.get('/students/active', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = getCurrentUser(request);
+      const weeks = parseInt((request.query as any).weeks || '8');
+
+      await logAnalyticsRequest(user.id, 'GET /analytics/students/active');
+      const result = await getWeeklyActiveStudents(user.id, weeks);
+      return result;
+    } catch (error) {
+      fastify.log.error(error, 'Error fetching active students');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /analytics/quizzes
+   * Get average score per quiz for teacher's lessons (paginated)
+   */
+  fastify.get('/quizzes', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = getCurrentUser(request);
+      const page = parseInt((request.query as any).page || '1');
+      const limit = Math.min(parseInt((request.query as any).limit || '20'), 100);
+
+      await logAnalyticsRequest(user.id, 'GET /analytics/quizzes');
+      const result = await getQuizPerformance(user.id, page, limit);
+      return result;
+    } catch (error) {
+      fastify.log.error(error, 'Error fetching quiz performance');
       throw error;
     }
   });

@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArticleListItem, categoryLabels, categoryColors } from '@/services/articleService';
+import { ArticleListItem, categoryLabels, categoryColors } from '@/modules/articles/services/articleService';
 import { Clock, User, ExternalLink, Tag } from 'lucide-react';
 
 interface ArticleCardProps {

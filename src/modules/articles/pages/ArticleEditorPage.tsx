@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArticleEditor } from '@/components/ArticleEditor';
-import { getArticleBySlug, createArticle, updateArticle, deleteArticle, CreateArticleData, Article } from '@/services/articleService';
+import { getArticleBySlug, createArticle, updateArticle, deleteArticle, CreateArticleData, Article } from '@/modules/articles/services/articleService';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ArticleEditorPageProps {

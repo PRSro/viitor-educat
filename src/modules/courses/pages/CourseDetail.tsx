@@ -29,8 +29,8 @@ import {
   getCourseBySlug,
   enrollInCourse,
   Course
-} from '../../../services/courseService';
-import { getCourseProgress, resumeCourse, CourseProgress } from '../../../services/studentService';
+} from '@/modules/courses/services/courseService';
+import { getCourseProgress, resumeCourse, CourseProgress } from '@/modules/core/services/studentService';
 
 interface CourseWithDetails {
   id: string;

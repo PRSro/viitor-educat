@@ -10,7 +10,7 @@ import {
   ResourceListItem, 
   resourceTypeLabels, 
   resourceTypeColors 
-} from '@/services/resourceService';
+} from '@/modules/core/services/resourceService';
 import { ExternalLink, FileText, Link as LinkIcon, Play, File } from 'lucide-react';
 
 interface ResourceCardProps {

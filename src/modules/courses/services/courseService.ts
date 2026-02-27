@@ -127,7 +127,7 @@ export async function getTeacherPublishedCourses(teacherId: string): Promise<Cou
  * Get enrolled courses for current student
  */
 export async function getEnrolledCourses(): Promise<Enrollment[]> {
-  const response = await fetch(`${API_BASE_URL}/courses/student`, {
+  const response = await fetch(`${API_BASE_URL}/student/enrollments`, {
     headers: getAuthHeaders(),
   });
 
@@ -137,7 +137,40 @@ export async function getEnrolledCourses(): Promise<Enrollment[]> {
     throw new Error(data.error || 'Failed to fetch enrolled courses');
   }
 
-  return data.enrollments;
+  return data.courses;
+}
+
+/**
+ * Drop enrollment in a course
+ */
+export async function dropEnrollment(courseId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/enroll`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to drop course');
+  }
+}
+
+/**
+ * Check enrollment status for a course
+ */
+export async function checkEnrollmentStatus(courseId: string): Promise<{ enrolled: boolean; enrollment: { status: string; progress: number } | null }> {
+  const response = await fetch(`${API_BASE_URL}/courses/${courseId}/enrollment`, {
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to check enrollment status');
+  }
+
+  return data;
 }
 
 /**

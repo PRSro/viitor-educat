@@ -145,6 +145,12 @@ export const api = {
       body: JSON.stringify(body) 
     }),
   
+  patch: <T>(endpoint: string, body: unknown) => 
+    apiRequest<T>(endpoint, { 
+      method: 'PATCH', 
+      body: JSON.stringify(body) 
+    }),
+  
   delete: <T>(endpoint: string) => 
     apiRequest<T>(endpoint, { method: 'DELETE' }),
 };
@@ -175,7 +181,7 @@ export interface VerifySessionResponse {
 
 export async function verifySession(): Promise<VerifySessionResponse['user'] | null> {
   try {
-    const response = await apiRequest<VerifySessionResponse>('/profile');
+    const response = await apiRequest<VerifySessionResponse>('/auth/me');
     return response.user;
   } catch (error) {
     if (error instanceof ApiError && error.type === 'unauthorized') {

@@ -20,20 +20,20 @@ import {
   getEnrolledCourses,
   Course,
   Enrollment
-} from '../../../services/courseService';
+} from '@/modules/courses/services/courseService';
 import {
   getArticles,
   getLatestArticles,
   ArticleListItem
-} from '../../../services/articleService';
+} from '@/modules/articles/services/articleService';
 import {
   getResources,
   ResourceListItem
-} from '../../../services/resourceService';
+} from '@/modules/core/services/resourceService';
 import {
   getFlashcards,
   FlashcardListItem
-} from '../../../services/flashcardService';
+} from '@/modules/core/services/flashcardService';
 import {
   GraduationCap,
   BookOpen,

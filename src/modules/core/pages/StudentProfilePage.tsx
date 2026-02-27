@@ -44,8 +44,8 @@ import {
   CourseWithProgress,
   LearningHistoryItem,
   StudentStats
-} from '@/services/studentService';
-import { getToken } from '@/services/authService';
+} from '@/modules/core/services/studentService';
+import { getToken } from '@/modules/core/services/authService';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 

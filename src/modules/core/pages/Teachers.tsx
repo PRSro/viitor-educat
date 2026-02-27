@@ -27,8 +27,8 @@ import {
   Calendar,
   Eye
 } from 'lucide-react';
-import { getAllTeachers, TeacherWithProfile } from '@/services/authService';
-import { getCourses, Course } from '@/services/courseService';
+import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
+import { getCourses, Course } from '@/modules/courses/services/courseService';
 
 export default function TeachersPage() {
   const { user, logout } = useAuth();

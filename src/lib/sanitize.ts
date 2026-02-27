@@ -14,10 +14,19 @@ import DOMPurify from 'dompurify';
 export function sanitizeHtml(dirty: string): string {
   return DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br', 'ul', 'ol', 'li', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre'],
-    ALLOWED_ATTR: ['href', 'target', 'rel'],
+    ALLOWED_ATTR: ['href', 'rel'],
     ALLOW_DATA_ATTR: false,
+    ADD_ATTR: ['rel'],
+    ADD_TAGS: ['iframe'],
   });
 }
+
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    node.setAttribute('rel', 'noopener noreferrer');
+    node.removeAttribute('target');
+  }
+});
 
 /**
  * Sanitize plain text - escapes HTML entities

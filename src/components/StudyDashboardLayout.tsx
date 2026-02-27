@@ -3,9 +3,11 @@
  * Layout wrapper for the student study dashboard
  */
 
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { MusicPlayer } from '@/components/MusicPlayer';
 import { 
   GraduationCap, 
   BookOpen, 
@@ -129,8 +131,8 @@ export function StudyDashboardLayout({ children }: StudyDashboardLayoutProps) {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
+      
+      <MusicPlayer />
     </div>
   );
 }
-
-import { useEffect } from 'react';

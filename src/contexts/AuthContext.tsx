@@ -9,7 +9,7 @@ import {
   login as loginService,
   register as registerService,
 } from '@/modules/core/services/authService';
-import { verifySession } from '@/lib/apiClient';
+import { verifySession, ApiError } from '@/lib/apiClient';
 
 interface AuthContextType {
   user: User | null;
@@ -44,8 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             logoutService();
           }
         })
-        .catch(() => {
-          logoutService();
+        .catch((error) => {
+          if (error instanceof ApiError && error.type === 'unauthorized') {
+            logoutService();
+          } else {
+            setUser(storedUser as User);
+          }
         })
         .finally(() => {
           setIsLoading(false);

@@ -25,7 +25,7 @@ import {
   ResourceType,
   ResourceFilters,
   resourceTypeLabels 
-} from '@/services/resourceService';
+} from '@/modules/core/services/resourceService';
 import { 
   Link as LinkIcon, 
   FileText, 

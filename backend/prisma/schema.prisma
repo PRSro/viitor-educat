@@ -52,6 +52,12 @@ enum ResourceType {
   DOCUMENT
 }
 
+enum EnrollmentStatus {
+  ACTIVE
+  DROPPED
+  COMPLETED
+}
+
 model School {
   id          String   @id @default(cuid())
   name        String
@@ -100,7 +106,7 @@ model User {
   enrollments      Enrollment[]
   articles         Article[]        @relation("AuthorArticles")
   teacherProfile   TeacherProfile?
-  studentProfile   StudentProfile?
+  studentProfile  StudentProfile?
   principal       Principal?
   externalResources ExternalResource[]
   flashcards       Flashcard[]
@@ -113,6 +119,9 @@ model User {
   interactions     UserInteraction[]
   lessonCompletions LessonCompletion[]
   auditLogs        AuditLog[]
+  musicPreferences UserMusicPreference[]
+  comments         Comment[]
+  uploads          File[]
 }
 
 model Lesson {
@@ -122,17 +131,20 @@ model Lesson {
   content           String
   status            Status           @default(PRIVATE)
   order             Int               @default(0)
+  searchVector      String?
   
   courseId          String?
   course            Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
   externalResources ExternalResource[]
   flashcards        Flashcard[]
+  quizzes           Quiz[]
   
   teacherId         String
   teacher           User              @relation("TeacherLessons", fields: [teacherId], references: [id], onDelete: Cascade)
   
   completions       LessonCompletion[]
+  comments         Comment[]
   
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -191,6 +203,78 @@ model LessonCompletion {
   @@unique([lessonId, studentId])
 }
 
+model Quiz {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId    String?
+  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  
+  teacherId   String
+  teacher     User     @relation(fields: [teacherId], references: [id])
+  
+  questions   Question[]
+  attempts   QuizAttempt[]
+  
+  timeLimit   Int?     @default(30)
+  maxAttempts Int?    @default(3)
+  shuffleQuestions Boolean @default(false)
+  showResults Boolean @default(true)
+  
+  status      Status   @default(DRAFT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([lessonId])
+  @@index([teacherId])
+}
+
+model Question {
+  id            String   @id @default(cuid())
+  quizId        String
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  text          String
+  questionType  QuestionType @default(MULTIPLE_CHOICE)
+  
+  options       Json?
+  correctAnswer String
+  points        Int      @default(1)
+  
+  order         Int      @default(0)
+  explanation   String?
+  
+  createdAt     DateTime @default(now())
+
+  @@index([quizId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  answers     Json
+  score       Int?
+  maxScore    Int?
+  passed      Boolean?
+  
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  timeSpent   Int?
+
+  @@unique([quizId, userId, startedAt])
+  @@index([quizId])
+  @@index([userId])
+}
+
 model TeacherProfile {
   id          String   @id @default(cuid())
   userId      String   @unique
@@ -231,19 +315,24 @@ model StudentProfile {
 }
 
 model Enrollment {
-  id                   String     @id @default(cuid())
+  id                   String           @id @default(cuid())
   studentId            String
-  student              User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student              User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
   courseId             String
-  course               Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress             Float      @default(0)
-  completedLessonsCount Int       @default(0)
-  lastAccessedLessonId String?    // Changed from lastAccessedCourseLessonId
+  course               Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress             Float            @default(0)
+  completedLessonsCount Int             @default(0)
+  lastAccessedLessonId String?
   completedAt          DateTime?
-  createdAt            DateTime   @default(now())
-  updatedAt            DateTime   @updatedAt
+  status               EnrollmentStatus @default(ACTIVE)
+  enrolledAt           DateTime         @default(now())
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+  @@index([studentId, status])
 }
 
 model Article {
@@ -255,6 +344,7 @@ model Article {
   sourceUrl   String?
   category    ArticleCategory @default(GENERAL)
   tags        String[]        @default([])
+  searchVector String?
   authorId    String
   author      User            @relation("AuthorArticles", fields: [authorId], references: [id], onDelete: Cascade)
   status      Status          @default(DRAFT)
@@ -303,53 +393,6 @@ model Flashcard {
 
   @@index([courseId])
   @@index([lessonId])
-}
-
-model Quiz {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  lessonId    String?
-  courseId    String?
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teacherId   String
-  teacher     User     @relation(fields: [teacherId], references: [id])
-  questions   QuizQuestion[]
-  attempts    QuizAttempt[]
-  status      Status   @default(DRAFT)
-  timeLimit   Int?
-  passingScore Int     @default(70)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model QuizQuestion {
-  id             String       @id @default(cuid())
-  quizId         String
-  quiz           Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  question       String
-  type           QuestionType @default(MULTIPLE_CHOICE)
-  options        String[]
-  correctAnswer  String
-  explanation    String?
-  order          Int          @default(0)
-  points         Int          @default(1)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-}
-
-model QuizAttempt {
-  id          String   @id @default(cuid())
-  quizId      String
-  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     User     @relation(fields: [studentId], references: [id])
-  score       Float
-  maxScore    Float
-  passed      Boolean
-  answers     String
-  timeSpent   Int
-  completedAt DateTime @default(now())
 }
 
 model Notification {
@@ -466,4 +509,69 @@ model ArticleVersion {
 
   @@index([articleId])
   @@unique([articleId, version])
+}
+
+model Track {
+  id           String   @id @default(cuid())
+  name         String
+  frequencyHz  Int      @unique
+  benefit      String   @db.Text
+  duration     Int      @default(3600)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userPreferences UserMusicPreference[]
+
+  @@index([frequencyHz])
+  @@index([order])
+}
+
+model UserMusicPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackId   String?
+  track     Track?   @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  volume    Float    @default(0.5)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  editedAt  DateTime @updatedAt
+
+  @@index([lessonId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model File {
+  id          String   @id @default(cuid())
+  url         String
+  filename    String
+  mimeType   String
+  size        Int
+  uploadedBy  String
+  user        User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  resourceType String?
+  resourceId  String?
+  createdAt   DateTime @default(now())
+
+  @@index([uploadedBy])
+  @@index([resourceType, resourceId])
 }

@@ -28,8 +28,8 @@ import {
   AlertCircle,
   Newspaper
 } from 'lucide-react';
-import { getTeacherProfile, TeacherProfile as TeacherProfileType, User as UserType, TeacherCourses, getTeacherArticles, getTeacherLessons, TeacherLesson, TeacherLesson as TeacherLessonType } from '../../../services/authService';
-import { ArticleListItem, categoryLabels, categoryColors } from '../../../services/articleService';
+import { getTeacherProfile, TeacherProfile as TeacherProfileType, User as UserType, TeacherCourses, getTeacherArticles, getTeacherLessons, TeacherLesson, TeacherLesson as TeacherLessonType } from '@/modules/core/services/authService';
+import { ArticleListItem, categoryLabels, categoryColors } from '@/modules/articles/services/articleService';
 
 interface TeacherData {
   teacher: UserType;

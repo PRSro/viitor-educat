@@ -26,7 +26,7 @@ import {
   Article,
   categoryLabels,
   categoryColors
-} from '@/services/articleService';
+} from '@/modules/articles/services/articleService';
 
 export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>();

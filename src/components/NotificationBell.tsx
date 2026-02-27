@@ -8,7 +8,7 @@ import {
   markAllAsRead,
   Notification,
   formatNotificationTime 
-} from '@/services/notificationService';
+} from '@/modules/core/services/notificationService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';

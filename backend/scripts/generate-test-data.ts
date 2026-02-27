@@ -1,5 +1,5 @@
 
-import { PrismaClient, Role, ResourceType, ArticleCategory, CourseLevel } from '@prisma/client';
+import { PrismaClient, Role, ResourceType, ArticleCategory, CourseLevel, Status } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -8,6 +8,18 @@ async function main() {
     console.log('🌱 Starting database seeding...');
 
     const hashedPw = await bcrypt.hash('TestPassword123!', 10);
+
+    // Get or create school
+    const school = await prisma.school.upsert({
+        where: { slug: 'test-school' },
+        update: {},
+        create: {
+            name: 'Test School',
+            slug: 'test-school',
+            address: '123 Test St',
+            email: 'test@school.com',
+        },
+    });
 
     // 1. Clean up existing data (optional, careful in prod)
     // await prisma.transaction([ ... ]) - Skipping for now to avoid accidental data loss if not intended
@@ -23,6 +35,7 @@ async function main() {
             role: Role.TEACHER,
             teacherProfile: {
                 create: {
+                    schoolId: school.id,
                     bio: 'Senior Science Teacher',
                     officeHours: 'Mon-Fri 9AM-5PM'
                 }
@@ -35,10 +48,11 @@ async function main() {
         update: {},
         create: {
             email: 'student@example.com',
-            password: 'hashed_password_123',
+            password: hashedPw,
             role: Role.STUDENT,
             studentProfile: {
                 create: {
+                    schoolId: school.id,
                     bio: 'Eager learner',
                     learningGoals: ['Physics', 'Math']
                 }
@@ -75,7 +89,7 @@ async function main() {
             title: 'Independent Physics Lesson',
             content: 'Content for independent lesson 1',
             description: 'A standalone lesson about Physics concepts',
-            status: 'public',
+            status: Status.PUBLIC,
             teacherId: teacher.id,
             externalResources: {
                 connect: [{ id: video1.id }]
@@ -87,7 +101,7 @@ async function main() {
         data: {
             title: 'Independent Math Lesson',
             content: 'Content for independent lesson 2',
-            status: 'public',
+            status: Status.PUBLIC,
             teacherId: teacher.id
         }
     });
@@ -96,7 +110,7 @@ async function main() {
         data: {
             title: 'Independent History Lesson',
             content: 'Content for independent lesson 3',
-            status: 'private',
+            status: Status.PRIVATE,
             teacherId: teacher.id
         }
     });
@@ -119,14 +133,14 @@ async function main() {
                         content: 'Chapter 1 content',
                         order: 1,
                         teacherId: teacher.id,
-                        status: 'public'
+                        status: Status.PUBLIC
                     },
                     {
                         title: 'Physics Chapter 2',
                         content: 'Chapter 2 content',
                         order: 2,
                         teacherId: teacher.id,
-                        status: 'public'
+                        status: Status.PUBLIC
                     }
                 ]
             },
@@ -154,21 +168,21 @@ async function main() {
                         content: 'Introduction to Limits',
                         order: 1,
                         teacherId: teacher.id,
-                        status: 'public'
+                        status: Status.PUBLIC
                     },
                     {
                         title: 'Derivatives',
                         content: 'Introduction to Derivatives',
                         order: 2,
                         teacherId: teacher.id,
-                        status: 'public'
+                        status: Status.PUBLIC
                     },
                     {
                         title: 'Integrals',
                         content: 'Introduction to Integrals',
                         order: 3,
                         teacherId: teacher.id,
-                        status: 'public'
+                        status: Status.PUBLIC
                     }
                 ]
             },
