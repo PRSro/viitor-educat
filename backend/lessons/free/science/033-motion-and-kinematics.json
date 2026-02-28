@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h450h001hh4pgdd0qo04f",
+  "courseId": "cmm6h450h001fh4pgl04xup2e",
+  "courseTitle": "Physics: Mechanics",
+  "title": "Motion and Kinematics",
+  "description": "Describing movement",
+  "content": "# Motion and Kinematics\n\nKinematics describes motion using position, velocity, and acceleration without considering forces.\n\n## Resources\n\n- [Resource 1](https://openstax.org/books/college-physics-2e/pages/2-1-displacement)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://openstax.org/books/college-physics-2e/pages/2-1-displacement"
+  ],
+  "createdAt": "2026-02-28T15:26:05.153Z"
+}

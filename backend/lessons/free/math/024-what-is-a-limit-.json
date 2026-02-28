@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjud000q9of2qg74sofd",
+  "courseId": "cmm6gtjud000o9of24hqb6ucy",
+  "courseTitle": "Calculus I: Limits & Derivatives",
+  "title": "What is a Limit?",
+  "description": "Introduction to limits",
+  "content": "# What is a Limit?\n\nA limit describes the value a function approaches as the input approaches a given value.\n\n## Resources\n\n- [Resource 1](https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/"
+  ],
+  "createdAt": "2026-02-28T15:17:51.157Z"
+}

@@ -9,6 +9,8 @@ import {
   Notification,
   formatNotificationTime 
 } from '@/modules/core/services/notificationService';
+import { useAudioPlayer, Track } from '@/hooks/use-audio-player';
+import { api } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -44,15 +46,6 @@ import {
 } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const FOCUS_MUSIC = [
-  { id: 'rain', name: 'Ploaie', frequency: '432Hz', url: 'https://cdn.pixabay.com/download/audio/2022/05/13/audio_257112181d.mp3' },
-  { id: 'forest', name: 'Pădure', frequency: '417Hz', url: 'https://cdn.pixabay.com/download/audio/2022/02/07/audio_12c9383bf3.mp3' },
-  { id: 'waves', name: 'Valuri', frequency: '396Hz', url: 'https://cdn.pixabay.com/download/audio/2022/03/24/audio_c8c8a73467.mp3' },
-  { id: 'stream', name: 'Râu', frequency: '432Hz', url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_110af7d0e4.mp3' },
-  { id: 'birds', name: 'Păsări', frequency: '441Hz', url: 'https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c43.mp3' },
-  { id: 'night', name: 'Noapte', frequency: '417Hz', url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_ac0c5a0f36.mp3' },
-];
-
 const TIMER_PRESETS = [
   { name: 'Pomodoro', work: 25, break: 5, icon: Timer },
   { name: 'Scurt', work: 15, break: 3, icon: Zap },
@@ -77,12 +70,10 @@ export function NotificationBell() {
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Music state
-  const [currentTrack, setCurrentTrack] = useState(FOCUS_MUSIC[0]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState([30]);
-  const [isMuted, setIsMuted] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Shared audio player
+  const { isPlaying, currentTrack, volume: audioVolume, play, stop, setVolume } = useAudioPlayer();
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [loadingTracks, setLoadingTracks] = useState(true);
 
   useEffect(() => {
     if (open && !prevOpenRef.current) {
@@ -101,6 +92,21 @@ export function NotificationBell() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch tracks from API
+  useEffect(() => {
+    async function fetchTracks() {
+      try {
+        const response = await api.get<{ tracks: Track[] }>('/music/tracks');
+        setTracks(response.tracks);
+      } catch (err) {
+        console.error('Failed to fetch tracks:', err);
+      } finally {
+        setLoadingTracks(false);
+      }
+    }
+    fetchTracks();
+  }, []);
+
   // Timer logic
   useEffect(() => {
     if (isTimerRunning && timeLeft > 0) {
@@ -113,49 +119,43 @@ export function NotificationBell() {
         setSessionsCompleted(prev => prev + 1);
         playNotificationSound();
       }
+      // Auto-switch to break
+      const nextMode = timerMode === 'focus' ? 'break' : 'focus';
+      setTimerMode(nextMode);
+      setTimeLeft(nextMode === 'focus' ? workDuration * 60 : breakDuration * 60);
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isTimerRunning, timeLeft, timerMode]);
-
-  // Audio setup
-  useEffect(() => {
-    audioRef.current = new Audio(currentTrack.url);
-    audioRef.current.loop = true;
-    audioRef.current.volume = volume[0] / 100;
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, [currentTrack]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume[0] / 100;
-    }
-  }, [volume, isMuted]);
+  }, [isTimerRunning, timeLeft, timerMode, workDuration, breakDuration]);
 
   const playNotificationSound = () => {
-    const audio = new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3');
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.8);
   };
 
   const togglePlay = useCallback(() => {
-    if (!audioRef.current) return;
-    
     if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(console.error);
+      stop();
+    } else if (currentTrack) {
+      play(currentTrack, audioVolume);
+    } else if (tracks.length > 0) {
+      play(tracks[0], 0.3);
     }
-    setIsPlaying(!isPlaying);
-  }, [isPlaying]);
+  }, [isPlaying, currentTrack, tracks, audioVolume, play, stop]);
+
+  const handleTrackSelect = useCallback((track: Track) => {
+    play(track, audioVolume);
+  }, [play, audioVolume]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -412,68 +412,66 @@ export function NotificationBell() {
                 {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               </Button>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{currentTrack.name}</p>
-                <p className="text-xs text-muted-foreground">{currentTrack.frequency} Solfeggio</p>
+                <p className="font-medium text-sm truncate">
+                  {currentTrack ? currentTrack.name : 'No track selected'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {currentTrack ? currentTrack.benefit : 'Click a track to play'}
+                </p>
               </div>
             </div>
 
             {/* Track List */}
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Sunete pentru concentrare</p>
+              <p className="text-xs text-muted-foreground">Ambient sounds for focus</p>
               <ScrollArea className="h-40">
-                {FOCUS_MUSIC.map((track) => (
-                  <button
-                    key={track.id}
-                    className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors ${
-                      currentTrack.id === track.id 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'hover:bg-muted'
-                    }`}
-                    onClick={() => {
-                      setCurrentTrack(track);
-                      setIsPlaying(true);
-                    }}
-                  >
-                    <div>
-                      <p className="text-sm font-medium">{track.name}</p>
-                      <p className="text-xs text-muted-foreground">{track.frequency}</p>
-                    </div>
-                    {currentTrack.id === track.id && isPlaying && (
-                      <div className="flex gap-0.5">
-                        {[...Array(3)].map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-1 bg-primary animate-pulse"
-                            style={{
-                              height: `${12 + Math.random() * 8}px`,
-                              animationDelay: `${i * 0.1}s`
-                            }}
-                          />
-                        ))}
+                {loadingTracks ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : tracks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No tracks available</p>
+                ) : (
+                  tracks.map((track) => (
+                    <button
+                      key={track.id}
+                      className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors ${
+                        currentTrack?.id === track.id 
+                          ? 'bg-primary/10 text-primary' 
+                          : 'hover:bg-muted'
+                      }`}
+                      onClick={() => handleTrackSelect(track)}
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{track.name}</p>
+                        <p className="text-xs text-muted-foreground">{track.benefit}</p>
                       </div>
-                    )}
-                  </button>
-                ))}
+                      {currentTrack?.id === track.id && isPlaying && (
+                        <div className="flex gap-0.5">
+                          {[...Array(3)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="w-1 bg-primary animate-pulse"
+                              style={{
+                                height: `${12 + Math.random() * 8}px`,
+                                animationDelay: `${i * 0.1}s`
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  ))
+                )}
               </ScrollArea>
             </div>
 
             {/* Volume */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setIsMuted(!isMuted)}
-              >
-                {isMuted ? (
-                  <Volume2 className="h-4 w-4" />
-                ) : (
-                  <Volume2 className="h-4 w-4" />
-                )}
-              </Button>
+              <Volume2 className="h-4 w-4 text-muted-foreground" />
               <Slider
-                value={isMuted ? [0] : volume}
-                onValueChange={setVolume}
+                value={[audioVolume * 100]}
+                onValueChange={([val]) => setVolume(val / 100)}
                 max={100}
                 step={1}
                 className="flex-1"
@@ -482,8 +480,7 @@ export function NotificationBell() {
 
             {/* Info */}
             <p className="text-xs text-muted-foreground text-center">
-              Frecvențele Solfeggio sunt tonuri care, conform cercetărilor, 
-              pot Promovare relaxarea și concentrarea.
+              These ambient frequencies can help promote relaxation and focus during study sessions.
             </p>
           </TabsContent>
 

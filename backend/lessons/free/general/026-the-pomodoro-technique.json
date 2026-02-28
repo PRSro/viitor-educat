@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjy200799of2fsg1b56u",
+  "courseId": "cmm6gtjy200769of25gf3dst3",
+  "courseTitle": "Time Management",
+  "title": "The Pomodoro Technique",
+  "description": "25 minutes of focused work",
+  "content": "# The Pomodoro Technique\n\nWork in 25-minute focused intervals followed by 5-minute breaks. After 4 intervals, take a longer break.\n\n## Resources\n\n- [Resource 1](https://todoist.com/productivity-methods/pomodoro-technique)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://todoist.com/productivity-methods/pomodoro-technique"
+  ],
+  "createdAt": "2026-02-28T15:17:51.290Z"
+}

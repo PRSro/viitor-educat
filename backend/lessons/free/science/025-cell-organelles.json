@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjv1001v9of2xmlsrmbt",
+  "courseId": "cmm6gtjv1001s9of2umn4gmep",
+  "courseTitle": "Biology: Cell Biology",
+  "title": "Cell Organelles",
+  "description": "Parts of the cell",
+  "content": "# Cell Organelles\n\nMajor organelles include the nucleus, mitochondria, endoplasmic reticulum, and Golgi apparatus.\n\n## Resources\n\n- [Resource 1](https://www.khanacademy.org/science/biology/structure-of-a-cell)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://www.khanacademy.org/science/biology/structure-of-a-cell"
+  ],
+  "createdAt": "2026-02-28T15:17:51.181Z"
+}

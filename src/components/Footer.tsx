@@ -5,7 +5,9 @@ const quickLinks = [
   { name: "Programe", href: "#programe" },
   { name: "Admitere", href: "#admitere" },
   { name: "Viața Școlară", href: "#viata" },
-  { name: "Noutăți", href: "#noutati" },
+  { name: "Noutăți", href: "/noutati" },
+  { name: "Profesori", href: "/profesori" },
+  { name: "Forum", href: "/forum" },
 ];
 
 const resources = [
@@ -29,7 +31,7 @@ export const Footer = () => {
       {/* Aero Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-accent via-teal-600 to-emerald-700" />
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-      
+
       {/* Floating Bubbles */}
       <div className="absolute top-20 right-[15%] w-32 h-32 rounded-full bg-white/8">
         <div className="absolute top-[12%] left-[18%] w-[35%] h-[20%] bg-white/30 rounded-full blur-[2px] rotate-[-20deg]" />
@@ -38,10 +40,10 @@ export const Footer = () => {
         <div className="absolute top-[15%] left-[20%] w-[30%] h-[18%] bg-white/25 rounded-full blur-[1px]" />
       </div>
       <div className="absolute top-1/2 right-[5%] w-16 h-16 rounded-full bg-white/5" />
-      
+
       {/* Glow */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/10 rounded-full blur-[150px]" />
-      
+
       <div className="container mx-auto px-4 lg:px-8 relative">
         {/* Main Footer */}
         <div className="py-16 lg:py-20 grid md:grid-cols-2 lg:grid-cols-4 gap-12">
@@ -82,7 +84,7 @@ export const Footer = () => {
             <ul className="space-y-3">
               {quickLinks.map((link) => (
                 <li key={link.name}>
-                  <a 
+                  <a
                     href={link.href}
                     className="text-white/70 hover:text-white transition-colors"
                   >
@@ -99,7 +101,7 @@ export const Footer = () => {
             <ul className="space-y-3">
               {resources.map((link) => (
                 <li key={link.name}>
-                  <a 
+                  <a
                     href={link.href}
                     className="text-white/70 hover:text-white transition-colors"
                   >
@@ -126,7 +128,7 @@ export const Footer = () => {
                 <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
                   <Phone className="w-4 h-4 text-white" />
                 </div>
-                <a 
+                <a
                   href="tel:+40212223344"
                   className="text-white/70 hover:text-white transition-colors"
                 >
@@ -137,7 +139,7 @@ export const Footer = () => {
                 <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
                   <Mail className="w-4 h-4 text-white" />
                 </div>
-                <a 
+                <a
                   href="mailto:contact@tudorvianu.ro"
                   className="text-white/70 hover:text-white transition-colors"
                 >

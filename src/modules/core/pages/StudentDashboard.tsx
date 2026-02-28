@@ -11,7 +11,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings, useFeatureEnabled } from '@/contexts/SettingsContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,7 +51,7 @@ import {
 } from '@/modules/courses/services/courseService';
 import { getStudentCourses, getStudentProgress, CourseWithProgress } from '@/modules/core/services/studentService';
 import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
-import { useNavigate } from 'react-router-dom';
+import { getLessons, Lesson } from '@/modules/lessons/services/lessonService';
 import {
   getArticles,
   ArticleListItem,
@@ -66,6 +66,9 @@ export default function StudentDashboard() {
   const { user, logout } = useAuth();
   const { settings, theme, isSettingsLoaded } = useSettings();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const activeTab = searchParams.get('tab') || 'progress';
 
   // Feature toggles from settings
   const showArticles = useFeatureEnabled('showArticles');
@@ -99,12 +102,18 @@ export default function StudentDashboard() {
   // Teachers state
   const [teacherList, setTeacherList] = useState<TeacherWithProfile[]>([]);
   const [loadingTeachers, setLoadingTeachers] = useState(false);
+  const [allLessons, setAllLessons] = useState<Lesson[]>([]);
+  const [loadingLessons, setLoadingLessons] = useState(false);
 
   // Bookmarks state
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loadingBookmarks, setLoadingBookmarks] = useState(true);
 
   const [error, setError] = useState<string | null>(null);
+
+  const handleTabChange = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   // Fetch bookmarks
   useEffect(() => {
@@ -135,19 +144,23 @@ export default function StudentDashboard() {
     async function fetchCourses() {
       try {
         setLoadingCourses(true);
-        const [enrolled, progress, all] = await Promise.all([
+        setLoadingLessons(true);
+        const [enrolled, progress, all, lessonsData] = await Promise.all([
           getStudentCourses(),
           getStudentProgress(),
-          getCourses()
+          getCourses(),
+          getLessons()
         ]);
         setEnrolledCourses(enrolled);
         setStudentProgress(progress);
         setAllCourses(all);
+        setAllLessons(lessonsData);
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch courses');
+        setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
       } finally {
         setLoadingCourses(false);
+        setLoadingLessons(false);
       }
     }
     fetchCourses();
@@ -349,11 +362,15 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        <Tabs defaultValue="my-courses" className="space-y-6">
+        <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full max-w-2xl grid-cols-7 aero-glass p-1">
-            <TabsTrigger value="my-courses" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+            <TabsTrigger value="progress" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
               <BookOpen className="h-4 w-4" />
-              My Courses
+              Progress
+            </TabsTrigger>
+            <TabsTrigger value="study-feed" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+              <GraduationCap className="h-4 w-4" />
+              Study Feed
             </TabsTrigger>
             <TabsTrigger value="browse" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
               <Search className="h-4 w-4" />
@@ -367,18 +384,14 @@ export default function StudentDashboard() {
               <FileText className="h-4 w-4" />
               Articles
             </TabsTrigger>
-            <TabsTrigger value="study-hub" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
-              <GraduationCap className="h-4 w-4" />
-              Study Hub
-            </TabsTrigger>
             <TabsTrigger value="bookmarks" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
               <BookmarkIcon className="h-4 w-4" />
               Saved
             </TabsTrigger>
           </TabsList>
 
-          {/* My Courses Tab */}
-          <TabsContent value="my-courses" className="space-y-6">
+          {/* Progress Tab */}
+          <TabsContent value="progress" className="space-y-6">
             <div>
               <h2 className="text-2xl font-semibold mb-2">My Enrolled Courses</h2>
               <p className="text-muted-foreground">Track your learning progress</p>
@@ -389,16 +402,16 @@ export default function StudentDashboard() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : enrolledCourses.length === 0 ? (
-              <Card className="p-12 text-center">
+              <div className="text-center py-12 border-2 border-dashed rounded-xl">
                 <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No courses yet</h3>
+                <h3 className="text-lg font-semibold mb-2">No courses yet</h3>
                 <p className="text-muted-foreground mb-4">
-                  Browse available courses and start learning!
+                  Browse our catalog and enroll in your first course
                 </p>
-                <Button onClick={() => document.querySelector('[value="browse"]')?.dispatchEvent(new Event('click'))}>
-                  Browse Courses
+                <Button asChild>
+                  <Link to="/courses">Browse Courses</Link>
                 </Button>
-              </Card>
+              </div>
             ) : (
               <>
                 {/* Continue Learning Section - In Progress */}
@@ -466,17 +479,27 @@ export default function StudentDashboard() {
 
           {/* Browse Courses Tab */}
           <TabsContent value="browse" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Browse All Courses</h2>
-              <p className="text-muted-foreground">Discover new learning opportunities</p>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold mb-2">Explore All Content</h2>
+                <p className="text-muted-foreground">Discover new courses and lessons</p>
+              </div>
+
+              <Tabs defaultValue="all-content" className="w-full md:w-auto">
+                <TabsList className="aero-glass p-1">
+                  <TabsTrigger value="all-content">All Content</TabsTrigger>
+                  <TabsTrigger value="courses">Courses Only</TabsTrigger>
+                  <TabsTrigger value="lessons">Lessons Only</TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
 
-            {/* Course Filters */}
+            {/* Search/Filter UI remains as is - combined for both */}
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search courses..."
+                  placeholder="Search courses or lessons..."
                   value={courseSearch}
                   onChange={(e) => setCourseSearch(e.target.value)}
                   className="pl-10"
@@ -512,32 +535,82 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {loadingCourses ? (
+            {loadingCourses || loadingLessons ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : availableCourses.length === 0 ? (
-              <Card className="p-12 text-center">
-                <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  {courseSearch || teacherFilter !== 'ALL' ? 'No courses found' : 'All caught up!'}
-                </h3>
-                <p className="text-muted-foreground">
-                  {courseSearch || teacherFilter !== 'ALL'
-                    ? 'Try adjusting your search or filters'
-                    : "You're enrolled in all available courses."}
-                </p>
-              </Card>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {availableCourses.map((course) => (
-                  <CourseCard
-                    key={course.id}
-                    course={course}
-                    onEnroll={() => handleEnroll(course.id)}
-                    enrolling={enrollingId === course.id}
-                  />
-                ))}
+              <div className="space-y-10">
+                {/* Courses Section */}
+                {availableCourses.length > 0 && (
+                  <section>
+                    <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                      <GraduationCap className="h-5 w-5 text-primary" />
+                      Available Courses ({availableCourses.length})
+                    </h3>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {availableCourses.map((course) => (
+                        <CourseCard
+                          key={course.id}
+                          course={course}
+                          onEnroll={() => handleEnroll(course.id)}
+                          enrolling={enrollingId === course.id}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Lessons Section */}
+                <section>
+                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-primary" />
+                    Latest Lessons
+                  </h3>
+                  {allLessons.length === 0 ? (
+                    <Card className="p-8 text-center bg-muted/30">
+                      <p className="text-muted-foreground">No standalone lessons found.</p>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {allLessons
+                        .filter(l => {
+                          if (!courseSearch) return true;
+                          const s = courseSearch.toLowerCase();
+                          return l.title.toLowerCase().includes(s) || l.description?.toLowerCase().includes(s);
+                        })
+                        .slice(0, 12)
+                        .map((lesson) => (
+                          <Card key={lesson.id} className="aero-glass hover:shadow-aero transition-all group">
+                            <CardHeader className="pb-2">
+                              <div className="flex justify-between items-start">
+                                <Badge variant="outline" className="mb-2">Lesson</Badge>
+                                {lesson.course && (
+                                  <Badge variant="secondary" className="text-[10px]">{lesson.course.title}</Badge>
+                                )}
+                              </div>
+                              <CardTitle className="text-base line-clamp-1 group-hover:text-primary transition-colors">
+                                {lesson.title}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pb-3">
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {lesson.description || 'No description available for this lesson.'}
+                              </p>
+                            </CardContent>
+                            <CardFooter>
+                              <Button asChild variant="ghost" size="sm" className="w-full justify-between">
+                                <Link to={`/lessons/${lesson.id}`}>
+                                  View Lesson
+                                  <ExternalLink className="h-3 w-3" />
+                                </Link>
+                              </Button>
+                            </CardFooter>
+                          </Card>
+                        ))}
+                    </div>
+                  )}
+                </section>
               </div>
             )}
           </TabsContent>
@@ -721,21 +794,21 @@ export default function StudentDashboard() {
             )}
           </TabsContent>
 
-          {/* Study Hub Tab */}
-          <TabsContent value="study-hub" className="space-y-6">
+          {/* Study Feed Tab */}
+          <TabsContent value="study-feed" className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Study Hub</h2>
+              <h2 className="text-2xl font-semibold mb-2">Study Feed</h2>
               <p className="text-muted-foreground">Access all your learning resources in one place</p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">
-              <Link to="/student/study">
+              <Link to="/student">
                 <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                   <CardHeader>
                     <div className="p-3 w-fit rounded-lg bg-primary/10 mb-2">
                       <GraduationCap className="h-6 w-6 text-primary" />
                     </div>
-                    <CardTitle>My Study Dashboard</CardTitle>
+                    <CardTitle>My Progress</CardTitle>
                     <CardDescription>
                       Overview of your courses, progress, and recent activity
                     </CardDescription>
@@ -799,9 +872,9 @@ export default function StudentDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link to="/student">
+                    <Link to="/courses">
                       <BookOpen className="h-4 w-4 mr-2" />
-                      My Courses
+                      Browse Courses
                     </Link>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" asChild>
@@ -873,8 +946,8 @@ export default function StudentDashboard() {
                               Unavailable
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className="text-red-500 hover:text-red-600"
                             onClick={() => handleRemoveBookmark(bookmark.resourceType, bookmark.resourceId)}
@@ -1039,15 +1112,15 @@ function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: Cours
             {enrolling ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Enrolling...
+                Processing...
               </>
             ) : (
-              'Enroll Now'
+              'Preview'
             )}
           </Button>
         )}
       </CardFooter>
-    </Card>
+    </Card >
   );
 }
 

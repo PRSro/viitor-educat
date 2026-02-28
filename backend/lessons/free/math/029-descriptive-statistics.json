@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjug000y9of2fjoj5uwk",
+  "courseId": "cmm6gtjug000w9of22u9dehv3",
+  "courseTitle": "Statistics & Probability",
+  "title": "Descriptive Statistics",
+  "description": "Mean, median, mode",
+  "content": "# Descriptive Statistics\n\nDescriptive statistics summarize data. The mean is the average, median is the middle value, and mode is the most frequent.\n\n## Resources\n\n- [Resource 1](https://www.khanacademy.org/math/statistics-probability)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.khanacademy.org/math/statistics-probability"
+  ],
+  "createdAt": "2026-02-28T15:17:51.160Z"
+}

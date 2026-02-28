@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h451z0045h4pg0113nrch",
+  "courseId": "cmm6h451z0042h4pgwwtw9gt9",
+  "courseTitle": "Python for Beginners",
+  "title": "Variables and Data Types",
+  "description": "Strings, integers, floats, booleans",
+  "content": "# Variables and Data Types\n\nPython variables don't need type declarations. Common types: str, int, float, bool, list, dict.\n\n## Resources\n\n- [Resource 1](https://realpython.com/python-data-types/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://realpython.com/python-data-types/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.207Z"
+}

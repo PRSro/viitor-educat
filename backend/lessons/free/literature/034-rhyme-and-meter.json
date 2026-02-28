@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h450x002dh4pgt0s31b0k",
+  "courseId": "cmm6h450x002ah4pgwmdtkapy",
+  "courseTitle": "Introduction to Poetry",
+  "title": "Rhyme and Meter",
+  "description": "Sound patterns",
+  "content": "# Rhyme and Meter\n\nMeter is the rhythmic pattern of stressed and unstressed syllables. Common meters include iambic pentameter.\n\n## Resources\n\n- [Resource 1](https://www.poetryfoundation.org/learn/glossary-terms)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.poetryfoundation.org/learn/glossary-terms"
+  ],
+  "createdAt": "2026-02-28T15:26:05.169Z"
+}

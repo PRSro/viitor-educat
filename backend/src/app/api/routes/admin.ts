@@ -32,7 +32,7 @@ export async function adminRoutes(server: FastifyInstance) {
         orderBy: { createdAt: 'desc' },
       });
 
-      return users;
+      return { users };
     } catch (error) {
       // Log error server-side only (no sensitive details to client)
       server.log.error(error);
@@ -52,10 +52,20 @@ export async function adminRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, adminOnly],
   }, async (request, reply) => {
     try {
-      const [userCount, lessonCount] = await Promise.all([
+      const [userCount, lessonCount, courseCount, enrollmentCount, completionCount] = await Promise.all([
         prisma.user.count(),
         prisma.lesson.count(),
+        prisma.course.count({ where: { published: true } }),
+        prisma.enrollment.count(),
+        prisma.lessonCompletion.count(),
       ]);
+
+      const activeStudents = await prisma.user.count({
+        where: {
+          role: 'STUDENT',
+          enrollments: { some: {} }
+        }
+      });
 
       const usersByRole = await prisma.user.groupBy({
         by: ['role'],
@@ -65,6 +75,10 @@ export async function adminRoutes(server: FastifyInstance) {
       return {
         totalUsers: userCount,
         totalLessons: lessonCount,
+        totalCourses: courseCount,
+        totalEnrollments: enrollmentCount,
+        totalCompletions: completionCount,
+        activeStudents,
         usersByRole: usersByRole.map(r => ({ 
           role: r.role, 
           count: r._count 

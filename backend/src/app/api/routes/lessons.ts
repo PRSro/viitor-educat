@@ -105,7 +105,7 @@ export async function lessonRoutes(server: FastifyInstance) {
       try {
         const currentUser = getCurrentUser(request);
         const isTeacher = lesson.teacherId === currentUser.id;
-        
+
         if (!isTeacher && currentUser.role !== 'ADMIN') {
           if (lesson.course) {
             const enrollment = await prisma.enrollment.findUnique({
@@ -141,11 +141,30 @@ export async function lessonRoutes(server: FastifyInstance) {
       where: { id },
       include: {
         course: { select: { id: true, title: true, slug: true, published: true, teacherId: true } },
-        teacher: { select: { id: true, email: true } }
+        teacher: { select: { id: true, email: true, teacherProfile: true } },
+        externalResources: true,
+        flashcards: true
       }
     });
 
     if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
+
+    // Teachers and admins can always view
+    const isTeacher = lesson.teacherId === user.id || user.role === 'ADMIN';
+
+    if (!isTeacher && lesson.courseId) {
+      // Students must be enrolled
+      const enrollment = await prisma.enrollment.findUnique({
+        where: { studentId_courseId: { studentId: user.id, courseId: lesson.courseId } }
+      });
+      if (!enrollment) {
+        return reply.status(403).send({
+          error: 'Enrollment required',
+          message: 'You must be enrolled in this course to view this lesson',
+          courseId: lesson.courseId
+        });
+      }
+    }
 
     const progress = await prisma.lessonCompletion.findUnique({
       where: { lessonId_studentId: { lessonId: id, studentId: user.id } }

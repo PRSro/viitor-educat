@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjw700479of2avaax4on",
+  "courseId": "cmm6gtjw700429of2o7z1hfy3",
+  "courseTitle": "Python for Beginners",
+  "title": "Functions",
+  "description": "Defining reusable code",
+  "content": "# Functions\n\nFunctions are defined with `def`. They can accept parameters and return values. Functions promote code reuse.\n\n## Resources\n\n- [Resource 1](https://docs.python.org/3/tutorial/controlflow.html#defining-functions)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://docs.python.org/3/tutorial/controlflow.html#defining-functions"
+  ],
+  "createdAt": "2026-02-28T15:17:51.223Z"
+}

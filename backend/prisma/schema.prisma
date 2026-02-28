@@ -7,6 +7,494 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model School {
+  id          String           @id @default(cuid())
+  name        String
+  slug        String           @unique
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  logoUrl     String?
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  principals  Principal[]
+  students    StudentProfile[]
+  teachers    TeacherProfile[]
+
+  @@index([slug])
+}
+
+model Principal {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  schoolId  String
+  title     String?  @default("Director")
+  isPrimary Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([userId])
+}
+
+model User {
+  id                String               @id @default(cuid())
+  email             String               @unique
+  password          String
+  role              Role                 @default(STUDENT)
+  createdAt         DateTime             @default(now())
+  articles          Article[]            @relation("AuthorArticles")
+  auditLogs         AuditLog[]
+  bookmarks         Bookmark[]
+  comments          Comment[]
+  courses           Course[]             @relation("TeacherCourses")
+  enrollments       Enrollment[]
+  externalResources ExternalResource[]
+  uploads           File[]
+  flashcards        Flashcard[]
+  lessons           Lesson[]             @relation("TeacherLessons")
+  lessonCompletions LessonCompletion[]
+  notifications     Notification[]
+  principal         Principal?
+  quizzes           Quiz[]
+  quizAttempts      QuizAttempt[]
+  studentProfile    StudentProfile?
+  studyAnalytics    StudyAnalytics[]
+  teacherProfile    TeacherProfile?
+  interactions      UserInteraction[]
+  musicPreferences  UserMusicPreference?
+  settings          UserSettings?
+  forumThreads      ForumThread[]        @relation("AuthorThreads")
+  forumPosts        ForumPost[]          @relation("AuthorPosts")
+}
+
+model Lesson {
+  id                String             @id @default(cuid())
+  title             String
+  description       String?
+  content           String
+  teacherId         String
+  courseId          String?
+  order             Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  searchVector      String?
+  status            Status             @default(PRIVATE)
+  comments          Comment[]
+  flashcards        Flashcard[]
+  course            Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher           User               @relation("TeacherLessons", fields: [teacherId], references: [id], onDelete: Cascade)
+  completions       LessonCompletion[]
+  quizzes           Quiz[]
+  externalResources ExternalResource[] @relation("ExternalResourceToLesson")
+
+  @@index([teacherId])
+  @@index([courseId])
+  @@index([status])
+}
+
+model Course {
+  id                String             @id @default(cuid())
+  title             String
+  slug              String             @unique
+  description       String?
+  imageUrl          String?
+  teacherId         String
+  published         Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  enrollmentLimit   Int?
+  level             CourseLevel        @default(BEGINNER)
+  waitlistEnabled   Boolean            @default(false)
+  category          String?            @default("GENERAL")
+  tags              String[]           @default([])
+  status            Status             @default(DRAFT)
+  teacher           User               @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  enrollments       Enrollment[]
+  flashcards        Flashcard[]
+  lessons           Lesson[]
+  quizzes           Quiz[]
+  externalResources ExternalResource[] @relation("CourseToExternalResource")
+
+  @@index([teacherId])
+  @@index([status])
+  @@index([slug])
+  @@index([category])
+}
+
+model LessonCompletion {
+  id          String   @id @default(cuid())
+  lessonId    String
+  studentId   String
+  completedAt DateTime @default(now())
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, studentId])
+}
+
+model Quiz {
+  id               String        @id @default(cuid())
+  title            String
+  description      String?
+  lessonId         String?
+  courseId         String
+  teacherId        String
+  timeLimit        Int?          @default(30)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  maxAttempts      Int?          @default(3)
+  showResults      Boolean       @default(true)
+  shuffleQuestions Boolean       @default(false)
+  status           Status        @default(DRAFT)
+  questions        Question[]
+  course           Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson           Lesson?       @relation(fields: [lessonId], references: [id])
+  teacher          User          @relation(fields: [teacherId], references: [id])
+  attempts         QuizAttempt[]
+
+  @@index([courseId])
+  @@index([lessonId])
+  @@index([teacherId])
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  quizId        String
+  text          String
+  questionType  QuestionType @default(MULTIPLE_CHOICE)
+  options       Json?
+  correctAnswer String
+  points        Int          @default(1)
+  order         Int          @default(0)
+  explanation   String?
+  createdAt     DateTime     @default(now())
+  quiz          Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+}
+
+model QuizAttempt {
+  id          String    @id @default(cuid())
+  quizId      String
+  score       Int?
+  maxScore    Int?
+  passed      Boolean?
+  timeSpent   Int?
+  completedAt DateTime?
+  startedAt   DateTime  @default(now())
+  userId      String
+  answers     Json
+  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([quizId, userId, startedAt])
+  @@index([quizId])
+  @@index([userId])
+}
+
+model TeacherProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  bio         String?
+  pictureUrl  String?
+  phone       String?
+  office      String?
+  officeHours String?
+  website     String?
+  linkedin    String?
+  twitter     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+}
+
+model StudentProfile {
+  id             String      @id @default(cuid())
+  userId         String      @unique
+  avatarUrl      String?
+  bio            String?
+  learningGoals  String[]
+  interests      String[]
+  preferredLevel CourseLevel @default(BEGINNER)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  grade          Int?
+  schoolId       String
+  section        String?
+  school         School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+}
+
+model Enrollment {
+  id                    String           @id @default(cuid())
+  studentId             String
+  courseId              String
+  progress              Float            @default(0)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  completedAt           DateTime?
+  completedLessonsCount Int              @default(0)
+  lastAccessedLessonId  String?
+  enrolledAt            DateTime         @default(now())
+  status                EnrollmentStatus @default(ACTIVE)
+  course                Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student               User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@index([studentId])
+  @@index([courseId])
+  @@index([studentId, status])
+}
+
+model Article {
+  id                String             @id @default(cuid())
+  title             String
+  slug              String             @unique
+  content           String
+  excerpt           String?
+  sourceUrl         String?
+  category          ArticleCategory    @default(GENERAL)
+  authorId          String
+  published         Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  tags              String[]           @default([])
+  searchVector      String?
+  status            Status             @default(DRAFT)
+  author            User               @relation("AuthorArticles", fields: [authorId], references: [id], onDelete: Cascade)
+  versions          ArticleVersion[]
+  externalResources ExternalResource[] @relation("ArticleToExternalResource")
+
+  @@index([authorId])
+  @@index([status])
+  @@index([category])
+  @@index([title])
+}
+
+model ExternalResource {
+  id          String       @id @default(cuid())
+  type        ResourceType
+  url         String
+  title       String
+  description String?
+  teacherId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  teacher     User         @relation(fields: [teacherId], references: [id])
+  articles    Article[]    @relation("ArticleToExternalResource")
+  courses     Course[]     @relation("CourseToExternalResource")
+  lessons     Lesson[]     @relation("ExternalResourceToLesson")
+}
+
+model Flashcard {
+  id        String   @id @default(cuid())
+  lessonId  String?
+  teacherId String
+  question  String
+  answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  courseId  String?
+  status    Status   @default(PUBLIC)
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id])
+  teacher   User     @relation(fields: [teacherId], references: [id])
+
+  @@index([courseId])
+  @@index([lessonId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StudyAnalytics {
+  id                 String   @id @default(cuid())
+  userId             String
+  date               DateTime @default(now())
+  minutesStudied     Int      @default(0)
+  lessonsCompleted   Int      @default(0)
+  quizzesTaken       Int      @default(0)
+  flashcardsReviewed Int      @default(0)
+  articlesRead       Int      @default(0)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model Bookmark {
+  id           String   @id @default(cuid())
+  userId       String
+  resourceType String
+  resourceId   String
+  title        String
+  url          String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, resourceType, resourceId])
+}
+
+model UserInteraction {
+  id           String   @id @default(cuid())
+  userId       String
+  type         String
+  resourceType String
+  resourceId   String
+  metadata     String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WhitelistedDomain {
+  id        String   @id @default(cuid())
+  domain    String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+}
+
+model UserSettings {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  theme                String   @default("system")
+  language             String   @default("en")
+  defaultDashboardView String   @default("courses")
+  contentPriority      String   @default("courses")
+  showArticles         Boolean  @default(true)
+  showFlashcards       Boolean  @default(true)
+  showResources        Boolean  @default(true)
+  preferredCategories  String[] @default([])
+  preferredTeachers    String[] @default([])
+  studyReminderEnabled Boolean  @default(false)
+  studyReminderTime    String?
+  emailNotifications   Boolean  @default(true)
+  courseUpdates        Boolean  @default(true)
+  newArticles          Boolean  @default(true)
+  newResources         Boolean  @default(true)
+  flashcardReminders   Boolean  @default(false)
+  showProfile          Boolean  @default(true)
+  showProgress         Boolean  @default(true)
+  allowAnalytics       Boolean  @default(true)
+  hiddenCategories     String[] @default([])
+  hiddenTags           String[] @default([])
+  teacherToolsExpanded Boolean  @default(false)
+  defaultResourceType  String?  @default("LINK")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource, resourceId])
+}
+
+model ArticleVersion {
+  id        String   @id @default(cuid())
+  articleId String
+  content   String
+  metadata  Json?
+  version   Int
+  createdAt DateTime @default(now())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, version])
+  @@index([articleId])
+}
+
+model Track {
+  id              String                @id @default(cuid())
+  name            String
+  frequencyHz     Int                   @unique
+  benefit         String
+  duration        Int                   @default(3600)
+  url             String?
+  order           Int                   @default(0)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  userPreferences UserMusicPreference[]
+
+  @@index([frequencyHz])
+  @@index([order])
+}
+
+model UserMusicPreference {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  trackId   String?
+  volume    Float    @default(0.5)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  track     Track?   @relation(fields: [trackId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  authorId  String
+  lessonId  String
+  parentId  String?
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  editedAt  DateTime  @updatedAt
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([lessonId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model File {
+  id           String   @id @default(cuid())
+  url          String
+  filename     String
+  mimeType     String
+  size         Int
+  uploadedBy   String
+  resourceType String?
+  resourceId   String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([uploadedBy])
+  @@index([resourceType, resourceId])
+}
+
 enum Role {
   STUDENT
   TEACHER
@@ -58,520 +546,42 @@ enum EnrollmentStatus {
   COMPLETED
 }
 
-model School {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  address     String?
-  phone       String?
-  email       String?
-  website     String?
-  logoUrl     String?
-  description String?  @db.Text
-  
-  principals  Principal[]
-  teachers    TeacherProfile[]
-  students    StudentProfile[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([slug])
-}
-
-model Principal {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  schoolId  String
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  title     String?  @default("Director")
-  isPrimary Boolean  @default(true)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([schoolId])
-  @@index([userId])
-}
-
-model User {
-  id               String           @id @default(cuid())
-  email            String           @unique
-  password         String
-  role             Role             @default(STUDENT)
-  createdAt        DateTime         @default(now())
-  lessons          Lesson[]         @relation("TeacherLessons")
-  courses          Course[]         @relation("TeacherCourses")
-  enrollments      Enrollment[]
-  articles         Article[]        @relation("AuthorArticles")
-  teacherProfile   TeacherProfile?
-  studentProfile  StudentProfile?
-  principal       Principal?
-  externalResources ExternalResource[]
-  flashcards       Flashcard[]
-  quizzes          Quiz[]
-  settings         UserSettings?
-  notifications    Notification[]
-  studyAnalytics   StudyAnalytics[]
-  bookmarks        Bookmark[]
-  quizAttempts     QuizAttempt[]
-  interactions     UserInteraction[]
-  lessonCompletions LessonCompletion[]
-  auditLogs        AuditLog[]
-  musicPreferences UserMusicPreference[]
-  comments         Comment[]
-  uploads          File[]
-}
-
-model Lesson {
-  id                String            @id @default(cuid())
-  title             String
-  description       String?
-  content           String
-  status            Status           @default(PRIVATE)
-  order             Int               @default(0)
-  searchVector      String?
-  
-  courseId          String?
-  course            Course?           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
-  externalResources ExternalResource[]
-  flashcards        Flashcard[]
-  quizzes           Quiz[]
-  
-  teacherId         String
-  teacher           User              @relation("TeacherLessons", fields: [teacherId], references: [id], onDelete: Cascade)
-  
-  completions       LessonCompletion[]
-  comments         Comment[]
-  
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-
-  @@index([teacherId])
-  @@index([courseId])
-  @@index([status])
-}
-
-model Course {
-  id                String             @id @default(cuid())
-  title             String
-  slug              String             @unique
-  description       String?
-  imageUrl          String?
-  level             CourseLevel        @default(BEGINNER)
-  category          String?            @default("GENERAL")
-  tags              String[]           @default([])
-  
-  teacherId         String
-  teacher           User               @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
-  
-  lessons           Lesson[]
-  enrollments       Enrollment[]
-  externalResources ExternalResource[]
-  quizzes           Quiz[]
-  flashcards        Flashcard[]
-  
-  status            Status            @default(DRAFT)
-  published         Boolean           @default(false)
-  enrollmentLimit   Int?
-  waitlistEnabled   Boolean            @default(false)
-  
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  @@index([teacherId])
-  @@index([status])
-  @@index([slug])
-  @@index([category])
-}
-
-// Remvoed CourseLesson model
-
-model LessonCompletion {
-  id              String        @id @default(cuid())
-  
-  lessonId        String
-  lesson          Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
-  studentId       String
-  student         User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  completedAt     DateTime      @default(now())
-
-  @@unique([lessonId, studentId])
-}
-
-model Quiz {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessonId    String?
-  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  
-  teacherId   String
-  teacher     User     @relation(fields: [teacherId], references: [id])
-  
-  questions   Question[]
-  attempts   QuizAttempt[]
-  
-  timeLimit   Int?     @default(30)
-  maxAttempts Int?    @default(3)
-  shuffleQuestions Boolean @default(false)
-  showResults Boolean @default(true)
-  
-  status      Status   @default(DRAFT)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([courseId])
-  @@index([lessonId])
-  @@index([teacherId])
-}
-
-model Question {
-  id            String   @id @default(cuid())
-  quizId        String
-  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  
-  text          String
-  questionType  QuestionType @default(MULTIPLE_CHOICE)
-  
-  options       Json?
-  correctAnswer String
-  points        Int      @default(1)
-  
-  order         Int      @default(0)
-  explanation   String?
-  
-  createdAt     DateTime @default(now())
-
-  @@index([quizId])
-}
-
-model QuizAttempt {
-  id          String   @id @default(cuid())
-  quizId      String
-  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  answers     Json
-  score       Int?
-  maxScore    Int?
-  passed      Boolean?
-  
-  startedAt   DateTime @default(now())
-  completedAt DateTime?
-  
-  timeSpent   Int?
-
-  @@unique([quizId, userId, startedAt])
-  @@index([quizId])
-  @@index([userId])
-}
-
-model TeacherProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  schoolId    String
-  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  bio         String?  @db.Text
-  pictureUrl  String?
-  phone       String?
-  office      String?
-  officeHours String?
-  website     String?
-  linkedin    String?
-  twitter     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([schoolId])
-}
-
-model StudentProfile {
-  id              String       @id @default(cuid())
-  userId          String       @unique
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  schoolId        String
-  school          School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  avatarUrl       String?
-  bio             String?
-  learningGoals   String[]
-  interests       String[]
-  preferredLevel  CourseLevel  @default(BEGINNER)
-  grade           Int?
-  section         String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
-  @@index([schoolId])
-}
-
-model Enrollment {
-  id                   String           @id @default(cuid())
-  studentId            String
-  student              User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  courseId             String
-  course               Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress             Float            @default(0)
-  completedLessonsCount Int             @default(0)
-  lastAccessedLessonId String?
-  completedAt          DateTime?
-  status               EnrollmentStatus @default(ACTIVE)
-  enrolledAt           DateTime         @default(now())
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-
-  @@unique([studentId, courseId])
-  @@index([studentId])
-  @@index([courseId])
-  @@index([studentId, status])
-}
-
-model Article {
-  id          String          @id @default(cuid())
-  title       String
-  slug        String          @unique
-  content     String
-  excerpt     String?
-  sourceUrl   String?
-  category    ArticleCategory @default(GENERAL)
-  tags        String[]        @default([])
-  searchVector String?
-  authorId    String
-  author      User            @relation("AuthorArticles", fields: [authorId], references: [id], onDelete: Cascade)
-  status      Status          @default(DRAFT)
-  published   Boolean         @default(false)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  externalResources ExternalResource[]
-  versions    ArticleVersion[]
-
-  @@index([authorId])
-  @@index([status])
-  @@index([category])
-  @@index([title])
-}
-
-model ExternalResource {
-  id          String   @id @default(cuid())
-  type        ResourceType
-  url         String
-  title       String
-  description String?
-  
-  courses     Course[]
-  lessons     Lesson[]
-  articles    Article[]
-  
-  teacherId   String
-  teacher     User     @relation(fields: [teacherId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model Flashcard {
-  id          String   @id @default(cuid())
-  lessonId    String?
-  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  courseId    String?
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teacherId   String
-  teacher     User     @relation(fields: [teacherId], references: [id])
-  question    String
-  answer      String
-  status      Status   @default(PUBLIC)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([courseId])
-  @@index([lessonId])
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String
+model ForumThread {
+  id        String        @id @default(cuid())
   title     String
-  message   String
-  link      String?
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
-
-model StudyAnalytics {
-  id                  String   @id @default(cuid())
-  userId              String
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date                DateTime @default(now())
-  minutesStudied      Int      @default(0)
-  lessonsCompleted    Int      @default(0)
-  quizzesTaken        Int      @default(0)
-  flashcardsReviewed  Int      @default(0)
-  articlesRead        Int      @default(0)
-
-  @@unique([userId, date])
-}
-
-model Bookmark {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resourceType  String
-  resourceId    String
-  title         String
-  url           String?
-  createdAt     DateTime @default(now())
-
-  @@unique([userId, resourceType, resourceId])
-}
-
-model UserInteraction {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type         String
-  resourceType String
-  resourceId   String
-  metadata     String?
-  createdAt    DateTime @default(now())
-}
-
-model WhitelistedDomain {
-  id        String   @id @default(cuid())
-  domain    String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-}
-
-model UserSettings {
-  id                     String   @id @default(cuid())
-  userId                 String   @unique
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  theme                  String   @default("system")
-  language               String   @default("en")
-  defaultDashboardView   String   @default("courses")
-  contentPriority        String   @default("courses")
-  showArticles           Boolean  @default(true)
-  showFlashcards         Boolean  @default(true)
-  showResources          Boolean  @default(true)
-  preferredCategories    String[] @default([])
-  preferredTeachers      String[] @default([])
-  studyReminderEnabled   Boolean  @default(false)
-  studyReminderTime      String?
-  emailNotifications     Boolean  @default(true)
-  courseUpdates          Boolean  @default(true)
-  newArticles           Boolean  @default(true)
-  newResources          Boolean  @default(true)
-  flashcardReminders    Boolean  @default(false)
-  showProfile           Boolean  @default(true)
-  showProgress          Boolean  @default(true)
-  allowAnalytics        Boolean  @default(true)
-  hiddenCategories      String[] @default([])
-  hiddenTags            String[] @default([])
-  teacherToolsExpanded  Boolean  @default(false)
-  defaultResourceType   String?  @default("LINK")
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-}
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action     String
-  resource   String
-  resourceId String?
-  metadata   Json?
-  createdAt  DateTime @default(now())
-
-  @@index([userId])
-  @@index([action])
-  @@index([resource, resourceId])
-}
-
-model ArticleVersion {
-  id        String   @id @default(cuid())
-  articleId String
-  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  content   String   @db.Text
-  metadata  Json?
-  version   Int
-  createdAt DateTime @default(now())
-
-  @@index([articleId])
-  @@unique([articleId, version])
-}
-
-model Track {
-  id           String   @id @default(cuid())
-  name         String
-  frequencyHz  Int      @unique
-  benefit      String   @db.Text
-  duration     Int      @default(3600)
-  order        Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  userPreferences UserMusicPreference[]
-
-  @@index([frequencyHz])
-  @@index([order])
-}
-
-model UserMusicPreference {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trackId   String?
-  track     Track?   @relation(fields: [trackId], references: [id], onDelete: SetNull)
-  volume    Float    @default(0.5)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId])
-  @@index([userId])
-}
-
-model Comment {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
+  body      String        @db.Text
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  lessonId  String
-  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  parentId  String?
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[] @relation("CommentReplies")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  editedAt  DateTime @updatedAt
+  author    User          @relation("AuthorThreads", fields: [authorId], references: [id], onDelete: Cascade)
+  forumType ForumType     @default(GENERAL)
+  pinned    Boolean       @default(false)
+  locked    Boolean       @default(false)
+  posts     ForumPost[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
-  @@index([lessonId])
+  @@index([forumType])
   @@index([authorId])
-  @@index([parentId])
 }
 
-model File {
-  id          String   @id @default(cuid())
-  url         String
-  filename    String
-  mimeType   String
-  size        Int
-  uploadedBy  String
-  user        User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
-  resourceType String?
-  resourceId  String?
-  createdAt   DateTime @default(now())
+model ForumPost {
+  id        String      @id @default(cuid())
+  content   String      @db.Text
+  authorId  String
+  author    User        @relation("AuthorPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  threadId  String
+  thread    ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    ForumPost?  @relation("PostReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ForumPost[] @relation("PostReplies")
+  isDeleted Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  editedAt  DateTime    @updatedAt
 
-  @@index([uploadedBy])
-  @@index([resourceType, resourceId])
+  @@index([threadId])
+  @@index([authorId])
+}
+
+enum ForumType {
+  GENERAL
+  TEACHERS
 }

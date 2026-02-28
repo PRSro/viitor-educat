@@ -18,10 +18,11 @@ export default function LessonViewerPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  
+
   const [lessonData, setLessonData] = useState<LessonViewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<number | null>(null);
   const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
@@ -36,8 +37,16 @@ export default function LessonViewerPage() {
       const data = await viewLesson(id);
       setLessonData(data);
       setError(null);
+      setErrorCode(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load lesson');
+      const msg = err instanceof Error ? err.message : 'Failed to load lesson';
+      setError(msg);
+      // viewLesson throws with the error message from backend
+      if (msg.includes('Enrollment required') || msg.includes('403')) {
+        setErrorCode(403);
+      } else {
+        setErrorCode(404);
+      }
     } finally {
       setLoading(false);
     }
@@ -45,7 +54,7 @@ export default function LessonViewerPage() {
 
   async function handleMarkComplete() {
     if (!lessonId) return;
-    
+
     try {
       setCompleting(true);
       await completeLesson(lessonId);
@@ -74,14 +83,23 @@ export default function LessonViewerPage() {
         <Card className="max-w-md w-full mx-4">
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Lesson Not Found</h2>
+            <h2 className="text-xl font-semibold mb-2">
+              {errorCode === 403 ? 'Enrollment Required' : 'Lesson Not Found'}
+            </h2>
             <p className="text-muted-foreground mb-4">
-              {error || "You may not be enrolled in this course."}
+              {errorCode === 403
+                ? 'You need to enroll in this course before viewing lessons.'
+                : error || "This lesson doesn't exist or you don't have access."}
             </p>
-            <Button onClick={() => navigate('/student')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => navigate('/courses')}>
+                Browse Courses
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/student')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Dashboard
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -100,7 +118,7 @@ export default function LessonViewerPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex-1">
-              <Link 
+              <Link
                 to={`/courses/${lesson.course?.slug}`}
                 className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
               >
@@ -131,7 +149,12 @@ export default function LessonViewerPage() {
           </Card>
         )}
         <LessonViewer
-          lesson={lesson}
+          lesson={{
+            ...lesson,
+            description: lesson.description || '',
+            externalResources: (lesson as any).externalResources || [],
+            flashcards: (lesson as any).flashcards || [],
+          } as any}
           isCompleted={isCompleted}
           completedAt={completedAt}
           progress={0}

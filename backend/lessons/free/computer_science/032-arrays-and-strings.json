@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjwh004p9of2tdye0ll8",
+  "courseId": "cmm6gtjwh004n9of2qq706bw6",
+  "courseTitle": "Data Structures & Algorithms",
+  "title": "Arrays and Strings",
+  "description": "Sequential data",
+  "content": "# Arrays and Strings\n\nArrays store ordered collections. Common operations: traversal, searching, sorting. Time complexity matters.\n\n## Resources\n\n- [Resource 1](https://www.geeksforgeeks.org/array-data-structure/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://www.geeksforgeeks.org/array-data-structure/"
+  ],
+  "createdAt": "2026-02-28T15:17:51.234Z"
+}

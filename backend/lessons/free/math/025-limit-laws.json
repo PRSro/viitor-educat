@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjud000r9of291gpebro",
+  "courseId": "cmm6gtjud000o9of24hqb6ucy",
+  "courseTitle": "Calculus I: Limits & Derivatives",
+  "title": "Limit Laws",
+  "description": "Rules for evaluating limits",
+  "content": "# Limit Laws\n\nLimit laws allow us to break complex limits into simpler parts using sum, product, and quotient rules.\n\n## Resources\n\n- [Resource 1](https://openstax.org/books/calculus-volume-1/pages/2-3-the-limit-laws)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://openstax.org/books/calculus-volume-1/pages/2-3-the-limit-laws"
+  ],
+  "createdAt": "2026-02-28T15:17:51.157Z"
+}

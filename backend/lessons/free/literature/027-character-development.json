@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjvi002v9of22eap3bw7",
+  "courseId": "cmm6gtjvi002t9of2av74138l",
+  "courseTitle": "Creative Writing Workshop",
+  "title": "Character Development",
+  "description": "Building compelling characters",
+  "content": "# Character Development\n\nStrong characters have goals, flaws, and arcs. Use backstory, dialogue, and action to reveal character.\n\n## Resources\n\n- [Resource 1](https://www.masterclass.com/articles/how-to-develop-a-fictional-character)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.masterclass.com/articles/how-to-develop-a-fictional-character"
+  ],
+  "createdAt": "2026-02-28T15:17:51.199Z"
+}

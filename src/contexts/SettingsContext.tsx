@@ -4,14 +4,14 @@
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  UserSettings, 
-  getSettings, 
-  updateSettings, 
+import {
+  UserSettings,
+  getSettings,
+  updateSettings,
   resetSettings,
   UpdateSettingsData,
   defaultSettings,
-  Theme 
+  Theme
 } from '@/modules/core/services/settingsService';
 
 interface SettingsContextType {
@@ -44,7 +44,7 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     // Apply theme on mount and when settings change
     const applyTheme = () => {
       const effectiveTheme = theme;
-      
+
       if (effectiveTheme === 'dark') {
         document.documentElement.classList.add('dark');
         document.documentElement.classList.remove('light');

@@ -90,6 +90,9 @@ export async function courseRoutes(server: FastifyInstance) {
       courses: enrollments.map(e => ({
         id: e.id,
         progress: e.progress,
+        completedLessonsCount: e.completedLessonsCount,
+        lastAccessedLessonId: e.lastAccessedLessonId,
+        completedAt: e.completedAt,
         enrolledAt: e.createdAt,
         course: e.course
       }))

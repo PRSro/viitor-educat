@@ -2,10 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Volume2, VolumeX, Music, X, Play, Pause, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
 } from '@/components/ui/popover';
 import { useAudioPlayer, Track } from '@/hooks/use-audio-player';
 import { api } from '@/lib/apiClient';
@@ -31,18 +31,21 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [waitingForGesture, setWaitingForGesture] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
-  
-  const { 
-    isPlaying, 
-    currentTrack, 
-    volume, 
+  const pendingAutoplayRef = useRef<Track | null>(null);
+  const hasShownToastRef = useRef(false);
+
+  const {
+    isPlaying,
+    currentTrack,
+    volume,
     elapsedTime,
     analyserNode,
-    play, 
-    stop, 
-    setVolume 
+    play,
+    stop,
+    setVolume
   } = useAudioPlayer();
 
   useEffect(() => {
@@ -60,34 +63,63 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   }, []);
 
   useEffect(() => {
-    const fetchPreference = async () => {
-      const token = getToken();
-      if (!token) return;
-      
-      try {
-        const response = await api.get<PreferenceResponse>('/music/preferences');
-        if (response.preference?.track && tracks.length > 0) {
-          const savedTrack = tracks.find(t => t.id === response.preference?.trackId);
-          if (savedTrack) {
-            play(savedTrack, response.preference.volume);
+    if (tracks.length === 0) return;
+
+    const token = getToken();
+
+    if (token) {
+      // Logged in — fetch saved preference
+      api.get<PreferenceResponse>('/music/preferences')
+        .then(response => {
+          if (response.preference?.trackId) {
+            const savedTrack = tracks.find(t => t.id === response.preference?.trackId);
+            if (savedTrack) {
+              pendingAutoplayRef.current = savedTrack;
+              setWaitingForGesture(true);
+              return;
+            }
           }
-        } else if (tracks.length > 0) {
-          play(tracks[0], 0.25);
-        }
-      } catch (error) {
-        console.error('Failed to fetch preference:', error);
-      }
-    };
-    
-    if (tracks.length > 0) {
-      fetchPreference();
+          // No saved preference — queue first track
+          pendingAutoplayRef.current = tracks[0];
+          setWaitingForGesture(true);
+        })
+        .catch(() => {
+          // Preference fetch failed — still queue autoplay
+          pendingAutoplayRef.current = tracks[0];
+          setWaitingForGesture(true);
+        });
+    } else {
+      // Not logged in — queue first track directly, no preference fetch
+      pendingAutoplayRef.current = tracks[0];
+      setWaitingForGesture(true);
     }
   }, [tracks]);
+
+  const handleGestureManual = useCallback(() => {
+    if (waitingForGesture && pendingAutoplayRef.current) {
+      play(pendingAutoplayRef.current, 0.25);
+      pendingAutoplayRef.current = null;
+      setWaitingForGesture(false);
+    }
+  }, [waitingForGesture, play]);
+
+  useEffect(() => {
+    if (!waitingForGesture) return;
+
+    const timeout = setTimeout(() => {
+      if (waitingForGesture) {
+        setWaitingForGesture(false);
+        pendingAutoplayRef.current = null;
+      }
+    }, 10000); // Wait longer for icon tap
+
+    return () => clearTimeout(timeout);
+  }, [waitingForGesture]);
 
   const savePreference = useCallback(async (trackId: string | null, vol: number) => {
     const token = getToken();
     if (!token) return;
-    
+
     try {
       await api.patch('/music/preferences', { trackId, volume: vol });
     } catch (error) {
@@ -96,6 +128,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   }, []);
 
   const handlePlay = (track: Track) => {
+    console.log('[MusicPlayer] handlePlay called for track:', track.name, 'URL:', track.url);
     play(track, volume);
     savePreference(track.id, volume);
   };
@@ -117,7 +150,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
@@ -146,7 +179,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
 
       for (let i = 0; i < bufferLength; i++) {
         const barHeight = (dataArray[i] / 255) * canvas.height;
-        
+
         const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
         gradient.addColorStop(0, '#8b5cf6');
         gradient.addColorStop(0.5, '#ec4899');
@@ -174,22 +207,24 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
           <Button
             variant="outline"
             size="icon"
+            onClick={handleGestureManual}
             className={`
               h-12 w-12 rounded-full shadow-lg bg-background/95 backdrop-blur
               border border-border hover:bg-accent hover:text-accent-foreground
               transition-all duration-300
-              ${isPlaying ? 'animate-pulse border-primary' : ''}
+              ${isPlaying ? 'animate-pulse border-primary shadow-primary/20' : ''}
+              ${waitingForGesture ? 'ring-2 ring-primary ring-offset-2 animate-bounce' : ''}
             `}
           >
             {isPlaying ? (
               <Volume2 className="h-5 w-5 text-primary" />
             ) : (
-              <Music className="h-5 w-5" />
+              <Music className={`h-5 w-5 ${waitingForGesture ? 'text-primary animate-pulse' : ''}`} />
             )}
           </Button>
         </PopoverTrigger>
-        
-        <PopoverContent 
+
+        <PopoverContent
           className="w-80 p-4 bg-background/95 backdrop-blur border border-border shadow-xl"
           align="end"
           side="top"
@@ -217,7 +252,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
               <div className="text-center">
                 <p className="font-medium text-sm">{currentTrack.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {currentTrack.frequencyHz}Hz • {formatTime(elapsedTime)}
+                  {currentTrack.benefit} • {formatTime(elapsedTime)}
                 </p>
               </div>
             </div>
@@ -291,6 +326,14 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
           </div>
         </PopoverContent>
       </Popover>
+
+      {waitingForGesture && (
+        <div className="fixed bottom-20 right-4 z-50 animate-bounce">
+          <div className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-xl border-2 border-white/20">
+            TAP ICON FOR MUSIC 🎵
+          </div>
+        </div>
+      )}
     </div>
   );
 }

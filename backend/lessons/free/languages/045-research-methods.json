@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h453h006mh4pgaczj0tv2",
+  "courseId": "cmm6h453g006ih4pgg0429rv3",
+  "courseTitle": "Academic Writing in English",
+  "title": "Research Methods",
+  "description": "Finding and evaluating sources",
+  "content": "# Research Methods\n\nUse academic databases like Google Scholar and JSTOR. Evaluate sources for reliability, credibility, and relevance.\n\n## Resources\n\n- [Resource 1](https://scholar.google.com/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://scholar.google.com/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.261Z"
+}

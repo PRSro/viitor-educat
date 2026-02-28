@@ -27,7 +27,6 @@ import TeacherProfilePage from "@/modules/core/pages/TeacherProfile";
 import ArticlesPage from "@/modules/articles/pages/ArticlesPage";
 import ResourcesPage from "@/modules/core/pages/ResourcesPage";
 import FlashcardsPage from "@/modules/core/pages/FlashcardsPage";
-import StudyDashboard from "@/modules/core/pages/StudyDashboard";
 import SettingsPage from "@/modules/core/pages/SettingsPage";
 import NewsPage from "@/modules/core/pages/NewsPage";
 import StudentProfilePage from "@/modules/core/pages/StudentProfilePage";
@@ -36,6 +35,11 @@ import SearchPage from "@/modules/core/pages/SearchPage";
 import ArticleEditorPage from "@/modules/articles/pages/ArticleEditorPage";
 import CourseEditorPage from "@/modules/courses/pages/CourseEditorPage";
 import LessonEditorPage from "@/modules/lessons/pages/LessonEditorPage";
+import BookmarksPage from "@/modules/core/pages/BookmarksPage";
+import QuizPage from "@/modules/core/pages/QuizPage";
+import TeacherDirectoryPage from "@/modules/core/pages/TeacherDirectoryPage";
+import ForumPage from '@/pages/ForumPage';
+import ForumThreadPage from '@/pages/ForumThreadPage';
 import { MusicPlayer } from "@/components/MusicPlayer";
 
 const queryClient = new QueryClient();
@@ -58,6 +62,7 @@ const App = () => (
                       <Route path="/register" element={<ErrorBoundary><Register /></ErrorBoundary>} />
                       <Route path="/access-denied" element={<ErrorBoundary><AccessDenied /></ErrorBoundary>} />
                       <Route path="/noutati" element={<ErrorBoundary><NewsPage /></ErrorBoundary>} />
+                      <Route path="/profesori" element={<ErrorBoundary><TeacherDirectoryPage /></ErrorBoundary>} />
 
                       {/* Protected Routes - Admin Only */}
                       <Route
@@ -177,16 +182,6 @@ const App = () => (
                         }
                       />
 
-                      {/* Study Dashboard - Student only */}
-                      <Route
-                        path="/student/study"
-                        element={
-                          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <ErrorBoundary><StudyDashboard /></ErrorBoundary>
-                          </ProtectedRoute>
-                        }
-                      />
-
                       {/* Settings Page - All authenticated users */}
                       <Route
                         path="/settings"
@@ -284,10 +279,49 @@ const App = () => (
                         }
                       />
 
+                      {/* Bookmarks Page - All authenticated users */}
+                      <Route
+                        path="/bookmarks"
+                        element={
+                          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                            <ErrorBoundary><BookmarksPage /></ErrorBoundary>
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* Quiz Page - All authenticated users */}
+                      <Route
+                        path="/quizzes/:quizId"
+                        element={
+                          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                            <ErrorBoundary><QuizPage /></ErrorBoundary>
+                          </ProtectedRoute>
+                        }
+                      />
+
+/*
+                      <Route
+                        path="/forum"
+                        element={
+                          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                            <ErrorBoundary><ForumPage /></ErrorBoundary>
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/forum/thread/:id"
+                        element={
+                          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
+                            <ErrorBoundary><ForumThreadPage /></ErrorBoundary>
+                          </ProtectedRoute>
+                        }
+                      />
+                      */
+
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />
                     </Routes>
-                    <MusicPlayer />
+                    {/* <MusicPlayer /> */}
                   </BrowserRouter>
                 </TooltipProvider>
               </ErrorBoundary>

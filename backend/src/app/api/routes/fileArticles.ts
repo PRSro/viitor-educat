@@ -484,4 +484,23 @@ export async function fileArticleRoutes(server: FastifyInstance) {
 
     return { success: true, data: logs };
   });
+
+  /**
+   * GET /file-articles/news/feed
+   * Proxy RSS feed from school portal (no auth required)
+   */
+  server.get('/news/feed', async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const response = await fetch('http://portal.lbi.ro/category/stiri/feed/');
+      if (!response.ok) {
+        return reply.status(502).send({ error: 'Failed to fetch RSS feed' });
+      }
+      const text = await response.text();
+      reply.header('Content-Type', 'application/rss+xml');
+      return reply.send(text);
+    } catch (error) {
+      server.log.error(error, 'Error fetching RSS feed');
+      return reply.status(502).send({ error: 'Failed to fetch RSS feed' });
+    }
+  });
 }

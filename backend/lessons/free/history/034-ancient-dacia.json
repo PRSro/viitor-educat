@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjw4003y9of2h6zsnirl",
+  "courseId": "cmm6gtjw4003w9of2i0i6ywgy",
+  "courseTitle": "Romanian History",
+  "title": "Ancient Dacia",
+  "description": "Before the Romans",
+  "content": "# Ancient Dacia\n\nThe Dacians were a Thracian people who built a powerful kingdom centered in the Carpathian Mountains.\n\n## Resources\n\n- [Resource 1](https://www.worldhistory.org/Dacia/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.worldhistory.org/Dacia/"
+  ],
+  "createdAt": "2026-02-28T15:17:51.220Z"
+}

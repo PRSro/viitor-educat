@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4530005mh4pg8yhkzf5x",
+  "courseId": "cmm6h4530005ih4pggk3bswit",
+  "courseTitle": "Digital Photography",
+  "title": "Photo Editing Basics",
+  "description": "Post-processing",
+  "content": "# Photo Editing Basics\n\nBasic edits: crop, exposure, contrast, white balance, saturation. Use free tools like GIMP or RawTherapee.\n\n## Resources\n\n- [Resource 1](https://www.gimp.org/tutorials/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.gimp.org/tutorials/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.244Z"
+}

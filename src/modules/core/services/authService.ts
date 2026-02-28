@@ -38,6 +38,7 @@ export async function register(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     },
     body: JSON.stringify({ email, password, role }),
   });
@@ -59,6 +60,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
     },
     body: JSON.stringify({ email, password }),
   });
@@ -156,6 +158,7 @@ export async function getProfile(): Promise<ProfileResponse> {
   const response = await fetch(`${API_BASE_URL}/profile`, {
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
   });
 
@@ -197,6 +200,7 @@ export async function getTeacherProfile(teacherId: string): Promise<{ teacher: U
   const response = await fetch(`${API_BASE_URL}/profile/${teacherId}`, {
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
   });
 
@@ -220,6 +224,7 @@ export async function uploadProfilePicture(file: File): Promise<{ url: string }>
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });
@@ -258,6 +263,7 @@ export async function getAllTeachers(): Promise<TeacherWithProfile[]> {
   const response = await fetch(`${API_BASE_URL}/profile/teachers`, {
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
   });
 
@@ -277,6 +283,7 @@ export async function getTeacherArticles(teacherId: string): Promise<ArticleList
   const response = await fetch(`${API_BASE_URL}/profile/${teacherId}/articles`, {
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
   });
 
@@ -310,6 +317,7 @@ export async function getTeacherLessons(teacherId: string): Promise<TeacherLesso
   const response = await fetch(`${API_BASE_URL}/profile/${teacherId}/lessons`, {
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
   });
 
@@ -333,6 +341,7 @@ export async function uploadArticleFile(file: File): Promise<{ content: string; 
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });
@@ -357,6 +366,7 @@ export async function uploadLessonMaterial(file: File): Promise<{ content: strin
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });

@@ -1,6 +1,7 @@
 import { prisma } from '../models/prisma.js';
 
 const SOLFEGGIO_FREQUENCIES = [
+  { frequencyHz: 432, name: 'Frutiger Aero', benefit: 'Aquatic serenity and nature-tech harmony.', duration: 3600, order: 0, url: '/music/safe-haven.mp3' },
   { frequencyHz: 174, name: 'Foundation', benefit: 'Removes pain and strengthens the feeling of security.', duration: 3600, order: 1 },
   { frequencyHz: 285, name: 'Healing', benefit: 'Heals tissues and organs; resets them to original perfect state.', duration: 3600, order: 2 },
   { frequencyHz: 396, name: 'Liberation', benefit: 'Liberates guilt and fear; transforms grief into joy.', duration: 3600, order: 3 },
@@ -23,6 +24,7 @@ export async function seedTracks(): Promise<void> {
         benefit: track.benefit,
         duration: track.duration,
         order: track.order,
+        url: (track as any).url || null,
       },
       create: {
         name: track.name,
@@ -30,6 +32,7 @@ export async function seedTracks(): Promise<void> {
         benefit: track.benefit,
         duration: track.duration,
         order: track.order,
+        url: (track as any).url || null,
       },
     });
   }
@@ -37,7 +40,7 @@ export async function seedTracks(): Promise<void> {
 
 export async function getAllTracks() {
   return prisma.track.findMany({
-    orderBy: { frequencyHz: 'asc' },
+    orderBy: { order: 'asc' },
   });
 }
 
@@ -62,7 +65,7 @@ export async function getUserPreference(userId: string) {
 
 export async function upsertUserPreference(userId: string, trackId: string | null, volume: number) {
   const clampedVolume = Math.max(0, Math.min(1, volume));
-  
+
   if (trackId) {
     const track = await prisma.track.findUnique({ where: { id: trackId } });
     if (!track) {

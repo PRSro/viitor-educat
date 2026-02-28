@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h450k001oh4pgwygmf4kx",
+  "courseId": "cmm6h450k001mh4pgcqtb5vzn",
+  "courseTitle": "Chemistry Basics",
+  "title": "Atomic Structure",
+  "description": "Protons, neutrons, electrons",
+  "content": "# Atomic Structure\n\nAtoms consist of a nucleus (protons + neutrons) surrounded by electron clouds.\n\n## Resources\n\n- [Resource 1](https://openstax.org/books/chemistry-2e/pages/2-2-evolution-of-atomic-theory)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://openstax.org/books/chemistry-2e/pages/2-2-evolution-of-atomic-theory"
+  ],
+  "createdAt": "2026-02-28T15:26:05.156Z"
+}

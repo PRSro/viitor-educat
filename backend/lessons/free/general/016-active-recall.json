@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjxu006q9of24ofz99b0",
+  "courseId": "cmm6gtjxu006o9of2pe5va3lu",
+  "courseTitle": "Study Skills & Learning Strategies",
+  "title": "Active Recall",
+  "description": "Testing yourself",
+  "content": "# Active Recall\n\nActive recall—retrieving information from memory—is far more effective than passive re-reading.\n\n## Resources\n\n- [Resource 1](https://www.learningscientists.org/retrieval-practice)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://www.learningscientists.org/retrieval-practice"
+  ],
+  "createdAt": "2026-02-28T15:17:51.282Z"
+}

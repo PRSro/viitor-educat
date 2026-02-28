@@ -11,6 +11,7 @@ services:
       - REDIS_PORT=6379
       - JWT_SECRET=${JWT_SECRET}
       - NODE_ENV=production
+      - PORT=3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,7 +21,7 @@ services:
     volumes:
       - ./articles:/app/articles
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:3000/health || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 3

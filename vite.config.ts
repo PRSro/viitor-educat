@@ -42,6 +42,14 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/news': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/portal': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
       '/upload': {
         target: 'http://localhost:3001',
         changeOrigin: true,

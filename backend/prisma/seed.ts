@@ -9,6 +9,7 @@ import bcrypt from 'bcryptjs';
 import { existsSync, mkdirSync, writeFileSync, readdirSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { seedTracks } from '../src/app/services/musicService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -731,6 +732,9 @@ async function main() {
 
     console.log(`\n✅ Seed complete!`);
     console.log(`   ${courseCount} courses, ${lessonCount} lessons, ${ARTICLES.length} articles`);
+
+    console.log('🎵 Seeding music tracks...');
+    await seedTracks();
     console.log(`   📁 ${lessonFileCount} lesson JSON files written to ${lessonsDir}`);
     console.log(`   📁 ${articleFileCount} article JSON files written to ${articlesDir}`);
 }
@@ -754,7 +758,7 @@ async function seedLessonsFromJson(prisma: PrismaClient, teacherId: string) {
         for (const file of files) {
             try {
                 const raw = JSON.parse(readFileSync(join(subjectDir, file), 'utf-8'));
-                
+
                 await prisma.lesson.upsert({
                     where: { id: raw.id },
                     update: {

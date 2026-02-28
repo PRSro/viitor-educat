@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4533005qh4pgyag1fizd",
+  "courseId": "cmm6h4532005oh4pgq8afwsz8",
+  "courseTitle": "Introduction to Film",
+  "title": "The Language of Film",
+  "description": "Shots, angles, movement",
+  "content": "# The Language of Film\n\nFilm uses visual language: wide shots establish setting, close-ups show emotion, camera movement guides attention.\n\n## Resources\n\n- [Resource 1](https://nofilmschool.com/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://nofilmschool.com/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.247Z"
+}

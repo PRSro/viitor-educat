@@ -12,6 +12,7 @@ function getAuthHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
     'Authorization': token ? `Bearer ${token}` : '',
+    'ngrok-skip-browser-warning': 'true',
   };
 }
 
@@ -238,6 +239,7 @@ export async function uploadStudentProfilePicture(file: File): Promise<{ url: st
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${getToken()}`,
+      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });

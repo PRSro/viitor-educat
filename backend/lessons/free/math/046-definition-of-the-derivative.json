@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4502000th4pgvx2sqngs",
+  "courseId": "cmm6h4502000oh4pg0byp4amu",
+  "courseTitle": "Calculus I: Limits & Derivatives",
+  "title": "Definition of the Derivative",
+  "description": "The derivative as a limit",
+  "content": "# Definition of the Derivative\n\nThe derivative of f at x is defined as the limit of [f(x+h) - f(x)] / h as h approaches 0.\n\n## Resources\n\n- [Resource 1](https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/pages/1.-differentiation/)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/pages/1.-differentiation/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.138Z"
+}

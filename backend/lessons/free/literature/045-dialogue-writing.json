@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4517002xh4pgl13g2uuf",
+  "courseId": "cmm6h4517002th4pgxxqnhrop",
+  "courseTitle": "Creative Writing Workshop",
+  "title": "Dialogue Writing",
+  "description": "Making characters speak",
+  "content": "# Dialogue Writing\n\nGood dialogue reveals character, advances plot, and sounds natural. Avoid exposition dumps in speech.\n\n## Resources\n\n- [Resource 1](https://www.writingforward.com/creative-writing/writing-dialogue)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.writingforward.com/creative-writing/writing-dialogue"
+  ],
+  "createdAt": "2026-02-28T15:26:05.179Z"
+}

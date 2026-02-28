@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h450h001ih4pgn8m1ieoz",
+  "courseId": "cmm6h450h001fh4pgl04xup2e",
+  "courseTitle": "Physics: Mechanics",
+  "title": "Newton's Laws of Motion",
+  "description": "The three laws",
+  "content": "# Newton's Laws of Motion\n\nNewton's First Law: inertia. Second Law: F = ma. Third Law: every action has an equal and opposite reaction.\n\n## Resources\n\n- [Resource 1](https://www.khanacademy.org/science/physics/forces-newtons-laws)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://www.khanacademy.org/science/physics/forces-newtons-laws"
+  ],
+  "createdAt": "2026-02-28T15:26:05.153Z"
+}

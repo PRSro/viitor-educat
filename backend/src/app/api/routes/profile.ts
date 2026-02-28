@@ -22,6 +22,20 @@ const updateProfileSchema = z.object({
 export async function profileRoutes(server: FastifyInstance) {
 
   /**
+   * GET /profile/teachers/public — no auth required
+   * Get all teachers for public directory
+   */
+  server.get('/teachers/public', async (request: FastifyRequest, reply: FastifyReply) => {
+    const teachers = await prisma.teacherProfile.findMany({
+      include: {
+        user: { select: { id: true, email: true } }
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+    return { teachers };
+  });
+
+  /**
    * GET /profile
    * Get current user's profile including teacher profile if exists
    */

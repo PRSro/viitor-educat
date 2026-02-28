@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h452k004xh4pg5xnrfpqw",
+  "courseId": "cmm6h452k004uh4pg7za9wp0p",
+  "courseTitle": "Introduction to Git & GitHub",
+  "title": "Basic Git Commands",
+  "description": "init, add, commit, push",
+  "content": "# Basic Git Commands\n\nCore workflow: git init → git add → git commit → git push. Each commit is a snapshot of your project.\n\n## Resources\n\n- [Resource 1](https://git-scm.com/docs)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://git-scm.com/docs"
+  ],
+  "createdAt": "2026-02-28T15:26:05.228Z"
+}

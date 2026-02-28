@@ -11,8 +11,7 @@ export interface NewsItem {
   description: string;
 }
 
-const RSS_FEED_URL = "http://portal.lbi.ro/category/stiri/feed/";
-const CORS_PROXY = "https://api.allorigins.win/raw?url=";
+const RSS_FEED_URL = `/news/feed`;
 
 const parseRSSDate = (dateStr: string): string => {
   try {
@@ -49,7 +48,10 @@ export const NewsPage = () => {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const response = await fetch(CORS_PROXY + encodeURIComponent(RSS_FEED_URL));
+        const response = await fetch(RSS_FEED_URL, {
+          headers: { 'ngrok-skip-browser-warning': 'true' },
+          signal: AbortSignal.timeout(10000),
+        });
         if (!response.ok) throw new Error("Failed to fetch news");
         
         const text = await response.text();
@@ -119,9 +121,18 @@ export const NewsPage = () => {
         )}
 
         {error && (
-          <div className="text-center py-12">
-            <p className="text-destructive mb-4">Nu s-au putut încărca noutățile.</p>
-            <Button onClick={() => window.location.reload()}>Reîncearcă</Button>
+          <div className="text-center py-20">
+            <div className="inline-flex items-center gap-3 px-6 py-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive mb-4">
+              <span className="text-2xl">⚠️</span>
+              <div className="text-left">
+                <p className="font-semibold">Nu s-au putut încărca știrile</p>
+                <p className="text-sm opacity-80">Verifică conexiunea sau încearcă din nou</p>
+              </div>
+            </div>
+            <br />
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Încearcă din nou
+            </Button>
           </div>
         )}
 

@@ -15,44 +15,44 @@ export type ResourceType = 'YOUTUBE' | 'LINK' | 'PDF' | 'DOCUMENT';
 export interface UserSettings {
   id: string;
   userId: string;
-  
+
   // Appearance
   theme: Theme;
   language: string;
-  
+
   // Dashboard preferences
   defaultDashboardView: DashboardView;
   contentPriority: ContentPriority;
   showArticles: boolean;
   showFlashcards: boolean;
   showResources: boolean;
-  
+
   // Study preferences
   preferredCategories: string[];
   preferredTeachers: string[];
   studyReminderEnabled: boolean;
   studyReminderTime: string | null;
-  
+
   // Notification preferences
   emailNotifications: boolean;
   courseUpdates: boolean;
   newArticles: boolean;
   newResources: boolean;
   flashcardReminders: boolean;
-  
+
   // Privacy options
   showProfile: boolean;
   showProgress: boolean;
   allowAnalytics: boolean;
-  
+
   // Content filters
   hiddenCategories: string[];
   hiddenTags: string[];
-  
+
   // Teacher-specific settings
   teacherToolsExpanded: boolean;
   defaultResourceType: ResourceType | null;
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -88,6 +88,7 @@ function getAuthHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
     'Authorization': token ? `Bearer ${token}` : '',
+    'ngrok-skip-browser-warning': 'true',
   };
 }
 

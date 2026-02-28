@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjw1003u9of2nwk2uudv",
+  "courseId": "cmm6gtjw1003q9of2xa1wcdx8",
+  "courseTitle": "History of Science",
+  "title": "The Atomic Age",
+  "description": "Nuclear physics",
+  "content": "# The Atomic Age\n\nThe discovery of radioactivity and splitting of the atom led to both nuclear energy and nuclear weapons.\n\n## Resources\n\n- [Resource 1](https://www.atomicheritage.org/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.atomicheritage.org/"
+  ],
+  "createdAt": "2026-02-28T15:17:51.218Z"
+}

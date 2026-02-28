@@ -27,6 +27,18 @@ export interface Lesson {
     email: string;
   };
   attachmentUrl?: string;
+  externalResources?: {
+    id: string;
+    type: string;
+    url: string;
+    title: string;
+    description: string | null;
+  }[];
+  flashcards?: {
+    id: string;
+    question: string;
+    answer: string;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +65,7 @@ function getAuthHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
     'Authorization': token ? `Bearer ${token}` : '',
+    'ngrok-skip-browser-warning': 'true',
   };
 }
 

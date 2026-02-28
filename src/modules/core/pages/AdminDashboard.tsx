@@ -90,16 +90,16 @@ export default function AdminDashboard() {
       setError(null);
 
       // Fetch users and check health in parallel
-      const [usersData, healthOk] = await Promise.all([
-        api.get<AdminUser[]>('/admin/users'),
+      const [usersResponse, healthOk] = await Promise.all([
+        api.get<{ users: AdminUser[] }>('/admin/users'),
         checkApiHealth(),
       ]);
 
-      setUsers(usersData);
+      setUsers(usersResponse.users);
       setSystemStatus({
         apiHealth: healthOk,
         lastChecked: new Date(),
-        userCount: usersData.length,
+        userCount: usersResponse.users.length,
       });
 
       // Fetch analytics data

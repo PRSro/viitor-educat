@@ -20,6 +20,11 @@ import { analyticsRoutes } from './app/api/routes/analytics.js';
 import { studentProfileRoutes } from './app/api/routes/profiles.js';
 import { fileArticleRoutes } from './app/api/routes/fileArticles.js';
 import { musicRoutes } from './app/api/routes/music.js';
+import { commentRoutes } from './app/api/routes/comments.js';
+import { newsRoutes } from './app/api/routes/news.js';
+import { studentRoutes } from './app/api/routes/student.js';
+import { portalTeachersRoutes } from './app/api/routes/portalTeachers.js';
+import { forumRoutes } from './app/api/routes/forum.js';
 import { JWT_SECRET, PORT, ALLOWED_ORIGINS, isDevelopment, logConfig } from './app/core/config/env.js';
 import {
   securityHeadersPlugin,
@@ -55,7 +60,7 @@ await server.register(cors, {
     : ALLOWED_ORIGINS,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning'],
 });
 
 await server.register(import('@fastify/multipart'), {
@@ -101,10 +106,52 @@ await server.register(analyticsRoutes, { prefix: '/analytics' });
 await server.register(studentProfileRoutes, { prefix: '/profiles' });
 await server.register(fileArticleRoutes, { prefix: '/file-articles' });
 await server.register(musicRoutes, { prefix: '/music' });
-import { studentRoutes } from './app/api/routes/student.js';
+await server.register(newsRoutes, { prefix: '/news' });
+await server.register(portalTeachersRoutes);
+
 await server.register(studentRoutes, { prefix: '/student' });
-import { commentRoutes } from './app/api/routes/comments.js';
+// Comments span /lessons/:id/comments and /comments/:id — no prefix by design
 await server.register(commentRoutes);
+await server.register(forumRoutes, { prefix: '/forum' });
+
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fastifyStatic from '@fastify/static';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve static files from the frontend build directory
+// In development, this might not exist yet, so we handle it gracefully
+const distPath = path.join(__dirname, '../../dist');
+
+await server.register(fastifyStatic, {
+  root: distPath,
+  prefix: '/',
+  constraints: {},
+  wildcard: false, // Don't match everything, let the router handle it
+});
+
+// For any other route not handled by the API, serve index.html (SPA support)
+server.setNotFoundHandler(async (request, reply) => {
+  if (request.url.startsWith('/api') || request.url.startsWith('/auth')) {
+    return reply.status(404).send({
+      message: `Route ${request.method}:${request.url} not found`,
+      error: 'Not Found',
+      statusCode: 404
+    });
+  }
+
+  try {
+    return await reply.sendFile('index.html');
+  } catch (err) {
+    return reply.status(404).send({
+      message: 'Resource not found and frontend not available',
+      error: 'Not Found',
+      statusCode: 404
+    });
+  }
+});
 
 import { prisma } from './app/models/prisma.js';
 import { redisService } from './app/core/services/redisService.js';

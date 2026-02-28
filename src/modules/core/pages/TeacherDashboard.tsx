@@ -39,6 +39,7 @@ import {
 import { sanitizeInput, containsXssPatterns } from '@/lib/sanitize';
 import { lessonSchema, getFirstError } from '@/lib/validation';
 import { NotificationBell } from '@/components/NotificationBell';
+import { api } from '@/lib/apiClient';
 import { 
   BookOpen, 
   Plus, 
@@ -128,6 +129,12 @@ export default function TeacherDashboard() {
 
   // Analytics state
   const [analytics, setAnalytics] = useState<CourseAnalytics | null>(null);
+  const [aggregateAnalytics, setAggregateAnalytics] = useState<{
+    totalStudents: number;
+    totalCompletions: number;
+    completionRate: number;
+    lessons: { lessonTitle: string; completions: number }[];
+  } | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [students, setStudents] = useState<CourseStudent[]>([]);
@@ -144,14 +151,36 @@ export default function TeacherDashboard() {
       try {
         setLoading(true);
         setError(null);
-        const [lessonsData, coursesData, articlesData] = await Promise.all([
+        const [lessonsData, coursesData, articlesData, aggAnalytics] = await Promise.all([
           getTeacherLessons(user.id),
           getTeacherCourses(),
-          user?.id ? getTeacherArticles(user.id).catch(() => []) : Promise.resolve([])
+          user?.id ? getTeacherArticles(user.id).catch(() => []) : Promise.resolve([]),
+          api.get('/analytics/lessons').catch(() => null)
         ]);
         setLessons(lessonsData || []);
         setCourses(coursesData || []);
         setArticles(articlesData || []);
+        
+        if (aggAnalytics) {
+          const lessons = (aggAnalytics.lessons || []).map((l: any) => ({
+            lessonTitle: l.lessonTitle || l.title || 'Untitled',
+            completions: l.completionCount || l.completions || 0
+          }));
+          const totalCompletions = lessons.reduce((sum: number, l: any) => sum + l.completions, 0);
+          setAggregateAnalytics({
+            totalStudents: coursesData?.reduce((sum: number, c: any) => sum + (c._count?.enrollments || 0), 0) || 0,
+            totalCompletions,
+            completionRate: coursesData?.length > 0
+              ? Math.round(
+                  (totalCompletions /
+                    (coursesData.reduce((sum: number, c: any) => sum + (c._count?.lessons || 0), 0) *
+                      (coursesData.reduce((sum: number, c: any) => sum + (c._count?.enrollments || 0), 0) || 1))
+                  ) * 100
+                )
+              : 0,
+            lessons
+          });
+        }
       } catch (err) {
         console.error('Failed to fetch data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch data. Please check if the backend is running.');
@@ -530,6 +559,51 @@ export default function TeacherDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+        {/* Aggregate Analytics Stats */}
+        {aggregateAnalytics && (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-primary/10">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Students</p>
+                    <p className="text-2xl font-bold">{aggregateAnalytics.totalStudents}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-green-500/10">
+                    <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Completions</p>
+                    <p className="text-2xl font-bold">{aggregateAnalytics.totalCompletions}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-blue-500/10">
+                    <TrendingUp className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Completion Rate</p>
+                    <p className="text-2xl font-bold">{aggregateAnalytics.completionRate}%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Error Alert */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
