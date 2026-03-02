@@ -29,11 +29,11 @@ export const JWT_SECRET = isDevelopment
 export const PORT = parseInt(getOptionalEnv('PORT', '3001'), 10);
 
 // CORS configuration
-const defaultOrigins = isDevelopment
+const defaultOrigins: string[] | boolean = isDevelopment
   ? ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:3000']
-  : [];
+  : true; // Default to allow-all in production if not specified, to avoid Railway "Unable to Connect"
 
-export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+export const ALLOWED_ORIGINS: string[] | boolean = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : defaultOrigins;
 
@@ -49,6 +49,9 @@ export const REDIS_URL = isDevelopment
 export function logConfig(): void {
   console.log('[Config] Environment:', isDevelopment ? 'development' : 'production');
   console.log('[Config] Port:', PORT);
-  console.log('[Config] CORS origins:', ALLOWED_ORIGINS.length ? ALLOWED_ORIGINS.join(', ') : 'all (development only)');
+  const originsStr = Array.isArray(ALLOWED_ORIGINS)
+    ? ALLOWED_ORIGINS.join(', ')
+    : (ALLOWED_ORIGINS === true ? '*' : 'none');
+  console.log('[Config] CORS origins:', originsStr);
   console.log('[Config] JWT_SECRET:', JWT_SECRET ? '***configured***' : 'MISSING');
 }

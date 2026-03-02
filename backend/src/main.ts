@@ -55,7 +55,7 @@ await server.register(requestSanitizationPlugin);
 await server.register(rateLimitPlugin);
 
 await server.register(cors, {
-  origin: isDevelopment && ALLOWED_ORIGINS.length === 0
+  origin: isDevelopment && Array.isArray(ALLOWED_ORIGINS) && ALLOWED_ORIGINS.length === 0
     ? true
     : ALLOWED_ORIGINS,
   credentials: true,
@@ -105,7 +105,7 @@ await server.register(bookmarkRoutes, { prefix: '/bookmarks' });
 await server.register(analyticsRoutes, { prefix: '/analytics' });
 await server.register(studentProfileRoutes, { prefix: '/profiles' });
 await server.register(fileArticleRoutes, { prefix: '/file-articles' });
-await server.register(musicRoutes, { prefix: '/music' });
+await server.register(musicRoutes, { prefix: '/api/music' });
 await server.register(newsRoutes, { prefix: '/news' });
 await server.register(portalTeachersRoutes);
 
