@@ -3,18 +3,8 @@
  * Handles API calls to backend student profile and progress endpoints
  */
 
+import { api, API_BASE_URL } from '@/lib/apiClient';
 import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
 
 export interface StudentProfile {
   id: string;
@@ -102,6 +92,7 @@ export interface CourseProgress {
 export interface ResumeCourseResponse {
   lesson: {
     id: string;
+    slug: string;
     title: string;
     description: string | null;
     order: number;
@@ -122,16 +113,7 @@ export interface UpdateStudentProfileData {
  * Get enrolled courses for current student (with progress)
  */
 export async function getStudentCourses(): Promise<CourseWithProgress[]> {
-  const response = await fetch(`${API_BASE_URL}/courses/student`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch student courses');
-  }
-
+  const data = await api.get<{ courses: CourseWithProgress[] }>('/courses/student');
   return data.courses;
 }
 
@@ -144,88 +126,35 @@ export async function getStudentProgress(): Promise<{
   totalInProgress: number;
   percentComplete: number;
 }> {
-  const response = await fetch(`${API_BASE_URL}/student/progress`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch student progress');
-  }
-
-  return data;
+  return api.get('/student/progress');
 }
 
 /**
  * Get current student's profile with enrolled courses and progress
  */
 export async function getStudentProfile(): Promise<StudentProfileResponse> {
-  const response = await fetch(`${API_BASE_URL}/profiles/student`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch student profile');
-  }
-
-  return data;
+  return api.get('/profiles/student');
 }
 
 /**
  * Update current student's profile
  */
 export async function updateStudentProfile(data: UpdateStudentProfileData): Promise<{ message: string; profile: StudentProfile }> {
-  const response = await fetch(`${API_BASE_URL}/profiles/student`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || 'Failed to update student profile');
-  }
-
-  return result;
+  return api.put('/profiles/student', data);
 }
 
 /**
  * Get detailed progress for a specific course
  */
 export async function getCourseProgress(courseId: string): Promise<CourseProgress> {
-  const response = await fetch(`${API_BASE_URL}/profiles/student/progress/${courseId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch course progress');
-  }
-
-  return data;
+  return api.get(`/profiles/student/progress/${courseId}`);
 }
 
 /**
  * Get the last accessed lesson to resume for a specific course
  */
 export async function resumeCourse(courseId: string): Promise<ResumeCourseResponse> {
-  const response = await fetch(`${API_BASE_URL}/profiles/student/progress/${courseId}/resume`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to resume course');
-  }
-
-  return data;
+  return api.post(`/profiles/student/progress/${courseId}/resume`, {});
 }
 
 /**

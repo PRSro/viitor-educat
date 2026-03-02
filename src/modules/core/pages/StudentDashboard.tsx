@@ -199,8 +199,8 @@ export default function StudentDashboard() {
         }
 
         const response = await getArticles(filters);
-        setArticles(response.articles);
-        setArticleTotalPages(response.pagination.totalPages);
+        setArticles(response?.articles ?? []);
+        setArticleTotalPages(response?.pagination?.totalPages ?? 1);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch articles');
@@ -219,7 +219,13 @@ export default function StudentDashboard() {
     try {
       setEnrollingId(courseId);
       await enrollInCourse(courseId);
-      // Refresh courses
+      // Find the course slug to navigate to it
+      const course = allCourses.find(c => c.id === courseId);
+      if (course?.slug) {
+        navigate(`/courses/${course.slug}`);
+        return;
+      }
+      // Fallback: refresh lists in place
       const [enrolled, progress, all] = await Promise.all([
         getStudentCourses(),
         getStudentProgress(),
@@ -363,7 +369,7 @@ export default function StudentDashboard() {
         )}
 
         <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-7 aero-glass p-1">
+          <TabsList className="grid w-full grid-cols-7 aero-glass p-1 h-auto">
             <TabsTrigger value="progress" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
               <BookOpen className="h-4 w-4" />
               Progress
@@ -600,7 +606,7 @@ export default function StudentDashboard() {
                             </CardContent>
                             <CardFooter>
                               <Button asChild variant="ghost" size="sm" className="w-full justify-between">
-                                <Link to={`/lessons/${lesson.id}`}>
+                                <Link to={`/lessons/${lesson.slug}`}>
                                   View Lesson
                                   <ExternalLink className="h-3 w-3" />
                                 </Link>
@@ -1098,26 +1104,33 @@ function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: Cours
           </div>
         )}
       </CardContent>
-      <CardFooter className="pt-2">
+      <CardFooter className="pt-2 flex gap-2">
         {isEnrolled ? (
           <Link to={`/courses/${course.slug}`} className="w-full">
             <Button className="w-full">Continue Learning</Button>
           </Link>
         ) : (
-          <Button
-            className="w-full"
-            onClick={onEnroll}
-            disabled={enrolling}
-          >
-            {enrolling ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              'Preview'
+          <>
+            <Link to={`/courses/${course.slug}`} className="flex-1">
+              <Button variant="outline" className="w-full">Preview</Button>
+            </Link>
+            {onEnroll && (
+              <Button
+                className="flex-1"
+                onClick={onEnroll}
+                disabled={enrolling}
+              >
+                {enrolling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Enrolling...
+                  </>
+                ) : (
+                  'Enroll'
+                )}
+              </Button>
             )}
-          </Button>
+          </>
         )}
       </CardFooter>
     </Card >

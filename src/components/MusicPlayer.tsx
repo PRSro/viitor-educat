@@ -10,6 +10,7 @@ import {
 import { useAudioPlayer, Track } from '@/hooks/use-audio-player';
 import { api } from '@/lib/apiClient';
 import { getToken } from '@/modules/core/services/authService';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
 interface MusicPlayerProps {
   className?: string;
@@ -28,14 +29,26 @@ interface PreferenceResponse {
 }
 
 export function MusicPlayer({ className }: MusicPlayerProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isOpen, openPlayer, closePlayer } = useMusicPlayer();
+  const [tracks, setTracks] = useState<Track[]>([
+    { id: '1', frequencyHz: 432, name: 'Frutiger Aero', benefit: 'Aquatic serenity and nature-tech harmony.', duration: 3600, order: 0, url: '/music/safe-haven.mp3' },
+    { id: '2', frequencyHz: 174, name: 'Foundation', benefit: 'Removes pain and strengthens the feeling of security.', duration: 3600, order: 1 },
+    { id: '3', frequencyHz: 285, name: 'Healing', benefit: 'Heals tissues and organs; resets them to original perfect state.', duration: 3600, order: 2 },
+    { id: '4', frequencyHz: 396, name: 'Liberation', benefit: 'Liberates guilt and fear; transforms grief into joy.', duration: 3600, order: 3 },
+    { id: '5', frequencyHz: 528, name: 'Miracle', benefit: 'Repairs DNA and brings miracles; known as the love frequency.', duration: 3600, order: 5 },
+    { id: '6', frequencyHz: 639, name: 'Harmony', benefit: 'Brings harmony to relationships and facilitates connection.', duration: 3600, order: 6 },
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
   const [waitingForGesture, setWaitingForGesture] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const pendingAutoplayRef = useRef<Track | null>(null);
   const hasShownToastRef = useRef(false);
+
+  const setIsOpen = (open: boolean) => {
+    if (open) openPlayer();
+    else closePlayer();
+  };
 
   const {
     isPlaying,
@@ -51,10 +64,12 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   useEffect(() => {
     const fetchTracks = async () => {
       try {
+        console.log('[MusicPlayer] Fetching tracks from /music/tracks');
         const response = await api.get<TracksResponse>('/music/tracks');
+        console.log('[MusicPlayer] Tracks response:', response);
         setTracks(response.tracks);
       } catch (error) {
-        console.error('Failed to fetch tracks:', error);
+        console.error('[MusicPlayer] Failed to fetch tracks:', error);
       } finally {
         setIsLoading(false);
       }
@@ -66,38 +81,29 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     if (tracks.length === 0) return;
 
     const token = getToken();
+    if (!token) return; // Guest: don't auto-play
 
-    if (token) {
-      // Logged in — fetch saved preference
-      api.get<PreferenceResponse>('/music/preferences')
-        .then(response => {
-          if (response.preference?.trackId) {
-            const savedTrack = tracks.find(t => t.id === response.preference?.trackId);
-            if (savedTrack) {
-              pendingAutoplayRef.current = savedTrack;
-              setWaitingForGesture(true);
-              return;
-            }
+    // Logged in — fetch saved preference
+    api.get<PreferenceResponse>('/music/preferences')
+      .then(response => {
+        // Only restore if they had an explicit saved track
+        if (response.preference?.trackId && response.preference?.track) {
+          const savedTrack = tracks.find(t => t.id === response.preference?.trackId);
+          if (savedTrack) {
+            pendingAutoplayRef.current = savedTrack;
+            setWaitingForGesture(true);
           }
-          // No saved preference — queue first track
-          pendingAutoplayRef.current = tracks[0];
-          setWaitingForGesture(true);
-        })
-        .catch(() => {
-          // Preference fetch failed — still queue autoplay
-          pendingAutoplayRef.current = tracks[0];
-          setWaitingForGesture(true);
-        });
-    } else {
-      // Not logged in — queue first track directly, no preference fetch
-      pendingAutoplayRef.current = tracks[0];
-      setWaitingForGesture(true);
-    }
+          // No else — if no saved preference, don't auto-play anything
+        }
+      })
+      .catch(() => {
+        // Preference fetch failed — don't auto-play
+      });
   }, [tracks]);
 
   const handleGestureManual = useCallback(() => {
     if (waitingForGesture && pendingAutoplayRef.current) {
-      play(pendingAutoplayRef.current, 0.25);
+      play(pendingAutoplayRef.current, 0.2);
       pendingAutoplayRef.current = null;
       setWaitingForGesture(false);
     }
@@ -201,31 +207,29 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   }, [analyserNode]);
 
   return (
-    <div className={`fixed bottom-4 right-4 z-50 ${className}`}>
+    <div className={`fixed bottom-6 right-4 z-[9999] pb-safe ${className}`}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
+            variant="default"
             size="icon"
-            onClick={handleGestureManual}
             className={`
-              h-12 w-12 rounded-full shadow-lg bg-background/95 backdrop-blur
-              border border-border hover:bg-accent hover:text-accent-foreground
+              h-12 w-12 rounded-full shadow-lg bg-primary/90 backdrop-blur
+              border-2 border-white/20 hover:bg-primary
               transition-all duration-300
-              ${isPlaying ? 'animate-pulse border-primary shadow-primary/20' : ''}
-              ${waitingForGesture ? 'ring-2 ring-primary ring-offset-2 animate-bounce' : ''}
+              ${isPlaying ? 'animate-pulse shadow-primary/40' : ''}
             `}
           >
             {isPlaying ? (
-              <Volume2 className="h-5 w-5 text-primary" />
+              <Volume2 className="h-5 w-5 text-white" />
             ) : (
-              <Music className={`h-5 w-5 ${waitingForGesture ? 'text-primary animate-pulse' : ''}`} />
+              <Music className="h-5 w-5 text-white" />
             )}
           </Button>
         </PopoverTrigger>
 
         <PopoverContent
-          className="w-80 p-4 bg-background/95 backdrop-blur border border-border shadow-xl"
+          className="w-[calc(100vw-2rem)] max-w-80 p-4 bg-background/95 backdrop-blur border border-border shadow-xl"
           align="end"
           side="top"
         >

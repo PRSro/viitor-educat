@@ -3,12 +3,11 @@
  * Handles API calls to backend lesson endpoints
  */
 
-import { getToken } from '@/modules/core/services/authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export interface Lesson {
   id: string;
+  slug: string;
   title: string;
   description?: string;
   content: string;
@@ -60,29 +59,11 @@ export interface UpdateLessonData {
   attachmentUrl?: string;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 /**
  * Get public lessons (part of published courses)
  */
 export async function getLessons(): Promise<Lesson[]> {
-  const response = await fetch(`${API_BASE_URL}/lessons`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch lessons');
-  }
-
+  const data = await api.get<{ lessons: Lesson[] }>('/lessons');
   return data.lessons;
 }
 
@@ -90,16 +71,7 @@ export async function getLessons(): Promise<Lesson[]> {
  * Get teacher's private lessons
  */
 export async function getPrivateLessons(): Promise<Lesson[]> {
-  const response = await fetch(`${API_BASE_URL}/lessons/private`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch private lessons');
-  }
-
+  const data = await api.get<{ lessons: Lesson[] }>('/lessons/private');
   return data.lessons;
 }
 
@@ -107,16 +79,7 @@ export async function getPrivateLessons(): Promise<Lesson[]> {
  * Get lessons for a specific teacher
  */
 export async function getTeacherLessons(teacherId: string): Promise<Lesson[]> {
-  const response = await fetch(`${API_BASE_URL}/lessons/teacher/${teacherId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch teacher lessons');
-  }
-
+  const data = await api.get<{ lessons: Lesson[] }>(`/lessons/teacher/${teacherId}`);
   return data.lessons;
 }
 
@@ -124,35 +87,14 @@ export async function getTeacherLessons(teacherId: string): Promise<Lesson[]> {
  * Get a single lesson by ID
  */
 export async function getLesson(id: string): Promise<{ lesson: Lesson; isTeacher: boolean }> {
-  const response = await fetch(`${API_BASE_URL}/lessons/${id}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch lesson');
-  }
-
-  return data;
+  return api.get(`/lessons/${id}`);
 }
 
 /**
  * Create a new standalone lesson (private by default)
  */
 export async function createLesson(lessonData: CreateLessonData): Promise<Lesson> {
-  const response = await fetch(`${API_BASE_URL}/lessons`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(lessonData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to create lesson');
-  }
-
+  const data = await api.post<{ lesson: Lesson }>('/lessons', lessonData);
   return data.lesson;
 }
 
@@ -160,18 +102,7 @@ export async function createLesson(lessonData: CreateLessonData): Promise<Lesson
  * Update a lesson
  */
 export async function updateLesson(id: string, lessonData: UpdateLessonData): Promise<Lesson> {
-  const response = await fetch(`${API_BASE_URL}/lessons/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(lessonData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to update lesson');
-  }
-
+  const data = await api.put<{ lesson: Lesson }>(`/lessons/${id}`, lessonData);
   return data.lesson;
 }
 
@@ -179,32 +110,14 @@ export async function updateLesson(id: string, lessonData: UpdateLessonData): Pr
  * Delete a lesson
  */
 export async function deleteLesson(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/lessons/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to delete lesson');
-  }
+  await api.delete(`/lessons/${id}`);
 }
 
 /**
  * Get courses containing a lesson
  */
 export async function getLessonCourses(lessonId: string): Promise<unknown[]> {
-  const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}/courses`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch lesson courses');
-  }
-
+  const data = await api.get<{ courses: unknown[] }>(`/lessons/${lessonId}/courses`);
   return data.courses;
 }
 
@@ -221,11 +134,10 @@ export interface LessonProgress {
 }
 
 export interface LessonCompleteResponse {
-  message: string;
-  progress: number;
-  completedLessonsCount: number;
-  completedAt: string | null;
-  isCourseCompleted: boolean;
+  lessonId: string;
+  lessonSlug: string;
+  completed: boolean;
+  nextLesson: { id: string; slug: string; title: string; order: number } | null;
 }
 
 export interface LessonViewResponse {
@@ -242,50 +154,19 @@ export interface LessonViewResponse {
   completedAt: string | null;
   isAuthenticated: boolean;
   navigation: {
-    nextLesson: { id: string; title: string; order: number } | null;
-    previousLesson: { id: string; title: string; order: number } | null;
+    nextLesson: { id: string; slug: string; title: string; order: number } | null;
+    previousLesson: { id: string; slug: string; title: string; order: number } | null;
   };
 }
 
 export async function completeLesson(lessonId: string): Promise<LessonCompleteResponse> {
-  const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}/complete`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to complete lesson');
-  }
-
-  return data;
+  return api.post(`/lessons/${lessonId}/complete`, {});
 }
 
 export async function getLessonProgress(lessonId: string): Promise<LessonProgress> {
-  const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}/progress`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to fetch lesson progress');
-  }
-
-  return data;
+  return api.get(`/lessons/${lessonId}/progress`);
 }
 
 export async function viewLesson(lessonId: string): Promise<LessonViewResponse> {
-  const response = await fetch(`${API_BASE_URL}/lessons/${lessonId}/view`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to view lesson');
-  }
-
-  return data;
+  return api.get(`/lessons/${lessonId}/view`);
 }

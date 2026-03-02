@@ -38,7 +38,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrequency, setCurrentFrequency] = useState<number | null>(null);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [volume, setVolumeState] = useState(0.5);
+  const [volume, setVolumeState] = useState(0.2);
   const [elapsedTime, setElapsedTime] = useState(0);
 
   const stop = useCallback(() => {

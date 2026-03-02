@@ -9,10 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { User, Mail, Shield, Calendar, Loader2, Save, Moon, Sun, Camera, Upload, Globe, Linkedin, Twitter, BookOpen, GraduationCap, ArrowRight, LayoutDashboard } from 'lucide-react';
 import { getProfile, uploadProfilePicture, User as UserType, TeacherProfile as TeacherProfileType } from '@/modules/core/services/authService';
-import { getToken } from '@/modules/core/services/authService';
 import { Link, useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 interface TeacherProfile {
   id: string;
@@ -109,29 +108,16 @@ export default function Profile() {
     setSuccess(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getToken()}`
-        },
-        body: JSON.stringify({
-          bio: formData.bio || null,
-          pictureUrl: formData.pictureUrl || null,
-          phone: formData.phone || null,
-          office: formData.office || null,
-          officeHours: formData.officeHours || null,
-          website: formData.website || null,
-          linkedin: formData.linkedin || null,
-          twitter: formData.twitter || null
-        })
+      const data = await api.put<{ profile: TeacherProfile }>('/profile', {
+        bio: formData.bio || null,
+        pictureUrl: formData.pictureUrl || null,
+        phone: formData.phone || null,
+        office: formData.office || null,
+        officeHours: formData.officeHours || null,
+        website: formData.website || null,
+        linkedin: formData.linkedin || null,
+        twitter: formData.twitter || null
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to update profile');
-      }
 
       setProfile(data.profile);
       setSuccess('Profil actualizat cu succes!');

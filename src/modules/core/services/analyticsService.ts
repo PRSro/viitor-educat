@@ -3,9 +3,7 @@
  * Handles API calls for analytics functionality
  */
 
-import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export interface OverviewAnalytics {
   users: {
@@ -94,31 +92,12 @@ export interface TeacherOverview {
   completionRate: number;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 /**
  * Get platform-wide overview analytics (Admin only)
  */
 export async function getOverviewAnalytics(period?: 'week' | 'month' | 'quarter'): Promise<OverviewAnalytics> {
   const params = period ? `?period=${period}` : '';
-  const response = await fetch(`${API_BASE_URL}/analytics/overview${params}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch analytics overview');
-  }
-
-  return data;
+  return api.get(`/analytics/overview${params}`);
 }
 
 /**
@@ -126,16 +105,7 @@ export async function getOverviewAnalytics(period?: 'week' | 'month' | 'quarter'
  */
 export async function getAnalyticsTrends(days?: number): Promise<TrendData[]> {
   const params = days ? `?days=${days}` : '';
-  const response = await fetch(`${API_BASE_URL}/analytics/trends${params}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch analytics trends');
-  }
-
+  const data = await api.get<{ trends: TrendData[] }>(`/analytics/trends${params}`);
   return data.trends;
 }
 
@@ -144,16 +114,7 @@ export async function getAnalyticsTrends(days?: number): Promise<TrendData[]> {
  */
 export async function getCourseAnalytics(limit?: number): Promise<CourseAnalytics[]> {
   const params = limit ? `?limit=${limit}` : '';
-  const response = await fetch(`${API_BASE_URL}/analytics/courses${params}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch course analytics');
-  }
-
+  const data = await api.get<{ courses: CourseAnalytics[] }>(`/analytics/courses${params}`);
   return data.courses;
 }
 
@@ -175,16 +136,7 @@ export interface PopularCourse {
 
 export async function getPopularCourses(limit?: number): Promise<PopularCourse[]> {
   const params = limit ? `?limit=${limit}` : '';
-  const response = await fetch(`${API_BASE_URL}/analytics/popular-courses${params}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch popular courses');
-  }
-
+  const data = await api.get<{ courses: PopularCourse[] }>(`/analytics/popular-courses${params}`);
   return data.courses;
 }
 
@@ -192,16 +144,7 @@ export async function getPopularCourses(limit?: number): Promise<PopularCourse[]
  * Get teacher performance metrics (Admin only)
  */
 export async function getTeacherAnalytics(): Promise<TeacherAnalytics[]> {
-  const response = await fetch(`${API_BASE_URL}/analytics/teachers`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch teacher analytics');
-  }
-
+  const data = await api.get<{ teachers: TeacherAnalytics[] }>('/analytics/teachers');
   return data.teachers;
 }
 
@@ -217,19 +160,7 @@ export async function getStudentAnalytics(options?: {
   if (options?.offset) params.append('offset', options.offset.toString());
 
   const queryString = params.toString();
-  const url = `${API_BASE_URL}/analytics/students${queryString ? '?' + queryString : ''}`;
-
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch student analytics');
-  }
-
-  return data;
+  return api.get(`/analytics/students${queryString ? '?' + queryString : ''}`);
 }
 
 /**
@@ -259,34 +190,14 @@ export interface ContentAnalytics {
  * Get content statistics (Admin only)
  */
 export async function getContentAnalytics(): Promise<ContentAnalytics> {
-  const response = await fetch(`${API_BASE_URL}/analytics/content`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch content analytics');
-  }
-
-  return data;
+  return api.get('/analytics/content');
 }
 
 /**
  * Get analytics for current teacher's courses (Teacher only)
  */
 export async function getTeacherOverview(): Promise<TeacherOverview> {
-  const response = await fetch(`${API_BASE_URL}/analytics/teacher/overview`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch teacher analytics');
-  }
-
-  return data;
+  return api.get('/analytics/teacher/overview');
 }
 
 export interface LessonCompletionData {
@@ -308,17 +219,7 @@ export interface LessonCompletionResponse {
 }
 
 export async function getLessonCompletionRates(page: number = 1, limit: number = 20): Promise<LessonCompletionResponse> {
-  const response = await fetch(`${API_BASE_URL}/analytics/lessons?page=${page}&limit=${limit}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch lesson completion rates');
-  }
-
-  return data;
+  return api.get(`/analytics/lessons?page=${page}&limit=${limit}`);
 }
 
 export interface DropoffDistribution {
@@ -336,17 +237,7 @@ export interface LessonDropoffResponse {
 }
 
 export async function getLessonDropoff(lessonId: string): Promise<LessonDropoffResponse> {
-  const response = await fetch(`${API_BASE_URL}/analytics/lessons/${lessonId}/dropoff`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch lesson dropoff');
-  }
-
-  return data;
+  return api.get(`/analytics/lessons/${lessonId}/dropoff`);
 }
 
 export interface WeeklyActiveData {
@@ -360,17 +251,7 @@ export interface WeeklyActiveResponse {
 }
 
 export async function getWeeklyActiveStudents(weeks: number = 8): Promise<WeeklyActiveResponse> {
-  const response = await fetch(`${API_BASE_URL}/analytics/students/active?weeks=${weeks}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch active students');
-  }
-
-  return data;
+  return api.get(`/analytics/students/active?weeks=${weeks}`);
 }
 
 export interface QuizPerformanceData {
@@ -393,15 +274,5 @@ export interface QuizPerformanceResponse {
 }
 
 export async function getQuizPerformance(page: number = 1, limit: number = 20): Promise<QuizPerformanceResponse> {
-  const response = await fetch(`${API_BASE_URL}/analytics/quizzes?page=${page}&limit=${limit}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch quiz performance');
-  }
-
-  return data;
+  return api.get(`/analytics/quizzes?page=${page}&limit=${limit}`);
 }

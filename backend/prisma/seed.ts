@@ -653,6 +653,7 @@ async function main() {
                             status: 'PUBLIC',
                             order: i,
                             teacherId: teacher.id,
+                            slug: `seed-${s}-${i}`,
                         })),
                     },
                 },
@@ -776,6 +777,7 @@ async function seedLessonsFromJson(prisma: PrismaClient, teacherId: string) {
                         status: 'PUBLIC',
                         teacherId: teacherId,
                         order: parseInt(file.split('-')[0]) || 0,
+                        slug: `seed-${raw.id}`,
                     },
                 });
                 seededCount++;

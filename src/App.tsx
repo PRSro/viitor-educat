@@ -8,6 +8,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { DraftProvider } from "@/contexts/DraftContext";
+import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "@/modules/core/pages/Index";
@@ -56,6 +57,7 @@ const App = () => (
                   <Toaster />
                   <Sonner />
                   <BrowserRouter>
+                    <MusicPlayerProvider>
                     <Routes>
                       <Route path="/" element={<ErrorBoundary><Index /></ErrorBoundary>} />
                       <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
@@ -94,13 +96,11 @@ const App = () => (
                         }
                       />
 
-                      {/* Course Detail - All authenticated users */}
+                      {/* Course Detail - Public */}
                       <Route
                         path="/courses/:slug"
                         element={
-                          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <ErrorBoundary><CourseDetail /></ErrorBoundary>
-                          </ProtectedRoute>
+                          <ErrorBoundary><CourseDetail /></ErrorBoundary>
                         }
                       />
 
@@ -321,7 +321,8 @@ const App = () => (
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />
                     </Routes>
-                    {/* <MusicPlayer /> */}
+                    <MusicPlayer />
+                    </MusicPlayerProvider>
                   </BrowserRouter>
                 </TooltipProvider>
               </ErrorBoundary>

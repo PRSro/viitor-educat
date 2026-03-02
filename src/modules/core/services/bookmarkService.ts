@@ -3,9 +3,7 @@
  * Handles API calls for bookmark functionality
  */
 
-import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export interface Bookmark {
   id: string;
@@ -29,15 +27,6 @@ export interface CreateBookmarkData {
   url?: string;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 /**
  * Get all bookmarks for current user
  */
@@ -52,35 +41,14 @@ export async function getBookmarks(options?: {
   if (options?.offset) params.append('offset', options.offset.toString());
 
   const queryString = params.toString();
-  const url = `${API_BASE_URL}/bookmarks${queryString ? '?' + queryString : ''}`;
-
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch bookmarks');
-  }
-
-  return data;
+  return api.get<BookmarkResponse>(`/bookmarks${queryString ? '?' + queryString : ''}`);
 }
 
 /**
  * Get a single bookmark by ID
  */
 export async function getBookmarkById(id: string): Promise<Bookmark> {
-  const response = await fetch(`${API_BASE_URL}/bookmarks/${id}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch bookmark');
-  }
-
+  const data = await api.get<{ bookmark: Bookmark }>(`/bookmarks/${id}`);
   return data.bookmark;
 }
 
@@ -88,18 +56,7 @@ export async function getBookmarkById(id: string): Promise<Bookmark> {
  * Create a new bookmark
  */
 export async function createBookmark(bookmarkData: CreateBookmarkData): Promise<Bookmark> {
-  const response = await fetch(`${API_BASE_URL}/bookmarks`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(bookmarkData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to create bookmark');
-  }
-
+  const data = await api.post<{ bookmark: Bookmark }>('/bookmarks', bookmarkData);
   return data.bookmark;
 }
 
@@ -107,18 +64,7 @@ export async function createBookmark(bookmarkData: CreateBookmarkData): Promise<
  * Update a bookmark
  */
 export async function updateBookmark(id: string, bookmarkData: Partial<CreateBookmarkData>): Promise<Bookmark> {
-  const response = await fetch(`${API_BASE_URL}/bookmarks/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(bookmarkData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to update bookmark');
-  }
-
+  const data = await api.put<{ bookmark: Bookmark }>(`/bookmarks/${id}`, bookmarkData);
   return data.bookmark;
 }
 
@@ -126,30 +72,14 @@ export async function updateBookmark(id: string, bookmarkData: Partial<CreateBoo
  * Delete a bookmark
  */
 export async function deleteBookmark(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/bookmarks/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || 'Failed to delete bookmark');
-  }
+  await api.delete(`/bookmarks/${id}`);
 }
 
 /**
  * Delete a bookmark by resource
  */
 export async function deleteBookmarkByResource(resourceType: string, resourceId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/bookmarks/by-resource/${resourceType}/${resourceId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || 'Failed to delete bookmark');
-  }
+  await api.delete(`/bookmarks/by-resource/${resourceType}/${resourceId}`);
 }
 
 /**
@@ -159,20 +89,7 @@ export async function checkBookmark(resourceType: string, resourceId: string): P
   isBookmarked: boolean;
   bookmarkId: string | null;
 }> {
-  const response = await fetch(
-    `${API_BASE_URL}/bookmarks/check/${resourceType}/${resourceId}`,
-    {
-      headers: getAuthHeaders(),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to check bookmark');
-  }
-
-  return data;
+  return api.get(`/bookmarks/check/${resourceType}/${resourceId}`);
 }
 
 /**
@@ -182,17 +99,5 @@ export async function toggleBookmark(bookmarkData: CreateBookmarkData): Promise<
   isBookmarked: boolean;
   bookmark?: Bookmark;
 }> {
-  const response = await fetch(`${API_BASE_URL}/bookmarks/toggle`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(bookmarkData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to toggle bookmark');
-  }
-
-  return data;
+  return api.post('/bookmarks/toggle', bookmarkData);
 }

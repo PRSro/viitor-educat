@@ -263,7 +263,13 @@ export async function profileRoutes(server: FastifyInstance) {
             published: true
           }
         },
-        include: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          description: true,
+          order: true,
+          createdAt: true,
           course: {
             select: {
               id: true,

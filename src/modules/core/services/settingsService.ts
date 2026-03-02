@@ -3,9 +3,7 @@
  * Handles API calls to backend settings endpoints
  */
 
-import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export type Theme = 'light' | 'dark' | 'system';
 export type DashboardView = 'courses' | 'articles' | 'resources' | 'flashcards';
@@ -83,29 +81,11 @@ export interface UpdateSettingsData {
   defaultResourceType?: ResourceType;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 /**
  * Get current user's settings
  */
 export async function getSettings(): Promise<UserSettings> {
-  const response = await fetch(`${API_BASE_URL}/settings`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to fetch settings');
-  }
-
+  const data = await api.get<{ settings: UserSettings }>('/settings');
   return data.settings;
 }
 
@@ -113,18 +93,7 @@ export async function getSettings(): Promise<UserSettings> {
  * Update user settings
  */
 export async function updateSettings(settings: UpdateSettingsData): Promise<UserSettings> {
-  const response = await fetch(`${API_BASE_URL}/settings`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(settings),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to update settings');
-  }
-
+  const data = await api.put<{ settings: UserSettings }>('/settings', settings);
   return data.settings;
 }
 
@@ -132,17 +101,7 @@ export async function updateSettings(settings: UpdateSettingsData): Promise<User
  * Reset settings to defaults
  */
 export async function resetSettings(): Promise<UserSettings> {
-  const response = await fetch(`${API_BASE_URL}/settings/reset`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to reset settings');
-  }
-
+  const data = await api.post<{ settings: UserSettings }>('/settings/reset', {});
   return data.settings;
 }
 
@@ -150,16 +109,7 @@ export async function resetSettings(): Promise<UserSettings> {
  * Get available categories for preferences
  */
 export async function getAvailableCategories(): Promise<string[]> {
-  const response = await fetch(`${API_BASE_URL}/settings/categories`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch categories');
-  }
-
+  const data = await api.get<{ categories: string[] }>('/settings/categories');
   return data.categories;
 }
 

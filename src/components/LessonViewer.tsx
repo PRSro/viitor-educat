@@ -88,13 +88,13 @@ export function LessonViewer({
 
   const handleNextLesson = () => {
     if (navigation.nextLesson) {
-      navigate(`/lessons/${navigation.nextLesson.id}`);
+      navigate(`/lessons/${navigation.nextLesson.slug}`);
     }
   };
 
   const handlePreviousLesson = () => {
     if (navigation.previousLesson) {
-      navigate(`/lessons/${navigation.previousLesson.id}`);
+      navigate(`/lessons/${navigation.previousLesson.slug}`);
     }
   };
 

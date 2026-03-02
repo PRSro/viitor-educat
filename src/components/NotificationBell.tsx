@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '@/contexts/SettingsContext';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { 
   getNotifications, 
   getUnreadCount, 
@@ -55,6 +56,7 @@ const TIMER_PRESETS = [
 
 export function NotificationBell() {
   const { settings } = useSettings();
+  const { openPlayer } = useMusicPlayer();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -188,8 +190,8 @@ export function NotificationBell() {
     try {
       setLoading(true);
       const data = await getNotifications();
-      setNotifications(data);
-      setUnreadCount(data.filter(n => !n.read).length);
+      setNotifications(data ?? []);
+      setUnreadCount((data ?? []).filter(n => !n.read).length);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     } finally {
@@ -241,16 +243,8 @@ export function NotificationBell() {
     }
   }
 
-  const notificationSettingsEnabled = 
-    settings?.emailNotifications || 
-    settings?.courseUpdates || 
-    settings?.newArticles || 
-    settings?.newResources || 
-    settings?.flashcardReminders;
-
-  if (!notificationSettingsEnabled) {
-    return null;
-  }
+  // Always show the bell for now - can be refined later based on user preferences
+  // The notification/timer/music features should be available to all users
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -267,7 +261,7 @@ export function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0" align="end">
+      <PopoverContent className="w-[calc(100vw-2rem)] max-w-96 p-0" align="end">
         <Tabs defaultValue="timer" className="w-full">
           <TabsList className="w-full grid grid-cols-3 rounded-none border-b">
             <TabsTrigger value="timer" className="flex gap-2">
@@ -401,87 +395,35 @@ export function NotificationBell() {
 
           {/* Music Tab */}
           <TabsContent value="music" className="p-4 space-y-4">
-            {/* Now Playing */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10"
-                onClick={togglePlay}
-              >
-                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-              </Button>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">
-                  {currentTrack ? currentTrack.name : 'No track selected'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {currentTrack ? currentTrack.benefit : 'Click a track to play'}
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center mx-auto">
+                <Music className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Muzică Ambientală</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Ascultă muzică relaxantă în timpul studiului
                 </p>
               </div>
+              <Button 
+                onClick={() => {
+                  openPlayer();
+                  setOpen(false);
+                }}
+                className="w-full"
+                size="lg"
+              >
+                <Volume2 className="h-4 w-4 mr-2" />
+                Deschide Playerul de Muzică
+              </Button>
             </div>
 
-            {/* Track List */}
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Ambient sounds for focus</p>
-              <ScrollArea className="h-40">
-                {loadingTracks ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  </div>
-                ) : tracks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">No tracks available</p>
-                ) : (
-                  tracks.map((track) => (
-                    <button
-                      key={track.id}
-                      className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors ${
-                        currentTrack?.id === track.id 
-                          ? 'bg-primary/10 text-primary' 
-                          : 'hover:bg-muted'
-                      }`}
-                      onClick={() => handleTrackSelect(track)}
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{track.name}</p>
-                        <p className="text-xs text-muted-foreground">{track.benefit}</p>
-                      </div>
-                      {currentTrack?.id === track.id && isPlaying && (
-                        <div className="flex gap-0.5">
-                          {[...Array(3)].map((_, i) => (
-                            <div
-                              key={i}
-                              className="w-1 bg-primary animate-pulse"
-                              style={{
-                                height: `${12 + Math.random() * 8}px`,
-                                animationDelay: `${i * 0.1}s`
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  ))
-                )}
-              </ScrollArea>
+            {/* Timer tip */}
+            <div className="border-t pt-4">
+              <p className="text-xs text-muted-foreground text-center">
+                Combină timerul Pomodoro cu muzica ambientală pentru o concentrare maximă 🎯
+              </p>
             </div>
-
-            {/* Volume */}
-            <div className="flex items-center gap-2">
-              <Volume2 className="h-4 w-4 text-muted-foreground" />
-              <Slider
-                value={[audioVolume * 100]}
-                onValueChange={([val]) => setVolume(val / 100)}
-                max={100}
-                step={1}
-                className="flex-1"
-              />
-            </div>
-
-            {/* Info */}
-            <p className="text-xs text-muted-foreground text-center">
-              These ambient frequencies can help promote relaxation and focus during study sessions.
-            </p>
           </TabsContent>
 
           {/* Notifications Tab */}
@@ -506,7 +448,7 @@ export function NotificationBell() {
                 <div className="flex items-center justify-center py-8">
                   <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : (notifications?.length ?? 0) === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Bell className="h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">Nu ai notificări</p>

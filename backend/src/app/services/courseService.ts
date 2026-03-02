@@ -5,6 +5,15 @@ import { ServiceResponse, PaginationMeta } from '../core/types/service.js';
 import { AppError } from '../core/errors/AppError.js';
 import { auditService } from './auditService.js';
 
+function generateLessonSlug(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  let result = '';
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  for (const byte of bytes) result += chars[byte % 64];
+  return result;
+}
+
 export interface CreateCourseData {
     title: string;
     description?: string;
@@ -83,7 +92,8 @@ export class CourseService extends BaseService {
                             description: l.description,
                             status: l.status || Status.PRIVATE,
                             order: l.order ?? i,
-                            teacherId: data.teacherId
+                            teacherId: data.teacherId,
+                            slug: generateLessonSlug()
                         }))
                     }
                 },
@@ -158,7 +168,8 @@ export class CourseService extends BaseService {
                                     content: l.content,
                                     description: l.description,
                                     order: l.order,
-                                    status: l.status || Status.PRIVATE
+                                    status: l.status || Status.PRIVATE,
+                                    slug: generateLessonSlug()
                                 }
                             });
                         }

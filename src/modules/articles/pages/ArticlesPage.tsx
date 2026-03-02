@@ -77,8 +77,8 @@ export default function ArticlesPage() {
       }
 
       const response = await getArticles(filters);
-      setArticles(response.articles);
-      setTotalPages(response.pagination.totalPages);
+      setArticles(response?.articles ?? []);
+      setTotalPages(response?.pagination?.totalPages ?? 1);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch articles');

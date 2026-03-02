@@ -45,9 +45,8 @@ import {
   LearningHistoryItem,
   StudentStats
 } from '@/modules/core/services/studentService';
-import { getToken } from '@/modules/core/services/authService';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export default function StudentProfilePage() {
   const { user, logout } = useAuth();

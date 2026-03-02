@@ -3,9 +3,7 @@
  * Handles API calls to backend resource endpoints
  */
 
-import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export type ResourceType = 'YOUTUBE' | 'LINK' | 'PDF' | 'DOCUMENT';
 
@@ -88,15 +86,6 @@ export interface CreateResourceData {
   courseId?: string;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 /**
  * Fetch resources with optional filters
  */
@@ -111,35 +100,14 @@ export async function getResources(filters?: ResourceFilters): Promise<Resources
   if (filters?.limit) params.set('limit', filters.limit.toString());
   
   const queryString = params.toString();
-  const url = `${API_BASE_URL}/resources${queryString ? `?${queryString}` : ''}`;
-  
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch resources');
-  }
-
-  return data;
+  return api.get(`/resources${queryString ? `?${queryString}` : ''}`);
 }
 
 /**
  * Get resources for a specific course
  */
 export async function getResourcesByCourse(courseId: string): Promise<ResourceListItem[]> {
-  const response = await fetch(`${API_BASE_URL}/resources/course/${courseId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch course resources');
-  }
-
+  const data = await api.get<{ resources: ResourceListItem[] }>(`/resources/course/${courseId}`);
   return data.resources;
 }
 
@@ -147,16 +115,7 @@ export async function getResourcesByCourse(courseId: string): Promise<ResourceLi
  * Get resources for a specific lesson
  */
 export async function getResourcesByLesson(lessonId: string): Promise<ResourceListItem[]> {
-  const response = await fetch(`${API_BASE_URL}/resources/lesson/${lessonId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch lesson resources');
-  }
-
+  const data = await api.get<{ resources: ResourceListItem[] }>(`/resources/lesson/${lessonId}`);
   return data.resources;
 }
 
@@ -164,16 +123,7 @@ export async function getResourcesByLesson(lessonId: string): Promise<ResourceLi
  * Get resources by a specific teacher
  */
 export async function getResourcesByTeacher(teacherId: string): Promise<ResourceListItem[]> {
-  const response = await fetch(`${API_BASE_URL}/resources/teacher/${teacherId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch teacher resources');
-  }
-
+  const data = await api.get<{ resources: ResourceListItem[] }>(`/resources/teacher/${teacherId}`);
   return data.resources;
 }
 
@@ -181,16 +131,7 @@ export async function getResourcesByTeacher(teacherId: string): Promise<Resource
  * Get resource by ID
  */
 export async function getResourceById(id: string): Promise<ExternalResource> {
-  const response = await fetch(`${API_BASE_URL}/resources/${id}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch resource');
-  }
-
+  const data = await api.get<{ resource: ExternalResource }>(`/resources/${id}`);
   return data.resource;
 }
 
@@ -198,16 +139,7 @@ export async function getResourceById(id: string): Promise<ExternalResource> {
  * Get available resource types
  */
 export async function getResourceTypes(): Promise<ResourceType[]> {
-  const response = await fetch(`${API_BASE_URL}/resources/types`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch resource types');
-  }
-
+  const data = await api.get<{ types: ResourceType[] }>('/resources/types');
   return data.types;
 }
 
@@ -215,18 +147,7 @@ export async function getResourceTypes(): Promise<ResourceType[]> {
  * Create a new resource (Teacher/Admin only)
  */
 export async function createResource(resourceData: CreateResourceData): Promise<ExternalResource> {
-  const response = await fetch(`${API_BASE_URL}/resources`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(resourceData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to create resource');
-  }
-
+  const data = await api.post<{ resource: ExternalResource }>('/resources', resourceData);
   return data.resource;
 }
 
@@ -234,18 +155,7 @@ export async function createResource(resourceData: CreateResourceData): Promise<
  * Update a resource (Teacher/Admin only)
  */
 export async function updateResource(id: string, resourceData: Partial<CreateResourceData>): Promise<ExternalResource> {
-  const response = await fetch(`${API_BASE_URL}/resources/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(resourceData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to update resource');
-  }
-
+  const data = await api.put<{ resource: ExternalResource }>(`/resources/${id}`, resourceData);
   return data.resource;
 }
 
@@ -253,16 +163,7 @@ export async function updateResource(id: string, resourceData: Partial<CreateRes
  * Delete a resource (Teacher/Admin only)
  */
 export async function deleteResource(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/resources/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to delete resource');
-  }
+  await api.delete(`/resources/${id}`);
 }
 
 // Helper functions

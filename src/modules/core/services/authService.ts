@@ -3,9 +3,8 @@
  * Handles API calls to backend auth endpoints
  */
 
+import { api, API_BASE_URL } from '@/lib/apiClient';
 import type { ArticleListItem } from '@/modules/articles/services/articleService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface User {
   id: string;
@@ -34,44 +33,14 @@ export async function register(
   password: string,
   role: 'STUDENT' | 'TEACHER'
 ): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': 'true',
-    },
-    body: JSON.stringify({ email, password, role }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Registration failed');
-  }
-
-  return data;
+  return api.post<AuthResponse>('/auth/register', { email, password, role });
 }
 
 /**
  * Login user
  */
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'ngrok-skip-browser-warning': 'true',
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Login failed');
-  }
-
-  return data;
+  return api.post<AuthResponse>('/auth/login', { email, password });
 }
 
 /**
@@ -155,20 +124,7 @@ export interface ProfileResponse {
  * Get current user profile from backend
  */
 export async function getProfile(): Promise<ProfileResponse> {
-  const response = await fetch(`${API_BASE_URL}/profile`, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to fetch profile');
-  }
-
-  return data;
+  return api.get<ProfileResponse>('/profile');
 }
 
 /**
@@ -197,20 +153,7 @@ export interface TeacherCourses {
 }
 
 export async function getTeacherProfile(teacherId: string): Promise<{ teacher: User; profile: TeacherProfile | null; courses: TeacherCourses[] }> {
-  const response = await fetch(`${API_BASE_URL}/profile/${teacherId}`, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to fetch teacher profile');
-  }
-
-  return data;
+  return api.get(`/profile/${teacherId}`);
 }
 
 /**
@@ -260,19 +203,7 @@ export interface TeacherWithProfile {
  * Get all teachers with their profiles (for student discovery)
  */
 export async function getAllTeachers(): Promise<TeacherWithProfile[]> {
-  const response = await fetch(`${API_BASE_URL}/profile/teachers`, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to fetch teachers');
-  }
-
+  const data = await api.get<{ teachers: TeacherWithProfile[] }>('/profile/teachers');
   return data.teachers;
 }
 
@@ -280,19 +211,7 @@ export async function getAllTeachers(): Promise<TeacherWithProfile[]> {
  * Get teacher's published articles (for public profile)
  */
 export async function getTeacherArticles(teacherId: string): Promise<ArticleListItem[]> {
-  const response = await fetch(`${API_BASE_URL}/profile/${teacherId}/articles`, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to fetch teacher articles');
-  }
-
+  const data = await api.get<{ articles: ArticleListItem[] }>(`/profile/${teacherId}/articles`);
   return data.articles;
 }
 
@@ -301,6 +220,7 @@ export async function getTeacherArticles(teacherId: string): Promise<ArticleList
  */
 export interface TeacherLesson {
   id: string;
+  slug: string;
   title: string;
   description: string | null;
   courseId: string | null;
@@ -314,19 +234,7 @@ export interface TeacherLesson {
 }
 
 export async function getTeacherLessons(teacherId: string): Promise<TeacherLesson[]> {
-  const response = await fetch(`${API_BASE_URL}/profile/${teacherId}/lessons`, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to fetch teacher lessons');
-  }
-
+  const data = await api.get<{ lessons: TeacherLesson[] }>(`/profile/${teacherId}/lessons`);
   return data.lessons;
 }
 

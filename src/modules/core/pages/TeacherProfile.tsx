@@ -570,7 +570,7 @@ function LessonCard({ lesson }: LessonCardProps) {
           </Button>
         ) : (
           <Button className="w-full" asChild>
-            <Link to={`/lessons/${lesson.id}`}>
+            <Link to={`/lessons/${lesson.slug}`}>
               <Eye className="h-4 w-4 mr-2" />
               View Lesson
             </Link>

@@ -3,9 +3,7 @@
  * Handles API calls for user notifications
  */
 
-import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export interface Notification {
   id: string;
@@ -41,15 +39,6 @@ export interface BroadcastData {
   userIds?: string[];
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 export async function getNotifications(options?: { 
   limit?: number; 
   offset?: number; 
@@ -61,98 +50,37 @@ export async function getNotifications(options?: {
   if (options?.unread) params.append('unread', 'true');
 
   const queryString = params.toString();
-  const url = `${API_BASE_URL}/notifications${queryString ? '?' + queryString : ''}`;
-
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch notifications');
-  }
-
-  return data;
+  return api.get(`/notifications${queryString ? '?' + queryString : ''}`);
 }
 
 export async function getUnreadCount(): Promise<number> {
-  const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
+  try {
+    const data = await api.get<{ unreadCount: number }>('/notifications/unread-count');
+    return data.unreadCount;
+  } catch {
     return 0;
   }
-
-  return data.unreadCount;
 }
 
 export async function createNotification(data: CreateNotificationData): Promise<Notification> {
-  const response = await fetch(`${API_BASE_URL}/notifications`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || 'Failed to create notification');
-  }
-
+  const result = await api.post<{ notification: Notification }>('/notifications', data);
   return result.notification;
 }
 
 export async function broadcastNotification(data: BroadcastData): Promise<{ created: number }> {
-  const response = await fetch(`${API_BASE_URL}/notifications/broadcast`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || 'Failed to broadcast notification');
-  }
-
-  return result;
+  return api.post('/notifications/broadcast', data);
 }
 
 export async function markAsRead(notificationId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to mark notification as read');
-  }
+  await api.put(`/notifications/${notificationId}/read`);
 }
 
 export async function markAllAsRead(): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to mark all notifications as read');
-  }
+  await api.put('/notifications/read-all');
 }
 
 export async function deleteNotification(notificationId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to delete notification');
-  }
+  await api.delete(`/notifications/${notificationId}`);
 }
 
 export function getNotificationIcon(type: Notification['type']): string {

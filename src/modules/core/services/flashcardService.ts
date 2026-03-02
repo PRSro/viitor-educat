@@ -3,9 +3,7 @@
  * Handles API calls to backend flashcard endpoints
  */
 
-import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export interface Flashcard {
   id: string;
@@ -85,15 +83,6 @@ export interface StudyPrompt {
   category?: string;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 /**
  * Fetch flashcards with optional filters
  */
@@ -106,52 +95,21 @@ export async function getFlashcards(filters?: FlashcardFilters): Promise<Flashca
   if (filters?.limit) params.set('limit', filters.limit.toString());
   
   const queryString = params.toString();
-  const url = `${API_BASE_URL}/flashcards${queryString ? `?${queryString}` : ''}`;
-  
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch flashcards');
-  }
-
-  return data;
+  return api.get(`/flashcards${queryString ? `?${queryString}` : ''}`);
 }
 
 /**
  * Get flashcards for a specific course (organized as deck)
  */
 export async function getFlashcardsByCourse(courseId: string): Promise<FlashcardDeck> {
-  const response = await fetch(`${API_BASE_URL}/flashcards/course/${courseId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch course flashcards');
-  }
-
-  return data;
+  return api.get(`/flashcards/course/${courseId}`);
 }
 
 /**
  * Get flashcards for a specific lesson
  */
 export async function getFlashcardsByLesson(lessonId: string): Promise<FlashcardListItem[]> {
-  const response = await fetch(`${API_BASE_URL}/flashcards/lesson/${lessonId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch lesson flashcards');
-  }
-
+  const data = await api.get<{ flashcards: FlashcardListItem[] }>(`/flashcards/lesson/${lessonId}`);
   return data.flashcards;
 }
 
@@ -159,16 +117,7 @@ export async function getFlashcardsByLesson(lessonId: string): Promise<Flashcard
  * Get flashcard by ID
  */
 export async function getFlashcardById(id: string): Promise<Flashcard> {
-  const response = await fetch(`${API_BASE_URL}/flashcards/${id}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch flashcard');
-  }
-
+  const data = await api.get<{ flashcard: Flashcard }>(`/flashcards/${id}`);
   return data.flashcard;
 }
 
@@ -176,18 +125,7 @@ export async function getFlashcardById(id: string): Promise<Flashcard> {
  * Create a new flashcard (Teacher/Admin only)
  */
 export async function createFlashcard(flashcardData: CreateFlashcardData): Promise<Flashcard> {
-  const response = await fetch(`${API_BASE_URL}/flashcards`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(flashcardData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to create flashcard');
-  }
-
+  const data = await api.post<{ flashcard: Flashcard }>('/flashcards', flashcardData);
   return data.flashcard;
 }
 
@@ -195,18 +133,7 @@ export async function createFlashcard(flashcardData: CreateFlashcardData): Promi
  * Create multiple flashcards at once (Teacher/Admin only)
  */
 export async function createBulkFlashcards(flashcards: CreateFlashcardData[]): Promise<number> {
-  const response = await fetch(`${API_BASE_URL}/flashcards/bulk`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ flashcards }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to create flashcards');
-  }
-
+  const data = await api.post<{ count: number }>('/flashcards/bulk', { flashcards });
   return data.count;
 }
 
@@ -214,18 +141,7 @@ export async function createBulkFlashcards(flashcards: CreateFlashcardData[]): P
  * Update a flashcard (Teacher/Admin only)
  */
 export async function updateFlashcard(id: string, flashcardData: Partial<CreateFlashcardData>): Promise<Flashcard> {
-  const response = await fetch(`${API_BASE_URL}/flashcards/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(flashcardData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to update flashcard');
-  }
-
+  const data = await api.put<{ flashcard: Flashcard }>(`/flashcards/${id}`, flashcardData);
   return data.flashcard;
 }
 
@@ -233,16 +149,7 @@ export async function updateFlashcard(id: string, flashcardData: Partial<CreateF
  * Delete a flashcard (Teacher/Admin only)
  */
 export async function deleteFlashcard(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/flashcards/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to delete flashcard');
-  }
+  await api.delete(`/flashcards/${id}`);
 }
 
 /**
@@ -254,17 +161,7 @@ export async function getStudyPromptsByLesson(lessonId: string): Promise<{
   lesson: { id: string; title: string };
   message: string;
 }> {
-  const response = await fetch(`${API_BASE_URL}/flashcards/study/prompts/${lessonId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch study prompts');
-  }
-
-  return data;
+  return api.get(`/flashcards/study/prompts/${lessonId}`);
 }
 
 /**
@@ -276,15 +173,5 @@ export async function getStudyPromptsByArticle(articleId: string): Promise<{
   article: { id: string; title: string; category: string };
   message: string;
 }> {
-  const response = await fetch(`${API_BASE_URL}/flashcards/study/prompts/article/${articleId}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch study prompts');
-  }
-
-  return data;
+  return api.get(`/flashcards/study/prompts/article/${articleId}`);
 }

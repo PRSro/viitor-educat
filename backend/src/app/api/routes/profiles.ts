@@ -269,6 +269,7 @@ export async function studentProfileRoutes(server: FastifyInstance) {
                 orderBy: { order: 'asc' },
                 select: {
                   id: true,
+                  slug: true,
                   title: true,
                   description: true,
                   order: true

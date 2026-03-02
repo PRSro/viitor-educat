@@ -136,7 +136,7 @@ export function CourseCard({
           </div>
         )}
       </CardContent>
-      <CardFooter className="pt-2">
+      <CardFooter className="pt-2 flex gap-2">
         {isEnrolled ? (
           <Link to={`/courses/${course.slug}`} className="w-full">
             <Button className="w-full">
@@ -145,20 +145,29 @@ export function CourseCard({
             </Button>
           </Link>
         ) : (
-          <Button
-            className="w-full"
-            onClick={onEnroll}
-            disabled={enrolling}
-          >
-            {enrolling ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                Enrolling...
-              </>
-            ) : (
-              'Enroll Now'
+          <>
+            <Link to={`/courses/${course.slug}`} className="flex-1">
+              <Button variant="outline" className="w-full">
+                Preview
+              </Button>
+            </Link>
+            {onEnroll && (
+              <Button
+                className="flex-1"
+                onClick={onEnroll}
+                disabled={enrolling}
+              >
+                {enrolling ? (
+                  <>
+                    <Clock className="h-4 w-4 mr-2 animate-spin" />
+                    Enrolling...
+                  </>
+                ) : (
+                  'Enroll'
+                )}
+              </Button>
             )}
-          </Button>
+          </>
         )}
       </CardFooter>
     </Card>

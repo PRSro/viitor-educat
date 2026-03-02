@@ -3,9 +3,7 @@
  * Handles API calls to backend article endpoints
  */
 
-import { getToken } from '@/modules/core/services/authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export type ArticleCategory =
   | 'MATH'
@@ -80,15 +78,6 @@ export interface CreateArticleData {
   published?: boolean;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 /**
  * Fetch articles with optional filters
  */
@@ -103,35 +92,14 @@ export async function getArticles(filters?: ArticleFilters): Promise<ArticlesRes
   if (filters?.limit) params.set('limit', filters.limit.toString());
 
   const queryString = params.toString();
-  const url = `${API_BASE_URL}/articles${queryString ? `?${queryString}` : ''}`;
-
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch articles');
-  }
-
-  return data;
+  return api.get(`/articles${queryString ? `?${queryString}` : ''}`);
 }
 
 /**
  * Get latest articles for news feed
  */
 export async function getLatestArticles(): Promise<ArticleListItem[]> {
-  const response = await fetch(`${API_BASE_URL}/articles/latest`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch latest articles');
-  }
-
+  const data = await api.get<{ articles: ArticleListItem[] }>('/articles/latest');
   return data.articles;
 }
 
@@ -143,33 +111,14 @@ export async function getArticlesByTeacher(teacherId: string, page = 1, limit = 
   params.set('page', page.toString());
   params.set('limit', limit.toString());
 
-  const response = await fetch(`${API_BASE_URL}/articles/teacher/${teacherId}?${params}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch teacher articles');
-  }
-
-  return data;
+  return api.get(`/articles/teacher/${teacherId}?${params}`);
 }
 
 /**
  * Get article by slug
  */
 export async function getArticleBySlug(slug: string): Promise<Article> {
-  const response = await fetch(`${API_BASE_URL}/articles/${slug}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch article');
-  }
-
+  const data = await api.get<{ article: Article }>(`/articles/${slug}`);
   return data.article;
 }
 
@@ -177,16 +126,7 @@ export async function getArticleBySlug(slug: string): Promise<Article> {
  * Get all article categories
  */
 export async function getCategories(): Promise<ArticleCategory[]> {
-  const response = await fetch(`${API_BASE_URL}/articles/categories`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch categories');
-  }
-
+  const data = await api.get<{ categories: ArticleCategory[] }>('/articles/categories');
   return data.categories;
 }
 
@@ -194,18 +134,7 @@ export async function getCategories(): Promise<ArticleCategory[]> {
  * Create a new article (Teacher/Admin only)
  */
 export async function createArticle(articleData: CreateArticleData): Promise<Article> {
-  const response = await fetch(`${API_BASE_URL}/articles`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(articleData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to create article');
-  }
-
+  const data = await api.post<{ article: Article }>('/articles', articleData);
   return data.article;
 }
 
@@ -213,18 +142,7 @@ export async function createArticle(articleData: CreateArticleData): Promise<Art
  * Import article from external URL (Teacher/Admin only)
  */
 export async function importArticle(url: string): Promise<Article> {
-  const response = await fetch(`${API_BASE_URL}/articles/import`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify({ url }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to import article');
-  }
-
+  const data = await api.post<{ article: Article }>('/articles/import', { url });
   return data.article;
 }
 
@@ -232,18 +150,7 @@ export async function importArticle(url: string): Promise<Article> {
  * Update an article (Author/Admin only)
  */
 export async function updateArticle(id: string, articleData: Partial<CreateArticleData & { published: boolean }>): Promise<Article> {
-  const response = await fetch(`${API_BASE_URL}/articles/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(articleData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to update article');
-  }
-
+  const data = await api.put<{ article: Article }>(`/articles/${id}`, articleData);
   return data.article;
 }
 
@@ -251,16 +158,7 @@ export async function updateArticle(id: string, articleData: Partial<CreateArtic
  * Delete an article (Author/Admin only)
  */
 export async function deleteArticle(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/articles/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || data.message || 'Failed to delete article');
-  }
+  await api.delete(`/articles/${id}`);
 }
 
 // Category display helpers

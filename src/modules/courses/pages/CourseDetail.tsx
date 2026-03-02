@@ -23,7 +23,8 @@ import {
   Circle,
   Play,
   ChevronRight,
-  Lock
+  Lock,
+  LogIn
 } from 'lucide-react';
 import {
   getCourseBySlug,
@@ -73,15 +74,10 @@ export default function CourseDetail() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-
     if (slug) {
       fetchCourse(slug);
     }
-  }, [slug, isAuthenticated, navigate]);
+  }, [slug]);
 
   async function fetchCourse(courseSlug: string) {
     try {
@@ -90,8 +86,8 @@ export default function CourseDetail() {
       setCourse(data.course);
       setEnrollment(data.enrollment);
 
-      // If enrolled, fetch detailed progress
-      if (data.enrollment) {
+      // If enrolled and authenticated, fetch detailed progress
+      if (data.enrollment && isAuthenticated) {
         try {
           const progressData = await getCourseProgress(data.course.id);
           setCourseProgress(progressData);
@@ -109,12 +105,15 @@ export default function CourseDetail() {
   }
 
   async function handleEnroll() {
+    if (!isAuthenticated) {
+      navigate(`/login?redirect=/courses/${slug}`);
+      return;
+    }
     if (!course) return;
 
     try {
       setEnrolling(true);
       await enrollInCourse(course.id);
-      // Refresh course data
       if (slug) {
         await fetchCourse(slug);
       }
@@ -126,12 +125,16 @@ export default function CourseDetail() {
   }
 
   async function handleContinue() {
+    if (!isAuthenticated) {
+      navigate(`/login?redirect=/courses/${slug}`);
+      return;
+    }
     if (!course) return;
 
     try {
       const data = await resumeCourse(course.id);
       if (data.lesson) {
-        navigate(`/lessons/${data.lesson.id}`);
+        navigate(`/lessons/${data.lesson.slug ?? data.lesson.id}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resume');
@@ -156,10 +159,10 @@ export default function CourseDetail() {
             <p className="text-muted-foreground mb-4">
               {error || "The course you're looking for doesn't exist."}
             </p>
-            <Link to="/student">
+            <Link to={isAuthenticated ? (user?.role === 'TEACHER' ? '/teacher' : '/student') : '/courses'}>
               <Button>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                {isAuthenticated ? 'Back to Dashboard' : 'Browse Courses'}
               </Button>
             </Link>
           </CardContent>
@@ -189,9 +192,9 @@ export default function CourseDetail() {
         {/* Header */}
         <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <Link to="/student" className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors">
+            <Link to={isAuthenticated ? (user?.role === 'TEACHER' ? '/teacher' : '/student') : '/courses'} className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              {isAuthenticated ? 'Back to Dashboard' : 'Browse Courses'}
             </Link>
           </div>
         </header>
@@ -282,7 +285,7 @@ export default function CourseDetail() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => navigate(`/lessons/${lesson.id}`)}
+                                  onClick={() => navigate(`/lessons/${lesson.slug}`)}
                                 >
                                   <Play className="h-4 w-4" />
                                 </Button>
@@ -387,8 +390,16 @@ export default function CourseDetail() {
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           Enrolling...
                         </>
+                      ) : !isAuthenticated ? (
+                        <>
+                          <LogIn className="h-4 w-4 mr-2" />
+                          Log in to Enroll
+                        </>
                       ) : (
-                        'Enroll Now - Free'
+                        <>
+                          Enroll Now - Free
+                          <ChevronRight className="h-4 w-4 ml-2" />
+                        </>
                       )}
                     </Button>
                   )}

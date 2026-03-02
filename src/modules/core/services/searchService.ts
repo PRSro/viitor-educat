@@ -3,18 +3,7 @@
  * Handles API calls to backend search endpoints with filters
  */
 
-import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
+import { api } from '@/lib/apiClient';
 
 export interface SearchFilters {
   category?: string;
@@ -153,17 +142,7 @@ export async function search(
   if (filters?.tags) params.append('tags', filters.tags);
   if (filters?.teacherId) params.append('teacherId', filters.teacherId);
 
-  const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Search failed');
-  }
-
-  return data;
+  return api.get(`/search?${params.toString()}`);
 }
 
 /**
@@ -173,32 +152,12 @@ export async function getSearchSuggestions(query: string): Promise<SearchSuggest
   const params = new URLSearchParams();
   params.append('q', query);
 
-  const response = await fetch(`${API_BASE_URL}/search/suggestions?${params.toString()}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to get suggestions');
-  }
-
-  return data;
+  return api.get(`/search/suggestions?${params.toString()}`);
 }
 
 /**
  * Get available filter options
  */
 export async function getSearchFilters(): Promise<SearchFiltersResponse> {
-  const response = await fetch(`${API_BASE_URL}/search/filters`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to get filters');
-  }
-
-  return data;
+  return api.get('/search/filters');
 }

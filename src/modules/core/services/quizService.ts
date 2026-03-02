@@ -3,9 +3,7 @@
  * Handles API calls for quiz functionality
  */
 
-import { getToken } from './authService';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { api } from '@/lib/apiClient';
 
 export interface Quiz {
   id: string;
@@ -96,15 +94,6 @@ export interface SubmitAttemptData {
   timeSpent: number;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-    'ngrok-skip-browser-warning': 'true',
-  };
-}
-
 /**
  * Get all quizzes (published for students, all for teachers)
  */
@@ -119,18 +108,7 @@ export async function getQuizzes(options?: {
   if (options?.published !== undefined) params.append('published', String(options.published));
 
   const queryString = params.toString();
-  const url = `${API_BASE_URL}/quizzes${queryString ? '?' + queryString : ''}`;
-
-  const response = await fetch(url, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch quizzes');
-  }
-
+  const data = await api.get<{ quizzes: Quiz[] }>(`/quizzes${queryString ? '?' + queryString : ''}`);
   return data.quizzes;
 }
 
@@ -138,16 +116,7 @@ export async function getQuizzes(options?: {
  * Get quizzes created by current teacher
  */
 export async function getTeacherQuizzes(): Promise<Quiz[]> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/teacher/my-quizzes`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch teacher quizzes');
-  }
-
+  const data = await api.get<{ quizzes: Quiz[] }>('/quizzes/teacher/my-quizzes');
   return data.quizzes;
 }
 
@@ -155,16 +124,7 @@ export async function getTeacherQuizzes(): Promise<Quiz[]> {
  * Get quiz by ID
  */
 export async function getQuizById(id: string): Promise<Quiz> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/${id}`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch quiz');
-  }
-
+  const data = await api.get<{ quiz: Quiz }>(`/quizzes/${id}`);
   return data.quiz;
 }
 
@@ -172,18 +132,7 @@ export async function getQuizById(id: string): Promise<Quiz> {
  * Create a new quiz
  */
 export async function createQuiz(quizData: CreateQuizData): Promise<Quiz> {
-  const response = await fetch(`${API_BASE_URL}/quizzes`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(quizData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to create quiz');
-  }
-
+  const data = await api.post<{ quiz: Quiz }>('/quizzes', quizData);
   return data.quiz;
 }
 
@@ -191,18 +140,7 @@ export async function createQuiz(quizData: CreateQuizData): Promise<Quiz> {
  * Update a quiz
  */
 export async function updateQuiz(id: string, quizData: Partial<CreateQuizData>): Promise<Quiz> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(quizData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to update quiz');
-  }
-
+  const data = await api.put<{ quiz: Quiz }>(`/quizzes/${id}`, quizData);
   return data.quiz;
 }
 
@@ -210,33 +148,14 @@ export async function updateQuiz(id: string, quizData: Partial<CreateQuizData>):
  * Delete a quiz
  */
 export async function deleteQuiz(id: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/${id}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || 'Failed to delete quiz');
-  }
+  await api.delete(`/quizzes/${id}`);
 }
 
 /**
  * Add a question to a quiz
  */
 export async function addQuizQuestion(quizId: string, questionData: CreateQuestionData): Promise<QuizQuestion> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(questionData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to add question');
-  }
-
+  const data = await api.post<{ question: QuizQuestion }>(`/quizzes/${quizId}/questions`, questionData);
   return data.question;
 }
 
@@ -248,18 +167,7 @@ export async function updateQuizQuestion(
   questionId: string,
   questionData: Partial<CreateQuestionData>
 ): Promise<QuizQuestion> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions/${questionId}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(questionData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to update question');
-  }
-
+  const data = await api.put<{ question: QuizQuestion }>(`/quizzes/${quizId}/questions/${questionId}`, questionData);
   return data.question;
 }
 
@@ -267,15 +175,7 @@ export async function updateQuizQuestion(
  * Delete a question
  */
 export async function deleteQuizQuestion(quizId: string, questionId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions/${questionId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.error || 'Failed to delete question');
-  }
+  await api.delete(`/quizzes/${quizId}/questions/${questionId}`);
 }
 
 /**
@@ -292,35 +192,14 @@ export async function submitQuizAttempt(quizId: string, attemptData: SubmitAttem
     timeSpent: number;
   };
 }> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/attempt`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(attemptData),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to submit quiz attempt');
-  }
-
-  return data;
+  return api.post(`/quizzes/${quizId}/attempt`, attemptData);
 }
 
 /**
  * Get quiz attempts
  */
 export async function getQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/attempts`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch quiz attempts');
-  }
-
+  const data = await api.get<{ attempts: QuizAttempt[] }>(`/quizzes/${quizId}/attempts`);
   return data.attempts;
 }
 
@@ -328,15 +207,6 @@ export async function getQuizAttempts(quizId: string): Promise<QuizAttempt[]> {
  * Get current student's quiz attempts
  */
 export async function getStudentQuizAttempts(): Promise<QuizAttempt[]> {
-  const response = await fetch(`${API_BASE_URL}/quizzes/student/my-attempts`, {
-    headers: getAuthHeaders(),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to fetch student quiz attempts');
-  }
-
+  const data = await api.get<{ attempts: QuizAttempt[] }>('/quizzes/student/my-attempts');
   return data.attempts;
 }
