@@ -6,6 +6,30 @@
 import { api } from '@/lib/apiClient';
 import { Lesson } from '@/modules/lessons/services/lessonService';
 
+export interface CoursePreview {
+  id: string;
+  title: string;
+  slug: string;
+  shortDescription: string | null;
+  thumbnail: string | null;
+  teacherName: string;
+  status: string;
+  level: string;
+  category: string | null;
+  enrolledCount: number;
+  lessonCount: number;
+}
+
+export interface CoursePreviewPage {
+  items: CoursePreview[];
+  meta: {
+    total: number;
+    page: number;
+    pageSize: number;
+    hasNextPage: boolean;
+  };
+}
+
 export interface CourseLesson {
   id: string;
   slug: string;
@@ -45,11 +69,25 @@ export interface Course {
   lessons?: CourseLesson[];
 }
 
-export interface Enrollment {
-  id: string;
-  progress: number;
-  enrolledAt: string;
-  course: Course;
+/** Shape returned by GET /student/enrollments */
+export interface EnrolledCourseItem {
+  enrollment: {
+    id: string;
+    status: string;
+    progress: number;
+    enrolledAt: string;
+    completedAt: string | null;
+    completedLessonsCount: number;
+  };
+  course: {
+    id: string;
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    level: string;
+    teacher: { id: string; email: string };
+    totalLessons: number;
+  };
 }
 
 export interface CreateCourseData {
@@ -59,16 +97,45 @@ export interface CreateCourseData {
   level?: string;
   category?: string;
   tags?: string[];
-  lessonIds?: string[];
   status?: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
 }
 
 /**
- * Get all published courses
+ * Get all published courses (backward compatibility wrapper)
  */
-export async function getCourses(): Promise<Course[]> {
-  const data = await api.get<{ courses: Course[] }>('/courses');
-  return data.courses;
+export async function getCourses(): Promise<CoursePreview[]> {
+  const data = await getCoursesPaginated();
+  return data.items;
+}
+
+/**
+ * Get courses with pagination and filters
+ */
+export async function getCoursesPaginated(params: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  teacherId?: string;
+  status?: string;
+  sort?: 'newest' | 'popular';
+} = {}): Promise<CoursePreviewPage> {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page.toString());
+  if (params.pageSize) query.append('pageSize', params.pageSize.toString());
+  if (params.search) query.append('search', params.search);
+  if (params.teacherId) query.append('teacherId', params.teacherId);
+  if (params.status) query.append('status', params.status);
+  if (params.sort) query.append('sort', params.sort);
+
+  const queryString = query.toString();
+  const url = `/courses${queryString ? `?${queryString}` : ''}`;
+
+  // The backend returns { success: true, items: [...], meta: {...} }
+  const response = await api.get<{ success: boolean } & CoursePreviewPage>(url);
+  return {
+    items: response.items,
+    meta: response.meta
+  };
 }
 
 /**
@@ -90,8 +157,8 @@ export async function getTeacherPublishedCourses(teacherId: string): Promise<Cou
 /**
  * Get enrolled courses for current student
  */
-export async function getEnrolledCourses(): Promise<Enrollment[]> {
-  const data = await api.get<{ courses: Enrollment[] }>('/student/enrollments');
+export async function getEnrolledCourses(): Promise<EnrolledCourseItem[]> {
+  const data = await api.get<{ courses: EnrolledCourseItem[] }>('/student/enrollments');
   return data.courses;
 }
 
@@ -105,14 +172,21 @@ export async function dropEnrollment(courseId: string): Promise<void> {
 /**
  * Check enrollment status for a course
  */
-export async function checkEnrollmentStatus(courseId: string): Promise<{ enrolled: boolean; enrollment: { status: string; progress: number } | null }> {
+export async function checkEnrollmentStatus(courseId: string): Promise<{
+  enrolled: boolean;
+  enrollment: { status: string; progress: number; id: string; enrolledAt: string; completedAt: string | null } | null;
+}> {
   return api.get(`/courses/${courseId}/enrollment`);
 }
 
 /**
  * Get course by slug
  */
-export async function getCourseBySlug(slug: string): Promise<{ course: Course; enrollment: { progress: number } | null; isTeacher: boolean }> {
+export async function getCourseBySlug(slug: string): Promise<{
+  course: Course;
+  enrollment: { progress: number; status?: string } | null;
+  isTeacher: boolean;
+}> {
   return api.get(`/courses/${slug}`);
 }
 
@@ -141,7 +215,10 @@ export async function createCourse(courseData: CreateCourseData): Promise<Course
 /**
  * Update a course
  */
-export async function updateCourse(id: string, courseData: Partial<CreateCourseData & { published: boolean }>): Promise<Course> {
+export async function updateCourse(
+  id: string,
+  courseData: Partial<CreateCourseData & { published: boolean }>
+): Promise<Course> {
   const data = await api.put<{ course: Course }>(`/courses/${id}`, courseData);
   return data.course;
 }
@@ -193,7 +270,7 @@ export interface CourseAnalytics {
 }
 
 /**
- * Get course students
+ * Get students enrolled in a course
  */
 export async function getCourseStudents(courseId: string): Promise<CourseStudent[]> {
   const data = await api.get<{ students: CourseStudent[] }>(`/courses/${courseId}/students`);
@@ -211,6 +288,6 @@ export async function getCourseAnalytics(courseId: string): Promise<CourseAnalyt
  * Export course as JSON
  */
 export async function exportCourse(courseId: string): Promise<unknown> {
-  const data = await api.get<{ draft: unknown }>(`/courses/${courseId}/export`);
-  return data.draft;
+  const data = await api.get<{ course: unknown }>(`/courses/${courseId}/export`);
+  return data.course;
 }

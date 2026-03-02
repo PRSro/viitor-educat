@@ -8,7 +8,6 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 3000,
-    allowedHosts: ['kenia-posttraumatic-jocelyn.ngrok-free.dev'],
     hmr: {
       overlay: false,
     },

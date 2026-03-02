@@ -6,6 +6,8 @@ import { formatZodError } from '../../schemas/validation/schemas.js';
 import { courseService } from '../../services/courseService.js';
 import { prisma } from '../../models/prisma.js';
 import { courseController } from '../controllers/courseController.js';
+import { coursePreviewController } from '../controllers/coursePreviewController.js';
+import { ServiceResponse } from '../../core/types/service.js';
 
 function getCurrentUser(request: FastifyRequest): JwtPayload {
   return (request as any).user as JwtPayload;
@@ -36,16 +38,42 @@ const updateCourseSchema = createCourseSchema.partial().extend({
 });
 
 const courseIdSchema = z.object({ id: z.string().min(1) });
-const slugSchema = z.object({ slug: z.string().min(1) });
+
+/**
+ * Maps a failed ServiceResponse to an HTTP error and sends it.
+ * Returns true so the caller can `return` immediately.
+ */
+function sendServiceError(result: ServiceResponse, reply: FastifyReply): boolean {
+  if (!result.success) {
+    const statusMap: Record<string, number> = {
+      NOT_FOUND: 404,
+      FORBIDDEN: 403,
+      UNAUTHORIZED: 401,
+      BAD_REQUEST: 400,
+      COURSE_EMPTY: 400,
+      INTERNAL_ERROR: 500,
+    };
+    const status = statusMap[result.errorCode ?? ''] ?? 500;
+    reply.status(status).send({ error: result.errorCode, message: result.message });
+    return true;
+  }
+  return false;
+}
 
 export async function courseRoutes(server: FastifyInstance) {
 
-  server.get('/', courseController.getAll);
+  // ─── Public listing ────────────────────────────────────────────────────
+  /** GET /courses — all published courses (preview shape) */
+  server.get('/', coursePreviewController.list);
 
+  // ─── Authenticated fixed-path routes (registered BEFORE /:slug wildcard) ─
+
+  /** GET /courses/student — enrolled courses for current student */
   server.get('/student', {
     preHandler: [authMiddleware, anyRole]
   }, courseController.getStudentCourses);
 
+  /** GET /courses/teacher/my-courses — courses owned by current teacher */
   server.get('/teacher/my-courses', {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request, reply) => {
@@ -62,12 +90,52 @@ export async function courseRoutes(server: FastifyInstance) {
     return { courses };
   });
 
+  // ─── Prefixed-ID  routes (before /:slug wildcard) ─────────────────────
+
+  /** GET /courses/id/:id — get a course by database ID (editor/internal) */
+  server.get<{ Params: { id: string } }>('/id/:id', async (request, reply) => {
+    const { id } = courseIdSchema.parse(request.params);
+
+    const course = await prisma.course.findUnique({
+      where: { id },
+      include: {
+        teacher: { select: { id: true, email: true, teacherProfile: true } },
+        _count: { select: { lessons: true, enrollments: true } },
+        lessons: {
+          orderBy: { order: 'asc' },
+          select: { id: true, title: true, description: true, status: true, order: true, slug: true }
+        }
+      }
+    });
+
+    if (!course) return reply.status(404).send({ error: 'Course not found' });
+
+    let isTeacher = false;
+    try {
+      const currentUser = getCurrentUser(request);
+      isTeacher = currentUser.id === course.teacherId || currentUser.role === 'ADMIN';
+    } catch {
+      // Not authenticated — isTeacher stays false
+    }
+
+    if (!isTeacher && !course.published) {
+      return reply.status(404).send({ error: 'Course not found' });
+    }
+
+    const visibleLessons = (isTeacher
+      ? course.lessons
+      : course.lessons.filter((l: any) => l.status !== 'PRIVATE')) as typeof course.lessons;
+
+    return { course: { ...course, lessons: visibleLessons }, isTeacher };
+  });
+
+  /** GET /courses/teacher/:teacherId — published courses for a specific teacher */
   server.get<{ Params: { teacherId: string } }>('/teacher/:teacherId', {
     preHandler: [authMiddleware, anyRole]
   }, async (request, reply) => {
     const { teacherId } = request.params;
     const courses = await prisma.course.findMany({
-      where: { teacherId },
+      where: { teacherId, status: 'PUBLISHED' },
       include: {
         teacher: { select: { id: true, email: true } },
         _count: { select: { lessons: true, enrollments: true } },
@@ -78,68 +146,37 @@ export async function courseRoutes(server: FastifyInstance) {
     return { courses };
   });
 
-  server.get<{ Params: { id: string } }>('/id/:id', async (request, reply) => {
-    const { id } = courseIdSchema.parse(request.params);
+  // ─── Write routes ────────────────────────────────────────────────────────
 
-    const course = await prisma.course.findUnique({
-      where: { id },
-      include: {
-        teacher: { select: { id: true, email: true, teacherProfile: true } },
-        _count: { select: { lessons: true, enrollments: true } },
-        lessons: { 
-          orderBy: { order: 'asc' },
-          select: { id: true, title: true, description: true, status: true }
-        }
-      }
-    });
-
-    if (!course) return reply.status(404).send({ error: 'Course not found' });
-
-    if (!course.published) {
-      return reply.status(404).send({ error: 'Course not found' });
-    }
-
-    course.lessons = course.lessons.filter((l: any) => l.status !== 'PRIVATE');
-
-    return { course };
-  });
-
-  server.get<{ Params: { id: string } }>('/:id/lessons', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request, reply) => {
-    const { id } = courseIdSchema.parse(request.params);
-    const lessons = await prisma.lesson.findMany({
-      where: { courseId: id },
-      orderBy: { order: 'asc' }
-    });
-    return { lessons };
-  });
-
-  server.get('/:slug', courseController.getBySlug);
-
+  /** POST /courses — create a new course */
   server.post('/', { preHandler: [authMiddleware, teacherOnly] }, async (request, reply) => {
     try {
       const validated = createCourseSchema.parse(request.body);
       const currentUser = getCurrentUser(request);
 
-      const newCourse = await courseService.create({
+      const result = await courseService.create({
         title: validated.title,
         description: validated.description,
         imageUrl: validated.imageUrl,
-        level: validated.level,
+        level: validated.level as any,
         category: validated.category,
         tags: validated.tags,
         teacherId: currentUser.id,
-        lessons: validated.lessons
+        lessons: validated.lessons as any
       }, currentUser.role);
 
-      return reply.status(201).send({ message: 'Course created', course: newCourse });
+      if (sendServiceError(result, reply)) return;
+
+      return reply.status(201).send({ message: 'Course created', course: result.data });
     } catch (error) {
-      if (error instanceof z.ZodError) return reply.status(400).send({ error: 'Validation failed', message: formatZodError(error) });
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ error: 'Validation failed', message: formatZodError(error) });
+      }
       throw error;
     }
   });
 
+  /** PUT /courses/:id — update a course */
   server.put<{ Params: { id: string } }>('/:id', {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request, reply) => {
@@ -147,42 +184,148 @@ export async function courseRoutes(server: FastifyInstance) {
       const { id } = courseIdSchema.parse(request.params);
       const validated = updateCourseSchema.parse(request.body);
       const currentUser = getCurrentUser(request);
-
       const { lessons, ...courseData } = validated;
 
-      const updated = await courseService.update(
+      const result = await courseService.update(
         id,
-        courseData,
+        courseData as any,
         currentUser.id,
         currentUser.role,
-        lessons
+        lessons as any
       );
-      return { message: 'Course updated', course: updated };
-    } catch (error: any) {
-      if (error instanceof z.ZodError) return reply.status(400).send({ error: 'Validation failed', message: formatZodError(error) });
-      if (error.message === 'NOT_FOUND') return reply.status(404).send({ error: 'Course not found' });
-      if (error.message === 'FORBIDDEN') return reply.status(403).send({ error: 'Forbidden' });
-      if (error.message === 'COURSE_EMPTY') return reply.status(400).send({ error: 'Course must have at least one lesson to publish' });
+
+      if (sendServiceError(result, reply)) return;
+
+      return { message: 'Course updated', course: result.data };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ error: 'Validation failed', message: formatZodError(error) });
+      }
       throw error;
     }
   });
 
-  server.delete('/:id', {
+  /** DELETE /courses/:id — delete a course */
+  server.delete<{ Params: { id: string } }>('/:id', {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request, reply) => {
     try {
       const { id } = courseIdSchema.parse(request.params);
       const currentUser = getCurrentUser(request);
 
-      await courseService.delete(id, currentUser.id, currentUser.role);
+      const result = await courseService.delete(id, currentUser.id, currentUser.role);
+      if (sendServiceError(result, reply)) return;
+
       return { message: 'Course deleted' };
-    } catch (error: any) {
-      if (error.message === 'NOT_FOUND') return reply.status(404).send({ error: 'Course not found' });
-      if (error.message === 'FORBIDDEN') return reply.status(403).send({ error: 'Forbidden' });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({ error: 'Validation failed', message: formatZodError(error) });
+      }
       throw error;
     }
   });
 
+  // ─── Course-scoped sub-resource routes (before /:slug wildcard) ────────
+
+  /** GET /courses/:courseId/lessons — all lessons for a course */
+  server.get<{ Params: { courseId: string } }>('/:courseId/lessons', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request, reply) => {
+    const { courseId } = request.params;
+    const lessons = await prisma.lesson.findMany({
+      where: { courseId },
+      orderBy: { order: 'asc' }
+    });
+    return { lessons };
+  });
+
+  /** GET /courses/:courseId/students — students enrolled in a course */
+  server.get<{ Params: { courseId: string } }>('/:courseId/students', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, courseController.getStudents);
+
+  /** GET /courses/:courseId/analytics — analytics for a course */
+  server.get<{ Params: { courseId: string } }>('/:courseId/analytics', {
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+  }, async (request, reply) => {
+    const { courseId } = request.params;
+    const currentUser = getCurrentUser(request);
+
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        _count: { select: { lessons: true, enrollments: true } },
+        lessons: { select: { id: true, title: true, order: true }, orderBy: { order: 'asc' } }
+      }
+    });
+
+    if (!course) return reply.status(404).send({ error: 'Course not found' });
+    if (course.teacherId !== currentUser.id && currentUser.role !== 'ADMIN') {
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
+
+    const enrollments = await prisma.enrollment.findMany({
+      where: { courseId },
+      select: { progress: true, completedAt: true, status: true }
+    });
+
+    const total = enrollments.length;
+    const completed = enrollments.filter(e => e.completedAt !== null).length;
+    const inProgress = enrollments.filter(e => e.status === 'ACTIVE' && !e.completedAt).length;
+    const avgProgress = total > 0
+      ? Math.round(enrollments.reduce((sum, e) => sum + e.progress, 0) / total * 10) / 10
+      : 0;
+
+    return {
+      course: {
+        id: course.id,
+        title: course.title,
+        totalLessons: course._count.lessons,
+        totalEnrollments: course._count.enrollments
+      },
+      enrollment: { total, completed, inProgress, averageProgress: avgProgress },
+      lessons: course.lessons
+    };
+  });
+
+  /** GET /courses/:courseId/enrollment — check current student's enrollment */
+  server.get<{ Params: { courseId: string } }>('/:courseId/enrollment', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, async (request, reply) => {
+    const user = getCurrentUser(request);
+    const { courseId } = request.params;
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { studentId_courseId: { studentId: user.id, courseId } }
+    });
+
+    if (!enrollment) return { enrolled: false, enrollment: null };
+
+    return {
+      enrolled: enrollment.status === 'ACTIVE',
+      enrollment: {
+        id: enrollment.id,
+        status: enrollment.status,
+        progress: enrollment.progress,
+        enrolledAt: enrollment.enrolledAt,
+        completedAt: enrollment.completedAt
+      }
+    };
+  });
+
+  /** POST /courses/:courseId/enroll — enroll in a course */
+  server.post<{ Params: { courseId: string } }>('/:courseId/enroll', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, (request: FastifyRequest, reply: FastifyReply) =>
+    courseController.enroll(request as any, reply));
+
+  /** DELETE /courses/:courseId/enroll — drop enrollment */
+  server.delete<{ Params: { courseId: string } }>('/:courseId/enroll', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, (request: FastifyRequest, reply: FastifyReply) =>
+    courseController.unenroll(request as any, reply));
+
+  /** GET /courses/:id/export — export course as JSON */
   server.get<{ Params: { id: string } }>('/:id/export', {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request, reply) => {
@@ -191,9 +334,12 @@ export async function courseRoutes(server: FastifyInstance) {
 
     const course = await courseService.getCourseById(id);
     if (!course) return reply.status(404).send({ error: 'Course not found' });
-    if (course.teacherId !== currentUser.id && currentUser.role !== 'ADMIN') return reply.status(403).send({ error: 'Forbidden' });
+    if (course.teacherId !== currentUser.id && currentUser.role !== 'ADMIN') {
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
 
-    const exportData = {
+    reply.header('Content-Disposition', `attachment; filename="${course.slug}.json"`);
+    return {
       course: {
         title: course.title,
         description: course.description,
@@ -205,51 +351,9 @@ export async function courseRoutes(server: FastifyInstance) {
         }))
       }
     };
-
-    reply.header('Content-Disposition', `attachment; filename="${course.slug}.json"`);
-    return exportData;
   });
 
-  server.post('/:courseId/enroll', {
-    preHandler: [authMiddleware, requireRole(['STUDENT'])]
-  }, (request: FastifyRequest, reply: FastifyReply) => courseController.enroll(request as any, reply));
-
-  server.delete('/:courseId/enroll', {
-    preHandler: [authMiddleware, requireRole(['STUDENT'])]
-  }, (request: FastifyRequest, reply: FastifyReply) => courseController.unenroll(request as any, reply));
-
-  server.get('/:courseId/enrollment', {
-    preHandler: [authMiddleware, requireRole(['STUDENT'])]
-  }, async (request, reply) => {
-    try {
-      const user = getCurrentUser(request);
-      const courseId = (request.params as any).courseId;
-
-      const enrollment = await prisma.enrollment.findUnique({
-        where: {
-          studentId_courseId: {
-            studentId: user.id,
-            courseId
-          }
-        }
-      });
-
-      if (!enrollment) {
-        return { enrolled: false, enrollment: null };
-      }
-
-      return { 
-        enrolled: enrollment.status === 'ACTIVE', 
-        enrollment: {
-          id: enrollment.id,
-          status: enrollment.status,
-          progress: enrollment.progress,
-          enrolledAt: enrollment.enrolledAt,
-          completedAt: enrollment.completedAt
-        }
-      };
-    } catch (error) {
-      throw error;
-    }
-  });
+  // ─── Wildcard slug route — MUST be registered last ───────────────────────
+  /** GET /courses/:slug — get a published course by slug */
+  server.get('/:slug', courseController.getBySlug);
 }

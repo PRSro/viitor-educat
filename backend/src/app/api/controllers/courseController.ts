@@ -14,30 +14,26 @@ const slugSchema = z.object({ slug: z.string().min(1) });
 
 export const courseController = {
   async getAll(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const courses = await prisma.course.findMany({
-        where: { published: true },
-        include: {
-          teacher: {
-            select: {
-              id: true,
-              email: true,
-              teacherProfile: true
-            }
-          },
-          _count: { select: { lessons: true, enrollments: true } },
-          lessons: {
-            orderBy: { order: 'asc' },
-            take: 3,
-            select: { id: true, title: true, description: true }
+    const courses = await prisma.course.findMany({
+      where: { status: 'PUBLISHED' },
+      include: {
+        teacher: {
+          select: {
+            id: true,
+            email: true,
+            teacherProfile: { select: { id: true, bio: true, pictureUrl: true } }
           }
         },
-        orderBy: { createdAt: 'desc' }
-      });
-      return { courses };
-    } catch (error) {
-      throw error;
-    }
+        _count: { select: { lessons: true, enrollments: true } },
+        lessons: {
+          orderBy: { order: 'asc' },
+          take: 3,
+          select: { id: true, title: true, description: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    return { courses };
   },
 
   async getStudentCourses(request: FastifyRequest, reply: FastifyReply) {
@@ -81,7 +77,7 @@ export const courseController = {
     let enrollment = null;
     let isTeacher = false;
     let currentUser = null;
-    
+
     try {
       currentUser = getCurrentUser(request);
       if (currentUser) {
@@ -131,8 +127,8 @@ export const courseController = {
 
       if (existingEnrollment) {
         if (existingEnrollment.status === 'COMPLETED') {
-          return reply.status(403).send({ 
-            error: 'Course already completed. Use re-enroll action to enroll again.' 
+          return reply.status(403).send({
+            error: 'Course already completed. Use re-enroll action to enroll again.'
           });
         }
         if (existingEnrollment.status === 'ACTIVE') {
