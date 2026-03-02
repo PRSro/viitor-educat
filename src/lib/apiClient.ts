@@ -71,7 +71,6 @@ export async function apiRequest<T>(
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    'ngrok-skip-browser-warning': 'true',
     ...options.headers,
   };
 

@@ -58,9 +58,7 @@ export default function TeacherDirectoryPage() {
   const fetchTeachers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/portal/teachers`, {
-        headers: { 'ngrok-skip-browser-warning': 'true' }
-      });
+      const response = await fetch(`/portal/teachers`);
       const data: TeachersResponse = await response.json();
       console.log('Fetched teachers:', data.teachers.length, 'source:', data.source);
       console.log('Sample teacher:', data.teachers[0]);

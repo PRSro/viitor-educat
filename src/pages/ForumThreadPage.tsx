@@ -51,7 +51,6 @@ export default function ForumThreadPage() {
 
     const headers = {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'ngrok-skip-browser-warning': 'true',
         'Content-Type': 'application/json'
     };
 

@@ -47,7 +47,7 @@ export default function ForumPage() {
         try {
             const res = await fetch(
                 `${import.meta.env.VITE_API_URL}/forum/threads?type=${activeTab}`,
-                { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'ngrok-skip-browser-warning': 'true' } }
+                { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }
             );
             const data = await res.json();
             setThreads(data.threads || []);
@@ -67,8 +67,7 @@ export default function ForumPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'ngrok-skip-browser-warning': 'true'
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: JSON.stringify({ title: newTitle, body: newBody, forumType: activeTab })
             });

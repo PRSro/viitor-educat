@@ -167,7 +167,6 @@ export async function uploadProfilePicture(file: File): Promise<{ url: string }>
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });
@@ -249,7 +248,6 @@ export async function uploadArticleFile(file: File): Promise<{ content: string; 
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });
@@ -274,7 +272,6 @@ export async function uploadLessonMaterial(file: File): Promise<{ content: strin
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });

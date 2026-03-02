@@ -49,7 +49,6 @@ export const NewsPage = () => {
     const fetchNews = async () => {
       try {
         const response = await fetch(RSS_FEED_URL, {
-          headers: { 'ngrok-skip-browser-warning': 'true' },
           signal: AbortSignal.timeout(10000),
         });
         if (!response.ok) throw new Error("Failed to fetch news");

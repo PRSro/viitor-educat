@@ -168,7 +168,6 @@ export async function uploadStudentProfilePicture(file: File): Promise<{ url: st
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${getToken()}`,
-      'ngrok-skip-browser-warning': 'true',
     },
     body: formData,
   });
