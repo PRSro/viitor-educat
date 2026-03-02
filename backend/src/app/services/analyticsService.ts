@@ -202,7 +202,7 @@ export async function getQuizPerformance(teacherId: string, page: number = 1, li
   const attemptsByQuiz = new Map<string, { totalScore: number; count: number }>();
   attempts.forEach(a => {
     const existing = attemptsByQuiz.get(a.quizId) || { totalScore: 0, count: 0 };
-    existing.totalScore += a.maxScore > 0 ? (a.score / a.maxScore) * 100 : 0;
+    existing.totalScore += (a.maxScore ?? 0) > 0 ? ((a.score ?? 0) / (a.maxScore ?? 1)) * 100 : 0;
     existing.count++;
     attemptsByQuiz.set(a.quizId, existing);
   });

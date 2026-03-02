@@ -148,8 +148,8 @@ export async function quizRoutes(fastify: FastifyInstance) {
       }
 
       // Fetch questions separately
-      const questions = await prisma.quizQuestion.findMany({
-        where: { quizId: id },
+      const questions = await prisma.question.findMany({
+        where: { quiz: { id } },
         orderBy: { order: 'asc' }
       });
 
@@ -159,7 +159,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       }
 
       // Hide correct answers for students
-      const safeQuestions = questions.map(q => ({
+      const safeQuestions = questions.map((q: any) => ({
         ...q,
         correctAnswer: user.role === 'STUDENT' ? '' : q.correctAnswer,
         explanation: user.role === 'STUDENT' ? '' : q.explanation
@@ -196,10 +196,22 @@ export async function quizRoutes(fastify: FastifyInstance) {
         }
       }
 
+      if (!validated.courseId) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'courseId is required'
+        });
+      }
+
       const quiz = await prisma.quiz.create({
         data: {
-          ...validated,
-          teacherId
+          title: validated.title,
+          description: validated.description,
+          teacherId,
+          courseId: validated.courseId,
+          status: validated.status,
+          timeLimit: validated.timeLimit,
+          lessonId: validated.lessonId
         },
         include: {
           teacher: { select: { id: true, email: true } }
@@ -326,11 +338,16 @@ export async function quizRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const question = await prisma.quizQuestion.create({
+      const question = await prisma.question.create({
         data: {
           quizId: id,
-          ...validated,
-          options: validated.options || []
+          text: validated.question,
+          questionType: (validated.type as any) || 'MULTIPLE_CHOICE',
+          options: validated.options || [],
+          correctAnswer: validated.correctAnswer,
+          explanation: validated.explanation,
+          order: validated.order || 0,
+          points: validated.points || 1
         }
       });
 
@@ -375,7 +392,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
         });
       }
 
-      const question = await prisma.quizQuestion.update({
+      const question = await prisma.question.update({
         where: { id: questionId },
         data: { ...validated, options: validated.options || [] }
       });
@@ -417,7 +434,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
         });
       }
 
-      await prisma.quizQuestion.delete({ where: { id: questionId } });
+      await prisma.question.delete({ where: { id: questionId } });
 
       return { message: 'Question deleted successfully' };
     } catch (error) {
@@ -481,13 +498,13 @@ export async function quizRoutes(fastify: FastifyInstance) {
       });
 
       const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
-      const passed = score >= quiz.passingScore;
+      const passed = score >= 70;
 
       const attempt = await prisma.quizAttempt.create({
         data: {
           quizId: id,
-          studentId,
-          score,
+          userId: studentId,
+          score: Math.round(score),
           maxScore: 100,
           passed,
           answers: JSON.stringify(answers),
@@ -545,11 +562,6 @@ export async function quizRoutes(fastify: FastifyInstance) {
 
       const attempts = await prisma.quizAttempt.findMany({
         where,
-        include: {
-          student: {
-            select: { id: true, email: true, studentProfile: true }
-          }
-        },
         orderBy: { completedAt: 'desc' }
       });
 
@@ -571,7 +583,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       const studentId = getCurrentUser(request).id;
 
       const attempts = await prisma.quizAttempt.findMany({
-        where: { studentId },
+        where: { userId: studentId },
         include: {
           quiz: {
             select: { id: true, title: true, courseId: true, course: { select: { title: true } } }
