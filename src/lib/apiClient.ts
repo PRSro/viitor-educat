@@ -24,7 +24,9 @@ export class ApiError extends Error {
   }
 }
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use relative URL by default so Vite proxy works in dev and requests go to same origin in production.
+// Set VITE_API_URL only if backend is on a completely different domain (e.g. separate Railway service).
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const REQUEST_TIMEOUT = 30000; // 30 seconds
 
 /**

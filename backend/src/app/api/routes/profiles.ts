@@ -106,7 +106,7 @@ export async function studentProfileRoutes(server: FastifyInstance) {
             level: e.course.level,
             category: e.course.category,
             totalLessons: e.course._count.lessons,
-            teacher: e.course.teacher
+            teacher: e.course.teacher || null
           }
         })),
         learningHistory: completedLessons.map(l => ({

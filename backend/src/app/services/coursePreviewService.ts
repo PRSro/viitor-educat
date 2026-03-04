@@ -162,7 +162,7 @@ export class CoursePreviewService extends BaseService {
             ]);
 
             const items: CoursePreview[] = rows.map((row) => {
-                const teacherName = row.teacher.email.split('@')[0];
+                const teacherName = row.teacher?.email?.split('@')[0] ?? 'Unknown';
 
                 return {
                     id: row.id,

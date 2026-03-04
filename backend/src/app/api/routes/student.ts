@@ -92,4 +92,26 @@ export async function studentRoutes(server: FastifyInstance) {
       throw error;
     }
   });
+
+  /**
+   * GET /student/progress
+   * Get overall learning progress stats for the student
+   */
+  server.get('/progress', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, async (request, reply) => {
+    const user = getCurrentUser(request);
+    const enrollments = await prisma.enrollment.findMany({
+      where: { studentId: user.id },
+    });
+    const total = enrollments.length;
+    const completed = enrollments.filter(e => e.status === 'COMPLETED').length;
+    const inProgress = enrollments.filter(e => e.status === 'ACTIVE' && e.progress > 0).length;
+    return {
+      totalEnrolled: total,
+      totalCompleted: completed,
+      totalInProgress: inProgress,
+      percentComplete: total > 0 ? Math.round((completed / total) * 100) : 0,
+    };
+  });
 }

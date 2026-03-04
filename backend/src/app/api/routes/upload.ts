@@ -179,7 +179,7 @@ export async function uploadRoutes(server: FastifyInstance) {
         filename: file.filename,
         mimeType: file.mimeType,
         size: file.size,
-        uploadedBy: file.user.email,
+        uploadedBy: file.user?.email ?? null,
         createdAt: file.createdAt
       };
     } catch (error) {

@@ -16,27 +16,33 @@ export async function securityHeadersPlugin(server: FastifyInstance) {
   server.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply) => {
     // Prevent clickjacking
     reply.header('X-Frame-Options', 'DENY');
-    
+
     // Prevent MIME type sniffing
     reply.header('X-Content-Type-Options', 'nosniff');
-    
+
     // Enable XSS filter in older browsers
     reply.header('X-XSS-Protection', '1; mode=block');
-    
+
     // Referrer policy
     reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
-    
+
     // Permissions policy (restrict browser features)
     reply.header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-    
+
     // Content Security Policy (adjust as needed for your app)
     if (!isDevelopment) {
+      const backendOrigin = process.env.BACKEND_URL || process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : '';
+      const connectSrc = backendOrigin
+        ? `'self' ${backendOrigin}`
+        : "'self'";
       reply.header(
         'Content-Security-Policy',
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'"
+        `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src ${connectSrc}`
       );
     }
-    
+
     // Strict Transport Security (only in production with HTTPS)
     if (!isDevelopment) {
       reply.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
@@ -58,7 +64,7 @@ export async function requestSanitizationPlugin(server: FastifyInstance) {
         message: 'Request body exceeds maximum allowed size',
       });
     }
-    
+
     // Check for common attack patterns in query strings
     const url = request.url;
     const suspiciousPatterns = [
@@ -68,7 +74,7 @@ export async function requestSanitizationPlugin(server: FastifyInstance) {
       /\.\.\/\.\.\//,  // Path traversal
       /\0/,            // Null byte injection
     ];
-    
+
     if (suspiciousPatterns.some(pattern => pattern.test(url))) {
       return reply.status(400).send({
         error: 'Bad Request',
@@ -145,15 +151,15 @@ export async function rateLimitPlugin(server: FastifyInstance) {
     const ip = request.ip;
     const isAuthEndpoint = request.url.startsWith('/auth/');
     const maxRequests = isAuthEndpoint ? AUTH_RATE_LIMIT_MAX : RATE_LIMIT_MAX;
-    
+
     const key = `ratelimit:${ip}:${isAuthEndpoint ? 'auth' : 'general'}`;
     const result = await checkRateLimit(key, maxRequests);
-    
+
     // Set rate limit headers
     reply.header('X-RateLimit-Limit', maxRequests.toString());
     reply.header('X-RateLimit-Remaining', Math.max(0, maxRequests - result.count).toString());
     reply.header('X-RateLimit-Reset', Math.ceil(result.resetTime / 1000).toString());
-    
+
     if (!result.allowed) {
       return reply.status(429).send({
         error: 'Too Many Requests',
@@ -161,7 +167,7 @@ export async function rateLimitPlugin(server: FastifyInstance) {
       });
     }
   });
-  
+
   // Clean up old entries periodically (in-memory only)
   setInterval(() => {
     const now = Date.now();

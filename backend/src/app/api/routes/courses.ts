@@ -241,50 +241,70 @@ export async function courseRoutes(server: FastifyInstance) {
 
   /** GET /courses/:courseId/students — students enrolled in a course */
   server.get<{ Params: { courseId: string } }>('/:courseId/students', {
-    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
-  }, courseController.getStudents);
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request, reply) => {
+    const { courseId } = request.params;
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) return reply.status(404).send({ error: 'Course not found' });
+    const user = getCurrentUser(request);
+    if (course.teacherId !== user.id && user.role !== 'ADMIN') {
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
+    const enrollments = await prisma.enrollment.findMany({
+      where: { courseId },
+      include: {
+        student: {
+          select: {
+            id: true,
+            email: true,
+            studentProfile: { select: { avatarUrl: true, bio: true } }
+          }
+        }
+      },
+      orderBy: { enrolledAt: 'desc' }
+    });
+    return {
+      students: enrollments.map(e => ({
+        id: e.id,
+        studentId: e.studentId,
+        email: e.student.email,
+        progress: e.progress,
+        status: e.status,
+        enrolledAt: e.enrolledAt,
+        completedLessonsCount: e.completedLessonsCount,
+        avatarUrl: e.student.studentProfile?.avatarUrl ?? null,
+      }))
+    };
+  });
 
   /** GET /courses/:courseId/analytics — analytics for a course */
   server.get<{ Params: { courseId: string } }>('/:courseId/analytics', {
-    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
+    preHandler: [authMiddleware, teacherOnly]
   }, async (request, reply) => {
     const { courseId } = request.params;
-    const currentUser = getCurrentUser(request);
-
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
-      include: {
-        _count: { select: { lessons: true, enrollments: true } },
-        lessons: { select: { id: true, title: true, order: true }, orderBy: { order: 'asc' } }
-      }
-    });
-
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course) return reply.status(404).send({ error: 'Course not found' });
-    if (course.teacherId !== currentUser.id && currentUser.role !== 'ADMIN') {
+    const user = getCurrentUser(request);
+    if (course.teacherId !== user.id && user.role !== 'ADMIN') {
       return reply.status(403).send({ error: 'Forbidden' });
     }
-
-    const enrollments = await prisma.enrollment.findMany({
-      where: { courseId },
-      select: { progress: true, completedAt: true, status: true }
+    const [enrollmentCount, lessonCount, completions] = await Promise.all([
+      prisma.enrollment.count({ where: { courseId, status: 'ACTIVE' } }),
+      prisma.lesson.count({ where: { courseId } }),
+      prisma.lessonCompletion.count({ where: { lesson: { courseId } } }),
+    ]);
+    const avgProgress = await prisma.enrollment.aggregate({
+      where: { courseId, status: 'ACTIVE' },
+      _avg: { progress: true }
     });
-
-    const total = enrollments.length;
-    const completed = enrollments.filter(e => e.completedAt !== null).length;
-    const inProgress = enrollments.filter(e => e.status === 'ACTIVE' && !e.completedAt).length;
-    const avgProgress = total > 0
-      ? Math.round(enrollments.reduce((sum, e) => sum + e.progress, 0) / total * 10) / 10
-      : 0;
-
     return {
-      course: {
-        id: course.id,
-        title: course.title,
-        totalLessons: course._count.lessons,
-        totalEnrollments: course._count.enrollments
-      },
-      enrollment: { total, completed, inProgress, averageProgress: avgProgress },
-      lessons: course.lessons
+      enrollmentCount,
+      lessonCount,
+      completions,
+      averageProgress: Math.round(avgProgress._avg.progress ?? 0),
+      completionRate: enrollmentCount > 0 && lessonCount > 0
+        ? Math.round((completions / (enrollmentCount * lessonCount)) * 100)
+        : 0,
     };
   });
 
