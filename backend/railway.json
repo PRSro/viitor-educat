@@ -1,0 +1,6 @@
+{
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm install --omit=dev && npm run build"
+  }
+}
