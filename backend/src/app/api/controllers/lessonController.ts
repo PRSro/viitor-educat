@@ -32,37 +32,33 @@ const lessonIdSchema = z.object({
 
 export const lessonController = {
   async getAll(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const lessons = await prisma.lesson.findMany({
-        where: {
-          status: 'PUBLIC',
-          OR: [
-            { courseId: null },
-            { course: { published: true } }
-          ]
-        },
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          description: true,
-          content: true,
-          status: true,
-          order: true,
-          courseId: true,
-          teacherId: true,
-          createdAt: true,
-          updatedAt: true,
-          teacher: { select: { id: true, email: true } },
-          course: { select: { id: true, title: true, slug: true, published: true } }
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 20
-      });
-      return { lessons };
-    } catch (error) {
-      throw error;
-    }
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        status: 'PUBLIC',
+        OR: [
+          { courseId: null },
+          { course: { published: true } }
+        ]
+      },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        description: true,
+        content: true,
+        status: true,
+        order: true,
+        courseId: true,
+        teacherId: true,
+        createdAt: true,
+        updatedAt: true,
+        teacher: { select: { id: true, email: true } },
+        course: { select: { id: true, title: true, slug: true, published: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+    return { lessons };
   },
 
   async getById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {

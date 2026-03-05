@@ -49,7 +49,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     }
 
     // Stop oscillators if running
-    oscillatorsRef.current.forEach(osc => { try { osc.stop(); } catch { } });
+    oscillatorsRef.current.forEach(osc => { try { osc.stop(); } catch (e) { console.debug('[AudioPlayer] Oscillator stop error:', e); } });
     oscillatorsRef.current = [];
     oscillatorRef.current = null;
 

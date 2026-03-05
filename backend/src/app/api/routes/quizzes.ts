@@ -550,7 +550,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
 
       // Students can only see their own attempts
       if (user.role === 'STUDENT') {
-        where.userId = user.id;
+        where.studentId = user.id;
       }
       // Teachers can only see attempts for their quizzes
       else if (user.role === 'TEACHER' && quiz.teacherId !== user.id) {

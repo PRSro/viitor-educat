@@ -133,14 +133,14 @@ export function CourseEditor({
         level,
         category,
         tags,
-        status: 'DRAFT'
+        status: 'draft'
       },
       lessons: lessonList.map(l => ({
         title: l.title,
         description: l.description,
         content: l.content,
         order: l.order,
-        status: l.status || 'DRAFT'
+        status: l.status
       }))
     };
     const blob = new Blob([JSON.stringify(draftData, null, 2)], { type: 'application/json' });
@@ -358,8 +358,8 @@ export function CourseEditor({
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant={lesson.status === 'PUBLIC' ? 'default' : 'secondary'}>
-                          {lesson.status || 'DRAFT'}
+                        <Badge variant={lesson.status === 'public' ? 'default' : 'secondary'}>
+                          {lesson.status || 'draft'}
                         </Badge>
                         <Button
                           variant="ghost"
