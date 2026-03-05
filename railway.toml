@@ -1,7 +1,6 @@
 [build]
 builder = "nixpacks"
 buildCommand = "npm run build"
-buildOutputDir = "dist"
 
 [deploy]
 startCommand = "npm run start"

@@ -123,7 +123,7 @@ const __dirname = path.dirname(__filename);
 
 // Serve static files from the frontend build directory
 // In development, this might not exist yet, so we handle it gracefully
-const distPath = path.join(__dirname, '../../../dist');
+const distPath = path.join(__dirname, '../../dist');
 
 await server.register(fastifyStatic, {
   root: distPath,
