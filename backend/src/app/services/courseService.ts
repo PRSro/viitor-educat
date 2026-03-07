@@ -255,7 +255,6 @@ export class CourseService extends BaseService {
                 where: { slug },
                 include: {
                     teacher: {
-                        select: { id: true, email: true },
                         include: { teacherProfile: true }
                     },
                     lessons: { 
