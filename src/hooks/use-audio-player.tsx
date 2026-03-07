@@ -124,6 +124,11 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
         sourceNodeRef.current = source;
         audioElementRef.current = audio;
 
+        // Only update src if it changed — prevents 499 cancellation loop
+        if (audio.src !== track.url) {
+          audio.src = track.url || '';
+        }
+        
         await audio.play();
         console.log('[AudioPlayer] MP3 playback started successfully');
       } else {

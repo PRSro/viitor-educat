@@ -210,7 +210,17 @@ export class CourseService extends BaseService {
                 throw AppError.Forbidden('Access denied');
             }
 
-            await prisma.course.delete({ where: { id } });
+            await prisma.$transaction(async (tx) => {
+                // 1. Delete lesson completions for all lessons in this course
+                await tx.lessonCompletion.deleteMany({ where: { lesson: { courseId: id } } });
+                // 2. Delete all lessons
+                await tx.lesson.deleteMany({ where: { courseId: id } });
+                // 3. Delete all enrollments
+                await tx.enrollment.deleteMany({ where: { courseId: id } });
+                // 4. Now delete the course
+                await tx.course.delete({ where: { id } });
+            });
+
             await auditService.log(teacherId, 'DELETE_COURSE', 'Course', id);
 
             return this.success({ deleted: true });
@@ -239,6 +249,7 @@ export class CourseService extends BaseService {
     }
 
     async findBySlug(slug: string): Promise<ServiceResponse> {
+        console.log(`[courseService] findBySlug called with slug: ${slug}`);
         try {
             const course = await prisma.course.findUnique({
                 where: { slug },
@@ -263,6 +274,7 @@ export class CourseService extends BaseService {
                 }
             });
 
+            console.log(`[courseService] findBySlug result for ${slug}:`, course ? 'Found' : 'Not Found');
             if (!course) throw AppError.NotFound('Course not found');
 
             return this.success(course);
