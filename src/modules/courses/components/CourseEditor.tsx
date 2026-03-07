@@ -84,8 +84,10 @@ export function CourseEditor({
     };
     if (!asDraft) {
       data.published = true;
+      data.status = 'PUBLISHED';
     } else {
       data.published = false;
+      data.status = 'DRAFT';
     }
     await onSaveCourse(data);
   }, [title, description, imageUrl, level, category, tags, onSaveCourse]);

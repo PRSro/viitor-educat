@@ -104,6 +104,7 @@ export default function CourseEditorPage({ courseId: propCourseId }: CourseEdito
             status: publish ? 'PUBLISHED' : 'DRAFT'
           });
           queryClient.invalidateQueries({ queryKey: ['course', courseId] });
+          queryClient.invalidateQueries({ queryKey: ['courses'] });
         }
       }}
       onCreateLesson={lessonMutation.mutateAsync}
