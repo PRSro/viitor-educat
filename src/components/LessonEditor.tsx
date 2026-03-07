@@ -63,6 +63,9 @@ export function LessonEditor({
   const [order, setOrder] = useState(lesson?.order || 0);
   const [status, setStatus] = useState<'DRAFT' | 'PRIVATE' | 'PUBLIC'>(lesson?.status as any || 'DRAFT');
   const [attachmentUrl, setAttachmentUrl] = useState<string>(lesson?.attachmentUrl || '');
+  const published = status === 'PUBLIC';
+  const setPublished = (val: boolean) => setStatus(val ? 'PUBLIC' : 'DRAFT');
+  const [questions, setQuestions] = useState<{ id?: string; prompt: string; type: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE' }[]>([]);
   const [activeTab, setActiveTab] = useState('edit');
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -108,9 +111,10 @@ export function LessonEditor({
       order,
       status: status,
       attachmentUrl: attachmentUrl || undefined,
+      questions: questions.length > 0 ? questions : undefined,
     };
     await onSave(data);
-  }, [title, content, description, order, status, attachmentUrl, onSave]);
+  }, [title, content, description, order, status, attachmentUrl, questions, onSave]);
 
   const handleExport = () => {
     const draftData = {
@@ -312,6 +316,87 @@ You can use HTML tags:
                   accept="video/*,application/pdf,.doc,.docx,.ppt,.pptx"
                   maxSize={100 * 1024 * 1024}
                 />
+              </div>
+
+              {/* Interactive Questions */}
+              <div className="mt-8 pt-8 border-t">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <FileStack className="w-5 h-5 text-primary" />
+                    Interactive Questions
+                  </h3>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setQuestions([...questions, { prompt: '', type: 'SHORT_ANSWER' }])}
+                  >
+                    Add Question
+                  </Button>
+                </div>
+                
+                {questions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4 bg-muted/20 rounded-lg">
+                    No questions added yet. These will appear at the bottom of the lesson for students.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {questions.map((q, idx) => (
+                      <Card key={idx} className="bg-muted/10">
+                        <CardHeader className="p-4 pb-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline">Question {idx + 1}</Badge>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0 space-y-3">
+                          <div className="flex gap-4">
+                            <div className="flex-1">
+                              <Label className="text-xs">Prompt</Label>
+                              <Input 
+                                value={q.prompt}
+                                onChange={(e) => {
+                                  const newQs = [...questions];
+                                  newQs[idx].prompt = e.target.value;
+                                  setQuestions(newQs);
+                                }}
+                                placeholder="e.g. What is the capital of France?"
+                                className="aero-input mt-1 h-9"
+                              />
+                            </div>
+                            <div className="w-40">
+                              <Label className="text-xs">Response Type</Label>
+                              <Select 
+                                value={q.type} 
+                                onValueChange={(v: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE') => {
+                                  const newQs = [...questions];
+                                  newQs[idx].type = v;
+                                  setQuestions(newQs);
+                                }}
+                              >
+                                <SelectTrigger className="mt-1 h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="SHORT_ANSWER">Short Answer</SelectItem>
+                                  <SelectItem value="MULTIPLE_CHOICE" disabled>Multiple Choice (Coming Soon)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </GlassCard>

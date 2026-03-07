@@ -250,7 +250,7 @@ export default function Profile() {
                     </div>
                     <div>
                       <Label className="text-muted-foreground">Email</Label>
-                      <p className="font-medium">{profile?.email || user?.email}</p>
+                      <p className="font-medium">{user?.email}</p>
                     </div>
                   </div>
 
@@ -260,8 +260,8 @@ export default function Profile() {
                     </div>
                     <div>
                       <Label className="text-muted-foreground">Rol</Label>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ml-2 ${getRoleColor(profile?.role || user?.role || '')}`}>
-                        {getRoleLabel(profile?.role || user?.role || '')}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ml-2 ${getRoleColor(user?.role || '')}`}>
+                        {getRoleLabel(user?.role || '')}
                       </span>
                     </div>
                   </div>

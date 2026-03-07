@@ -62,8 +62,8 @@ export default function ArticleEditorPage({ articleSlug }: ArticleEditorPageProp
   return (
     <ArticleEditor
       article={article}
-      onSave={saveMutation.mutateAsync}
-      onDelete={article ? deleteMutation.mutateAsync : undefined}
+      onSave={async (data) => { await saveMutation.mutateAsync(data); }}
+      onDelete={article ? async () => { await deleteMutation.mutateAsync(); } : undefined}
       isLoading={saveMutation.isPending || deleteMutation.isPending}
     />
   );

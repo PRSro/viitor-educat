@@ -135,7 +135,7 @@ export async function courseRoutes(server: FastifyInstance) {
   }, async (request, reply) => {
     const { teacherId } = request.params;
     const courses = await prisma.course.findMany({
-      where: { teacherId, status: 'PUBLISHED' },
+      where: { teacherId, published: true },
       include: {
         teacher: { select: { id: true, email: true } },
         _count: { select: { lessons: true, enrollments: true } },
@@ -344,6 +344,11 @@ export async function courseRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, requireRole(['STUDENT'])]
   }, (request: FastifyRequest, reply: FastifyReply) =>
     courseController.unenroll(request as any, reply));
+
+  /** POST /courses/:courseId/lessons/:lessonId/complete — mark lesson as completed */
+  server.post<{ Params: { courseId: string, lessonId: string } }>('/:courseId/lessons/:lessonId/complete', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, courseController.markLessonComplete);
 
   /** GET /courses/:id/export — export course as JSON */
   server.get<{ Params: { id: string } }>('/:id/export', {

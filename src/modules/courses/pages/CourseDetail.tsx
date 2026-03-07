@@ -5,7 +5,7 @@
  * Students can view lessons and track progress.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +24,9 @@ import {
   Play,
   ChevronRight,
   Lock,
-  LogIn
+  LogIn,
+  Trophy,
+  LayoutList
 } from 'lucide-react';
 import {
   getCourseBySlug,
@@ -56,6 +58,7 @@ interface CourseWithDetails {
     title: string;
     description?: string;
     order: number;
+    slug?: string;
   }[];
   createdAt: string;
   updatedAt: string;
@@ -135,11 +138,48 @@ export default function CourseDetail() {
       const data = await resumeCourse(course.id);
       if (data.lesson) {
         navigate(`/lessons/${data.lesson.slug ?? data.lesson.id}`);
+      } else if (course.lessons && course.lessons.length > 0) {
+        // Fallback to first incomplete lesson
+        const sortedLessons = [...course.lessons].sort((a, b) => a.order - b.order);
+        const completedSet = new Set(courseProgress?.lessons.filter(l => l.completed).map(l => l.id) || []);
+        const firstIncomplete = sortedLessons.find(l => !completedSet.has(l.id));
+        if (firstIncomplete) {
+          navigate(`/lessons/${firstIncomplete.slug ?? firstIncomplete.id}`);
+        } else {
+          navigate(`/lessons/${sortedLessons[0].slug ?? sortedLessons[0].id}`);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resume');
     }
   }
+
+  const isEnrolled = enrollment !== null;
+  
+  // Sorted lessons
+  const sortedLessons = useMemo(() => {
+    if (!course?.lessons) return [];
+    return [...course.lessons].sort((a, b) => a.order - b.order);
+  }, [course?.lessons]);
+  
+  const lessonCount = sortedLessons.length;
+
+  // Derived progress values
+  const completedSet = useMemo(() => 
+    new Set(courseProgress?.lessons.filter(l => l.completed).map(l => l.id) || []), 
+    [courseProgress?.lessons]
+  );
+  
+  const completedCount = courseProgress?.completedLessonsCount ?? 0;
+  
+  const progressPercent = courseProgress?.progress ?? Math.round(enrollment?.progress ?? 0);
+
+  const levelColors: Record<string, string> = {
+    BEGINNER: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    INTERMEDIATE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    ADVANCED: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+    EXPERT: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  };
 
   if (loading) {
     return (
@@ -170,16 +210,6 @@ export default function CourseDetail() {
       </div>
     );
   }
-
-  const isEnrolled = enrollment !== null;
-  const lessonCount = course.lessons?.length || 0;
-
-  const levelColors: Record<string, string> = {
-    BEGINNER: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    INTERMEDIATE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    ADVANCED: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-    EXPERT: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  };
 
   return (
     <>
@@ -239,55 +269,90 @@ export default function CourseDetail() {
                 )}
               </div>
 
+              {/* Progress Card when enrolled */}
+              {isEnrolled && (
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Trophy className={`h-5 w-5 ${progressPercent === 100 ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground'}`} />
+                        <span className="font-semibold">
+                          {progressPercent === 100 ? 'Course Completed!' : 'Your Progress'}
+                        </span>
+                      </div>
+                      <span className="text-sm font-medium">
+                        {completedCount} / {lessonCount} · {progressPercent}%
+                      </span>
+                    </div>
+                    <Progress value={progressPercent} className="h-3 mb-2" />
+                    {progressPercent === 100 && (
+                      <p className="text-sm text-center text-primary font-medium mt-2 flex items-center justify-center gap-2">
+                        <Trophy className="h-4 w-4" /> Amazing work! You've mastered this course.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Lessons List */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
+                    <LayoutList className="h-5 w-5" />
                     Course Content
                   </CardTitle>
                   <CardDescription>
-                    {lessonCount} lesson{lessonCount !== 1 ? 's' : ''}
+                    {lessonCount} lesson{lessonCount !== 1 ? 's' : ''} total
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {!course.lessons || course.lessons.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-8">
-                      No lessons available yet.
-                    </p>
+                  {lessonCount === 0 ? (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+                      <p className="text-muted-foreground italic">No lessons yet.</p>
+                    </div>
                   ) : (
                     <ul className="divide-y">
-                      {course.lessons.map((lesson, index) => {
-                        const isCompleted = courseProgress?.lessons?.find(l => l.id === lesson.id)?.completed || false;
+                      {sortedLessons.map((lesson, index) => {
+                        const isCompleted = completedSet.has(lesson.id);
                         const isAccessible = isEnrolled;
 
                         return (
-                          <li key={lesson.id} className="py-4 first:pt-0 last:pb-0">
+                          <li key={lesson.id} className="py-5 first:pt-0 last:pb-0">
                             <div className="flex items-start gap-4">
-                              <div className="flex-shrink-0 mt-0.5">
-                                {isCompleted ? (
-                                  <CheckCircle className="h-5 w-5 text-green-500" />
-                                ) : isAccessible ? (
-                                  <Circle className="h-5 w-5 text-muted-foreground" />
-                                ) : (
-                                  <Lock className="h-5 w-5 text-muted-foreground" />
-                                )}
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-medium mt-0.5">
+                                {index + 1}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-medium">{lesson.title}</h4>
+                                <div className="flex items-center gap-2 mb-1">
+                                  {isCompleted ? (
+                                    <CheckCircle className="h-4 w-4 text-emerald-500 fill-emerald-500/10" />
+                                  ) : isAccessible ? (
+                                    <Circle className="h-4 w-4 text-primary/40" />
+                                  ) : (
+                                    <Lock className="h-4 w-4 text-muted-foreground/50" />
+                                  )}
+                                  <h4 className="font-semibold truncate">{lesson.title}</h4>
+                                </div>
                                 {lesson.description && (
-                                  <p className="text-sm text-muted-foreground mt-1">
+                                  <p className="text-sm text-muted-foreground line-clamp-2">
                                     {lesson.description}
                                   </p>
                                 )}
                               </div>
-                              {isEnrolled && (
+                              {(isAccessible && lesson.slug) && (
                                 <Button
-                                  variant="ghost"
+                                  variant={isCompleted ? "outline" : "default"}
                                   size="sm"
+                                  className="flex-shrink-0"
                                   onClick={() => navigate(`/lessons/${lesson.slug}`)}
                                 >
-                                  <Play className="h-4 w-4" />
+                                  {isCompleted ? (
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                  ) : (
+                                    <Play className="h-4 w-4 mr-2 fill-current" />
+                                  )}
+                                  {isCompleted ? "Review" : "Start"}
                                 </Button>
                               )}
                             </div>
@@ -306,84 +371,83 @@ export default function CourseDetail() {
                 <CardContent className="pt-6">
                   {/* Instructor */}
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                       {course.teacher.teacherProfile?.pictureUrl ? (
                         <img
                           src={course.teacher.teacherProfile.pictureUrl}
                           alt=""
-                          className="w-full h-full object-cover rounded-full"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         <User className="h-6 w-6 text-primary" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-muted-foreground">Instructor</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Instructor</p>
                       <Link
                         to={`/teachers/${course.teacher.id}`}
-                        className="font-medium hover:text-primary transition-colors"
+                        className="font-medium hover:text-primary transition-colors block truncate"
                       >
                         {course.teacher.teacherProfile?.bio
-                          ? course.teacher.teacherProfile.bio.substring(0, 30) + '...'
-                          : course.teacher.email.split('@')[0]}
+                          ? (course.teacher.teacherProfile.bio.length > 30 ? course.teacher.teacherProfile.bio.substring(0, 30) + '...' : course.teacher.teacherProfile.bio)
+                          : (course.teacher?.email?.split('@')[0] ?? 'Teacher')}
                       </Link>
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full mb-6" asChild>
-                    <Link to={`/teachers/${course.teacher.id}`}>
-                      <User className="h-4 w-4 mr-2" />
-                      View Teacher Profile
-                    </Link>
-                  </Button>
-
                   {/* Course Stats */}
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-2 text-sm">
-                      <BookOpen className="h-4 w-4 text-muted-foreground" />
-                      <span>{lessonCount} Lessons</span>
+                  <div className="space-y-3 mb-6 border-y py-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <BookOpen className="h-4 w-4" />
+                        <span>Lessons</span>
+                      </div>
+                      <span className="font-medium">{lessonCount}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>Updated {new Date(course.updatedAt).toLocaleDateString()}</span>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>Updated</span>
+                      </div>
+                      <span className="font-medium">{new Date(course.updatedAt).toLocaleDateString()}</span>
                     </div>
                   </div>
 
                   {/* Progress or Enroll */}
                   {isEnrolled ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Your Progress</span>
-                        <span className="font-medium">{Math.round(enrollment?.progress || 0)}%</span>
-                      </div>
-                      <Progress value={enrollment?.progress || 0} className="h-2" />
-
-                      {courseProgress && (
-                        <div className="text-sm text-muted-foreground">
-                          {courseProgress.completedLessonsCount} of {courseProgress.lessons.length} lessons completed
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground font-medium">Completion</span>
+                          <span className="font-bold">{progressPercent}%</span>
                         </div>
-                      )}
+                        <Progress value={progressPercent} className="h-2" />
+                        <div className="text-xs text-muted-foreground">
+                          {completedCount} of {lessonCount} lessons completed
+                        </div>
+                      </div>
 
                       <Button
-                        className="w-full mt-4"
+                        className="w-full"
                         size="lg"
                         onClick={handleContinue}
                       >
-                        <Play className="h-4 w-4 mr-2" />
-                        Continue Learning
-                        <ChevronRight className="h-4 w-4 ml-2" />
+                        {progressPercent === 0 ? "Start Learning" : "Continue Learning"}
+                        <ChevronRight className="h-4 w-4 ml-1" />
                       </Button>
 
-                      <Badge variant="secondary" className="w-full justify-center py-1">
-                        Enrolled
-                      </Badge>
+                      <div className="flex justify-center">
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-none px-4 py-1">
+                          Successfully Enrolled
+                        </Badge>
+                      </div>
                     </div>
                   ) : (
                     <Button
-                      className="w-full"
+                      className="w-full bg-primary hover:bg-primary/90"
                       size="lg"
                       onClick={handleEnroll}
-                      disabled={enrolling}
+                      disabled={enrolling || lessonCount === 0}
                     >
                       {enrolling ? (
                         <>
@@ -397,8 +461,8 @@ export default function CourseDetail() {
                         </>
                       ) : (
                         <>
-                          Enroll Now - Free
-                          <ChevronRight className="h-4 w-4 ml-2" />
+                          Enroll in Course
+                          <ChevronRight className="h-4 w-4 ml-1" />
                         </>
                       )}
                     </Button>

@@ -98,10 +98,6 @@ export async function flashcardRoutes(server: FastifyInstance) {
     }
   });
 
-  /**
-   * GET /flashcards/course/:courseId
-   * Get all flashcards for a specific course (organized as deck)
-   */
   server.get<{ Params: { courseId: string } }>('/course/:courseId', {
     preHandler: [authMiddleware, anyRole]
   }, async (request, reply) => {
@@ -109,18 +105,25 @@ export async function flashcardRoutes(server: FastifyInstance) {
 
     const flashcards = await prisma.flashcard.findMany({
       where: { courseId },
-      select: {
-        id: true,
-        question: true,
-        answer: true,
-        courseId: true,
-        createdAt: true
+      include: {
+        course: { select: { id: true, title: true, slug: true } },
+        lesson: { select: { id: true, title: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
 
+    const groupedByLesson: Record<string, any[]> = {};
+    flashcards.forEach(card => {
+      const lessonTitle = card.lesson?.title || 'General';
+      if (!groupedByLesson[lessonTitle]) {
+        groupedByLesson[lessonTitle] = [];
+      }
+      groupedByLesson[lessonTitle].push(card);
+    });
+
     return {
       flashcards,
+      groupedByLesson,
       totalCount: flashcards.length
     };
   });

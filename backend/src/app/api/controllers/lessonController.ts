@@ -135,7 +135,8 @@ export const lessonController = {
         course: { select: { id: true, title: true, slug: true, published: true, teacherId: true } },
         teacher: { select: { id: true, email: true, teacherProfile: true } },
         externalResources: true,
-        flashcards: true
+        flashcards: true,
+        questions: { orderBy: { order: 'asc' } }
       }
     });
 
@@ -285,5 +286,43 @@ export const lessonController = {
 
     await lessonService.deleteLesson(id);
     return { message: 'Lesson deleted' };
+  },
+
+  async submitAnswer(request: FastifyRequest<{ Params: { id: string; questionId: string }; Body: { answer: string } }>, reply: FastifyReply) {
+    const { id: lessonId, questionId } = request.params;
+    const { answer } = request.body;
+    const user = getCurrentUser(request);
+
+    // Ensure lesson exists
+    const lesson = await prisma.lesson.findFirst({
+        where: { OR: [{ slug: lessonId }, { id: lessonId }] }
+    });
+    if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
+
+    // Ensure question exists
+    const question = await prisma.lessonQuestion.findUnique({
+        where: { id: questionId }
+    });
+    if (!question || question.lessonId !== lesson.id) {
+        return reply.status(404).send({ error: 'Question not found' });
+    }
+
+    // Upsert response
+    const response = await prisma.lessonResponse.upsert({
+        where: { id: `${user.id}_${questionId}` }, // Custom composite-like ID or we could add a unique constraint
+        create: {
+            id: `${user.id}_${questionId}`,
+            userId: user.id,
+            lessonId: lesson.id,
+            questionId,
+            answer
+        },
+        update: {
+            answer,
+            updatedAt: new Date()
+        }
+    });
+
+    return { success: true, responseId: response.id };
   }
 };

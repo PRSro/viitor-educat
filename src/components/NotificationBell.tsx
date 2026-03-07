@@ -190,8 +190,8 @@ export function NotificationBell() {
     try {
       setLoading(true);
       const data = await getNotifications();
-      setNotifications(data ?? []);
-      setUnreadCount((data ?? []).filter(n => !n.read).length);
+      setNotifications(data?.notifications ?? []);
+      setUnreadCount(data?.unreadCount ?? 0);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     } finally {

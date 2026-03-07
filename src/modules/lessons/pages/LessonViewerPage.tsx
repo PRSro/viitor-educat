@@ -52,17 +52,19 @@ export default function LessonViewerPage() {
     }
   }
 
+
   async function handleMarkComplete() {
-    if (!lessonId) return;
+    if (!lessonId || !lessonData) return;
 
     try {
       setCompleting(true);
-      await completeLesson(lessonId);
+      await completeLesson(lessonId, lessonData.lesson.courseId || undefined);
       // Refresh lesson data to get updated progress
       if (lessonId) {
         await fetchLesson(lessonId);
       }
     } catch (err) {
+      console.error('Failed to mark lesson as complete:', err);
       setError(err instanceof Error ? err.message : 'Failed to mark lesson as complete');
     } finally {
       setCompleting(false);

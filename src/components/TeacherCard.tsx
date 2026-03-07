@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BookOpen, Mail, ChevronRight } from 'lucide-react';
@@ -31,7 +31,7 @@ export function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
   const totalLessons = teacher.courses?.reduce((acc, c) => acc + (c._count?.lessons || 0), 0) || 0;
   const totalStudents = teacher.courses?.reduce((acc, c) => acc + (c._count?.enrollments || 0), 0) || 0;
 
-  const displayName = teacher.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const displayName = teacher?.email?.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? 'Teacher';
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
@@ -40,7 +40,7 @@ export function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
           <Avatar className="h-16 w-16 border-2 border-primary/20">
             <AvatarImage src={profile?.pictureUrl || undefined} />
             <AvatarFallback className="bg-primary/10 text-primary text-lg">
-              {teacher.email.substring(0, 2).toUpperCase()}
+              {teacher?.email?.substring(0, 2).toUpperCase() ?? 'TE'}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -49,7 +49,7 @@ export function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
             </CardTitle>
             <CardDescription className="flex items-center gap-1 mt-1">
               <Mail className="h-3 w-3" />
-              {teacher.email}
+              {teacher?.email}
             </CardDescription>
           </div>
         </div>

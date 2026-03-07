@@ -1,7 +1,7 @@
 import { prisma } from '../models/prisma.js';
 
 const SOLFEGGIO_FREQUENCIES = [
-  { frequencyHz: 432, name: 'Frutiger Aero', benefit: 'Aquatic serenity and nature-tech harmony.', duration: 3600, order: 0, url: '/music/safe-haven.mp3' },
+  { frequencyHz: 432, name: 'Frutiger Aero', benefit: 'Aquatic serenity and nature-tech harmony.', duration: 3600, order: 0, url: '/assets/music/safe-haven.mp3' },
   { frequencyHz: 174, name: 'Foundation', benefit: 'Removes pain and strengthens the feeling of security.', duration: 3600, order: 1 },
   { frequencyHz: 285, name: 'Healing', benefit: 'Heals tissues and organs; resets them to original perfect state.', duration: 3600, order: 2 },
   { frequencyHz: 396, name: 'Liberation', benefit: 'Liberates guilt and fear; transforms grief into joy.', duration: 3600, order: 3 },

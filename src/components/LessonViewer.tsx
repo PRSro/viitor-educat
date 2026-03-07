@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ProgressBar } from './ProgressBar';
@@ -16,7 +17,8 @@ import {
   BookOpen,
   FileText,
   PlayCircle,
-  FileStack
+  FileStack,
+  Send
 } from 'lucide-react';
 
 interface LessonViewerProps {
@@ -51,6 +53,12 @@ interface LessonViewerProps {
       question: string;
       answer: string;
     }[];
+    questions?: {
+      id: string;
+      prompt: string;
+      questionType: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE';
+      order: number;
+    }[];
   };
   isCompleted: boolean;
   completedAt: string | null;
@@ -58,11 +66,72 @@ interface LessonViewerProps {
   completedLessonsCount: number;
   totalLessons: number;
   navigation: {
-    nextLesson: { id: string; title: string; order: number } | null;
-    previousLesson: { id: string; title: string; order: number } | null;
+    nextLesson: { id: string; title: string; order: number; slug: string } | null;
+    previousLesson: { id: string; title: string; order: number; slug: string } | null;
   };
   onMarkComplete: () => Promise<void>;
   isCompleting: boolean;
+}
+
+function QuestionBlock({ 
+  question, 
+  lessonId 
+}: { 
+  question: { id: string; prompt: string; questionType: string }; 
+  lessonId: string 
+}) {
+  const [answer, setAnswer] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!answer.trim()) return;
+    try {
+      setSubmitting(true);
+      const { submitAnswer } = await import('@/modules/lessons/services/lessonService');
+      await submitAnswer(lessonId, question.id, answer);
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Failed to submit answer:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Card key={question.id}>
+      <CardContent className="p-6 space-y-4">
+        <p className="font-medium text-lg">{question.prompt}</p>
+        {submitted ? (
+          <div className="bg-green-100 dark:bg-green-900/30 p-4 rounded-lg flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <p className="text-sm font-medium">Answer submitted! Well done.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <Textarea 
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="Type your answer here..."
+              className="aero-input"
+            />
+            <Button 
+              onClick={handleSubmit} 
+              disabled={submitting || !answer.trim()}
+              size="sm"
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Submit Answer
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function LessonViewer({
@@ -210,6 +279,21 @@ export function LessonViewer({
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* Interactive Questions */}
+      {lesson.questions && lesson.questions.length > 0 && (
+        <div className="space-y-4 pt-8 border-t">
+          <h3 className="text-xl font-bold flex items-center gap-2">
+            <CheckCircle className="h-6 w-6 text-primary" />
+            Check Your Understanding
+          </h3>
+          <div className="space-y-6">
+            {lesson.questions.map((q) => (
+              <QuestionBlock key={q.id} question={q} lessonId={lesson.id} />
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Flashcards */}

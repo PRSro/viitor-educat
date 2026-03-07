@@ -162,7 +162,7 @@ export default function TeacherDashboard() {
         setArticles(articlesData || []);
         
         if (aggAnalytics) {
-          const lessons = (aggAnalytics.lessons || []).map((l: any) => ({
+          const lessons = ((aggAnalytics as any).lessons || []).map((l: any) => ({
             lessonTitle: l.lessonTitle || l.title || 'Untitled',
             completions: l.completionCount || l.completions || 0
           }));
@@ -244,10 +244,14 @@ export default function TeacherDashboard() {
   async function handleTogglePublish(course: Course) {
     try {
       setError(null);
-      await updateCourse(course.id, { published: !course.published });
+      const newPublishedState = !course.published;
+      await updateCourse(course.id, { 
+        published: newPublishedState,
+        status: newPublishedState ? 'PUBLISHED' : 'DRAFT'
+      });
       const data = await getTeacherCourses();
       setCourses(data || []);
-      setSuccess(course.published ? 'Course unpublished' : 'Course published!');
+      setSuccess(newPublishedState ? 'Course published!' : 'Course unpublished');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update course');
@@ -433,6 +437,7 @@ export default function TeacherDashboard() {
       setSelectedCourseId(courseId);
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch analytics');
     } finally {
       setLoadingAnalytics(false);
     }
@@ -447,6 +452,7 @@ export default function TeacherDashboard() {
       setStudents(data);
     } catch (err) {
       console.error('Failed to fetch students:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch students');
     } finally {
       setLoadingStudents(false);
     }
@@ -472,6 +478,7 @@ export default function TeacherDashboard() {
       setQuizPerformance(quizData);
     } catch (err) {
       console.error('Failed to fetch detailed analytics:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch detailed analytics');
     } finally {
       setLoadingDetailedAnalytics(false);
     }
@@ -509,7 +516,7 @@ export default function TeacherDashboard() {
       </div>
 
       {/* Header */}
-      <header className="border-b bg-card/30 backdrop-blur-md relative z-10">
+      <header className="border-b aero-panel relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -989,7 +996,7 @@ export default function TeacherDashboard() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-muted-foreground">Completion Rate</p>
-                          <p className="text-3xl font-bold">{analytics.enrollment.completionRate}%</p>
+                          <p className="text-3xl font-bold">{(analytics.enrollment as any).completionRate ?? 0}%</p>
                         </div>
                         <Target className="h-8 w-8 text-purple-500" />
                       </div>

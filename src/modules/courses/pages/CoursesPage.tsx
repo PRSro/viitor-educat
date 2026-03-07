@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CourseCard } from '@/components/CourseCard';
-import { getCourses, Course } from '@/modules/courses/services/courseService';
+import { CourseCard } from '@/modules/courses/components/CourseCard';
+import { getCourses, CoursePreview } from '@/modules/courses/services/courseService';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +42,7 @@ const LEVELS = [
 ];
 
 export default function CoursesPage() {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<CoursePreview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,7 +69,7 @@ export default function CoursesPage() {
   const filteredCourses = useMemo(() => {
     return courses.filter(course => {
       const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        course.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        course.shortDescription?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
       const matchesLevel = selectedLevel === 'all' || course.level === selectedLevel;
       return matchesSearch && matchesCategory && matchesLevel;

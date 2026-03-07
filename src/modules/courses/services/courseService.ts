@@ -13,6 +13,16 @@ export interface CoursePreview {
   shortDescription: string | null;
   thumbnail: string | null;
   teacherName: string;
+  teacherId: string;
+  teacher: {
+    id: string;
+    email: string;
+    teacherProfile?: {
+      bio: string | null;
+      pictureUrl: string | null;
+    } | null;
+  };
+  published: boolean;
   status: string;
   level: string;
   category: string | null;
@@ -69,7 +79,6 @@ export interface Course {
   lessons?: CourseLesson[];
 }
 
-/** Shape returned by GET /student/enrollments */
 export interface EnrolledCourseItem {
   enrollment: {
     id: string;
@@ -90,6 +99,8 @@ export interface EnrolledCourseItem {
   };
 }
 
+export type Enrollment = EnrolledCourseItem;
+
 export interface CreateCourseData {
   title: string;
   description?: string;
@@ -97,7 +108,7 @@ export interface CreateCourseData {
   level?: string;
   category?: string;
   tags?: string[];
-  status?: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
+  status?: 'DRAFT' | 'PUBLISHED' | 'PRIVATE' | 'PUBLIC' | 'ARCHIVED';
 }
 
 /**

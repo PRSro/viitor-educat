@@ -28,13 +28,14 @@ import {
   Eye
 } from 'lucide-react';
 import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
-import { getCourses, Course } from '@/modules/courses/services/courseService';
+import { getCourses, Course, CoursePreview } from '@/modules/courses/services/courseService';
+import { CourseCard } from '@/modules/courses/components/CourseCard';
 
 export default function TeachersPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [teachers, setTeachers] = useState<TeacherWithProfile[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<CoursePreview[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export default function TeachersPage() {
     const searchLower = searchQuery.toLowerCase();
     const profile = teacher.teacherProfile;
     const matchesBio = profile?.bio?.toLowerCase().includes(searchLower);
-    const matchesEmail = teacher.email.toLowerCase().includes(searchLower);
+    const matchesEmail = teacher?.email?.toLowerCase().includes(searchLower) || false;
     const matchesCourse = teacher.courses?.some(c => 
       c.title.toLowerCase().includes(searchLower)
     );
@@ -93,21 +94,11 @@ export default function TeachersPage() {
   const filteredCourses = courses.filter(course => {
     const searchLower = searchQuery.toLowerCase();
     const matchesTitle = course.title.toLowerCase().includes(searchLower);
-    const matchesDesc = course.description?.toLowerCase().includes(searchLower);
-    const matchesTeacher = course.teacher.email.toLowerCase().includes(searchLower);
+    const matchesDesc = (course.shortDescription || '').toLowerCase().includes(searchLower);
+    const matchesTeacher = course.teacher?.email?.toLowerCase().includes(searchLower) || false;
     return matchesTitle || matchesDesc || matchesTeacher;
   });
 
-  const getInitials = (email: string) => {
-    return email.substring(0, 2).toUpperCase();
-  };
-
-  const getTeacherDisplayName = (teacher: TeacherWithProfile) => {
-    if (teacher.teacherProfile?.bio) {
-      return teacher.teacherProfile.bio.substring(0, 30);
-    }
-    return teacher.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
@@ -213,8 +204,6 @@ export default function TeachersPage() {
                   <CourseCard 
                     key={course.id} 
                     course={course} 
-                    onViewCourse={() => navigate(`/courses/${course.slug}`)}
-                    onViewTeacher={() => navigate(`/teachers/${course.teacherId}`)}
                   />
                 ))}
               </div>
@@ -261,74 +250,17 @@ export default function TeachersPage() {
   );
 }
 
-// Course Card Component
-interface CourseCardProps {
-  course: Course;
-  onViewCourse: () => void;
-  onViewTeacher: () => void;
-}
 
-function CourseCard({ course, onViewCourse, onViewTeacher }: CourseCardProps) {
-  const teacherName = course.teacher.teacherProfile?.bio 
-    ? course.teacher.teacherProfile.bio.substring(0, 30)
-    : course.teacher.email.split('@')[0];
+const getInitials = (email: string) => {
+  return email.substring(0, 2).toUpperCase();
+};
 
-  return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
-      {course.imageUrl ? (
-        <div className="aspect-video bg-muted overflow-hidden">
-          <img 
-            src={course.imageUrl} 
-            alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-      ) : (
-        <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-          <BookOpen className="h-12 w-12 text-primary/30" />
-        </div>
-      )}
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
-        {course.description && (
-          <CardDescription className="line-clamp-2">
-            {course.description}
-          </CardDescription>
-        )}
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="flex items-center gap-2 mb-3">
-          <Button variant="ghost" size="sm" className="h-auto p-1" onClick={onViewTeacher}>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-3 w-3 text-primary" />
-              </div>
-              <span className="text-xs text-muted-foreground hover:text-primary">
-                {teacherName}
-              </span>
-            </div>
-          </Button>
-        </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <FileText className="h-4 w-4" />
-            {course._count?.lessons || 0} lessons
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            {course._count?.enrollments || 0} students
-          </span>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-2">
-        <Button className="w-full" onClick={onViewCourse}>
-          View Course
-          <ChevronRight className="h-4 w-4 ml-2" />
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-}
+const getTeacherDisplayName = (teacher: TeacherWithProfile) => {
+  if (teacher.teacherProfile?.bio) {
+    return teacher.teacherProfile.bio.substring(0, 30);
+  }
+  return teacher?.email?.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? 'Teacher';
+};
 
 // Teacher Card Component
 interface TeacherCardProps {
@@ -349,7 +281,7 @@ function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
           <Avatar className="h-16 w-16 border-2 border-primary/20">
             <AvatarImage src={profile?.pictureUrl || undefined} />
             <AvatarFallback className="bg-primary/10 text-primary text-lg">
-              {teacher.email.substring(0, 2).toUpperCase()}
+              {teacher?.email?.substring(0, 2).toUpperCase() ?? 'TE'}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
@@ -358,7 +290,7 @@ function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
             </CardTitle>
             <CardDescription className="flex items-center gap-1 mt-1">
               <Mail className="h-3 w-3" />
-              {teacher.email}
+              {teacher?.email}
             </CardDescription>
           </div>
         </div>

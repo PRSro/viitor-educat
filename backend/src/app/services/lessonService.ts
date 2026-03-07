@@ -33,14 +33,43 @@ export const lessonService = {
                 teacherId,
                 slug,
                 status: data.status || Status.PRIVATE,
+                questions: (data as any).questions ? {
+                    create: (data as any).questions.map((q: any, i: number) => ({
+                        prompt: q.prompt,
+                        questionType: q.type || 'SHORT_ANSWER',
+                        order: i
+                    }))
+                } : undefined
             },
         });
     },
 
-    async updateLesson(id: string, data: { title?: string; content?: string; description?: string; status?: Status; order?: number }) {
-        return prisma.lesson.update({
-            where: { id },
-            data,
+    async updateLesson(id: string, data: { title?: string; content?: string; description?: string; status?: Status; order?: number; questions?: any[] }) {
+        const { questions, ...updateData } = data;
+        
+        return prisma.$transaction(async (tx) => {
+            const lesson = await tx.lesson.update({
+                where: { id },
+                data: updateData as any,
+            });
+
+            if (questions) {
+                // For simplicity, replace all questions
+                await tx.lessonQuestion.deleteMany({ where: { lessonId: id } });
+                await tx.lessonQuestion.createMany({
+                    data: questions.map((q: any, i: number) => ({
+                        lessonId: id,
+                        prompt: q.prompt,
+                        questionType: q.type || 'SHORT_ANSWER',
+                        order: i
+                    }))
+                });
+            }
+
+            return tx.lesson.findUnique({
+                where: { id },
+                include: { course: true, questions: { orderBy: { order: 'asc' } } }
+            });
         });
     },
 

@@ -23,7 +23,7 @@ import {
 } from '@/modules/core/services/flashcardService';
 import {
   getCourses,
-  Course
+  CoursePreview
 } from '@/modules/courses/services/courseService';
 import {
   Layers,
@@ -39,7 +39,7 @@ export default function FlashcardsPage() {
   const isTeacher = user?.role === 'TEACHER' || user?.role === 'ADMIN';
 
   const [flashcards, setFlashcards] = useState<FlashcardListItem[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<CoursePreview[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [courseFlashcards, setCourseFlashcards] = useState<FlashcardDeckType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +77,7 @@ export default function FlashcardsPage() {
     try {
       const response = await getCourses();
       setCourses(response);
-      if (response.length > 0) {
+      if (response.length > 0 && !selectedCourseId) {
         setSelectedCourseId(response[0].id);
       }
     } catch (err) {

@@ -132,10 +132,10 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * PUT /notifications/:id/read
+   * PATCH /notifications/:id/read
    * Mark a notification as read
    */
-  fastify.put<{ Params: NotificationParams }>('/:id/read', {
+  fastify.patch<{ Params: NotificationParams }>('/:id/read', {
     preHandler: [authMiddleware, anyRole]
   }, async (request: FastifyRequest<{ Params: NotificationParams }>, reply: FastifyReply) => {
     try {
@@ -169,10 +169,10 @@ export async function notificationRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * PUT /notifications/read-all
+   * PATCH /notifications/read-all
    * Mark all notifications as read
    */
-  fastify.put('/read-all', {
+  fastify.patch('/read-all', {
     preHandler: [authMiddleware, anyRole]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const user = getCurrentUser(request);

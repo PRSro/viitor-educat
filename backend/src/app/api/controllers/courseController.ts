@@ -15,7 +15,7 @@ const slugSchema = z.object({ slug: z.string().min(1) });
 export const courseController = {
   async getAll(request: FastifyRequest, reply: FastifyReply) {
     const courses = await prisma.course.findMany({
-      where: { status: 'PUBLISHED' },
+      where: { published: true },
       include: {
         teacher: {
           select: {
@@ -43,7 +43,13 @@ export const courseController = {
       include: {
         course: {
           include: {
-            teacher: { select: { id: true, email: true } },
+            teacher: {
+              select: {
+                id: true,
+                email: true,
+                teacherProfile: { select: { bio: true, pictureUrl: true } }
+              }
+            },
             _count: { select: { lessons: true } }
           }
         }
@@ -65,38 +71,47 @@ export const courseController = {
 
   async getBySlug(request: FastifyRequest<{ Params: { slug: string } }>, reply: FastifyReply) {
     const { slug } = slugSchema.parse(request.params);
+    let currentUser = null;
+    try {
+      currentUser = getCurrentUser(request);
+    } catch {}
 
     const course = await courseService.getCourseBySlug(slug);
-
     if (!course) return reply.status(404).send({ error: 'Course not found' });
-
-    if (!course.published) {
-      return reply.status(404).send({ error: 'Course not found' });
-    }
 
     let enrollment = null;
     let isTeacher = false;
-    let currentUser = null;
+    let completions: string[] = [];
 
-    try {
-      currentUser = getCurrentUser(request);
-      if (currentUser) {
-        isTeacher = course.teacherId === currentUser.id;
-        if (currentUser.role === 'STUDENT') {
-          enrollment = await prisma.enrollment.findUnique({
-            where: { studentId_courseId: { studentId: currentUser.id, courseId: course.id } }
-          });
-        }
+    if (currentUser) {
+      isTeacher = course.teacherId === currentUser.id || currentUser.role === 'ADMIN';
+      enrollment = await prisma.enrollment.findUnique({
+        where: { studentId_courseId: { studentId: currentUser.id, courseId: course.id } }
+      });
+
+      if (enrollment) {
+        const userCompletions = await prisma.lessonCompletion.findMany({
+          where: { studentId: currentUser.id, lesson: { courseId: course.id } },
+          select: { lessonId: true }
+        });
+        completions = userCompletions.map(c => c.lessonId);
       }
-    } catch {
-      // Not authenticated
     }
 
-    if (!isTeacher && (!currentUser || currentUser.role !== 'ADMIN')) {
-      (course as any).lessons = course.lessons.filter((l: any) => l.status !== 'PRIVATE');
+    if (!isTeacher) {
+      // In a real app we might want to check if they are enrolled to see PRIVATE lessons,
+      // but for "preview" usually we only show PUBLISHED.
+      course.lessons = course.lessons.filter((l: any) => l.status === 'PUBLISHED' || l.status === 'PUBLIC');
     }
 
-    return { course, enrollment, isTeacher };
+    return { course, enrollment, isTeacher, completions };
+  },
+
+  async markLessonComplete(request: FastifyRequest<{ Params: { lessonId: string } }>, reply: FastifyReply) {
+    const user = getCurrentUser(request);
+    const { lessonId } = request.params as any;
+    const result = await courseService.markLessonComplete(user.id, lessonId);
+    return result.data;
   },
 
   async enroll(request: FastifyRequest<{ Params: { courseId: string } }>, reply: FastifyReply) {

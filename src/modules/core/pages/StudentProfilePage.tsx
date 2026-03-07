@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProgressBar } from '@/components/ProgressBar';
-import { CourseCard } from '@/components/CourseCard';
+import { CourseCard } from '@/modules/courses/components/CourseCard';
 import { 
   User, 
   Mail, 

@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CourseCard } from '@/components/CourseCard';
+import { CourseCard } from '@/modules/courses/components/CourseCard';
 import { TeacherCard } from '@/components/TeacherCard';
 import {
   Search as SearchIcon,
@@ -261,7 +261,7 @@ export default function SearchPage() {
                 <SelectItem value="ALL">All Teachers</SelectItem>
                 {results?.teachers.map((teacher) => (
                   <SelectItem key={teacher.id} value={teacher.id}>
-                    {teacher.email.split('@')[0]}
+                    {teacher?.email?.split('@')[0] ?? 'Teacher'}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -72,11 +72,11 @@ export async function broadcastNotification(data: BroadcastData): Promise<{ crea
 }
 
 export async function markAsRead(notificationId: string): Promise<void> {
-  await api.put(`/notifications/${notificationId}/read`);
+  await api.patch(`/notifications/${notificationId}/read`, {});
 }
 
 export async function markAllAsRead(): Promise<void> {
-  await api.put('/notifications/read-all');
+  await api.patch('/notifications/read-all', {});
 }
 
 export async function deleteNotification(notificationId: string): Promise<void> {

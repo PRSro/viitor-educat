@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CourseEditor } from '../../../components/CourseEditor';
+import { CourseEditor } from '../components/CourseEditor';
 import {
   getCourseById,
   createCourse,
@@ -97,6 +97,15 @@ export default function CourseEditorPage({ courseId: propCourseId }: CourseEdito
       lessons={lessons}
       onSaveCourse={courseMutations.mutateAsync}
       onDeleteCourse={courseId ? deleteMutation.mutateAsync : undefined}
+      onPublish={async (publish) => {
+        if (courseId) {
+          await updateCourse(courseId, {
+            published: publish,
+            status: publish ? 'PUBLISHED' : 'DRAFT'
+          });
+          queryClient.invalidateQueries({ queryKey: ['course', courseId] });
+        }
+      }}
       onCreateLesson={lessonMutation.mutateAsync}
       onDeleteLesson={deleteLessonMutation.mutateAsync}
       isLoading={courseMutations.isPending || deleteMutation.isPending}

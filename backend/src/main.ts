@@ -174,7 +174,7 @@ const start = async () => {
   try {
     await server.listen({
       port: Number(process.env.PORT) || 3001,
-      host: '::'
+      host: '0.0.0.0'
     });
     console.log(`Server running on http://localhost:${PORT}`);
   } catch (err) {

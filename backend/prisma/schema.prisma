@@ -70,6 +70,7 @@ model User {
   settings          UserSettings?
   forumThreads      ForumThread[]        @relation("AuthorThreads")
   forumPosts        ForumPost[]          @relation("AuthorPosts")
+  lessonResponses   LessonResponse[]
 }
 
 model Lesson {
@@ -91,6 +92,8 @@ model Lesson {
   teacher           User               @relation("TeacherLessons", fields: [teacherId], references: [id], onDelete: Cascade)
   completions       LessonCompletion[]
   quizzes           Quiz[]
+  questions         LessonQuestion[]
+  responses         LessonResponse[]
   externalResources ExternalResource[] @relation("ExternalResourceToLesson")
 
   @@index([teacherId])
@@ -585,4 +588,34 @@ model ForumPost {
 enum ForumType {
   GENERAL
   TEACHERS
+}
+
+model LessonQuestion {
+  id           String           @id @default(cuid())
+  lessonId     String
+  prompt       String
+  questionType String           @default("SHORT_ANSWER")
+  order        Int              @default(0)
+  createdAt    DateTime         @default(now())
+  lesson       Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  responses    LessonResponse[]
+
+  @@index([lessonId])
+}
+
+model LessonResponse {
+  id         String         @id
+  userId     String
+  lessonId   String
+  questionId String
+  answer     String         @db.Text
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson     Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  question   LessonQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([lessonId])
+  @@index([questionId])
 }

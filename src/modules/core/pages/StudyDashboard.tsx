@@ -18,7 +18,7 @@ import { FlashcardItem } from '@/components/FlashcardDeck';
 import {
   getCourses,
   getEnrolledCourses,
-  Course,
+  CoursePreview,
   Enrollment
 } from '@/modules/courses/services/courseService';
 import {
@@ -62,7 +62,7 @@ export default function StudyDashboard() {
 
   // Data states
   const [enrolledCourses, setEnrolledCourses] = useState<Enrollment[]>([]);
-  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<CoursePreview[]>([]);
   const [latestArticles, setLatestArticles] = useState<ArticleListItem[]>([]);
   const [recentResources, setRecentResources] = useState<ResourceListItem[]>([]);
   const [recentFlashcards, setRecentFlashcards] = useState<FlashcardListItem[]>([]);
@@ -186,7 +186,7 @@ export default function StudyDashboard() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {enrolledCourses.slice(0, 3).map((enrollment) => (
                     <CourseProgressCard
-                      key={enrollment.id}
+                      key={enrollment.enrollment.id}
                       enrollment={enrollment}
                     />
                   ))}
@@ -366,6 +366,7 @@ export default function StudyDashboard() {
 // Course Progress Card Component
 function CourseProgressCard({ enrollment }: { enrollment: Enrollment }) {
   const course = enrollment.course;
+  const progress = enrollment.enrollment.progress;
 
   return (
     <Card className="flex flex-col aero-glass hover:shadow-aero-strong transition-all duration-300 hover:-translate-y-1">
@@ -390,15 +391,15 @@ function CourseProgressCard({ enrollment }: { enrollment: Enrollment }) {
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{Math.round(enrollment.progress)}%</span>
+            <span className="font-medium">{Math.round(progress)}%</span>
           </div>
-          <Progress value={enrollment.progress} className="h-2 bg-muted/50" />
+          <Progress value={progress} className="h-2 bg-muted/50" />
         </div>
       </CardContent>
       <CardFooter>
-        <Link to={`/courses/${course.slug}`} className="w-full">
+        <Link to={`/courses/${course.id}`} className="w-full">
           <Button className="w-full aero-button-accent">
-            {enrollment.progress > 0 ? 'Continue Learning' : 'Start Learning'}
+            {progress > 0 ? 'Continue Learning' : 'Start Learning'}
           </Button>
         </Link>
       </CardFooter>

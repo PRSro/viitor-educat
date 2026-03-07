@@ -83,6 +83,7 @@ export class CourseService extends BaseService {
                     teacherId: data.teacherId,
                     slug,
                     status: data.status || Status.DRAFT,
+                    published: data.status === Status.PUBLISHED,
                     enrollmentLimit: data.enrollmentLimit,
                     waitlistEnabled: data.waitlistEnabled || false,
                     lessons: {
@@ -128,6 +129,7 @@ export class CourseService extends BaseService {
                     where: { id },
                     data: {
                         ...data,
+                        ...(data.status !== undefined && { published: data.status === Status.PUBLISHED }),
                         ...(data.title && { slug: this.generateSlug(data.title) })
                     }
                 });
@@ -245,7 +247,18 @@ export class CourseService extends BaseService {
                         select: { id: true, email: true },
                         include: { teacherProfile: true }
                     },
-                    lessons: { orderBy: { order: 'asc' } },
+                    lessons: { 
+                        where: { status: { in: ['PUBLIC', 'PUBLISHED'] } },
+                        orderBy: { order: 'asc' },
+                        select: {
+                            id: true,
+                            title: true,
+                            slug: true,
+                            description: true,
+                            order: true,
+                            status: true,
+                        }
+                    },
                     _count: { select: { enrollments: true, lessons: true } }
                 }
             });
@@ -273,9 +286,11 @@ export class CourseService extends BaseService {
                 ];
             }
 
-            if (filters.published !== undefined) where.published = filters.published;
-
-            where.status = filters.status !== undefined ? filters.status : Status.PUBLISHED;
+            if (filters.status !== undefined) {
+                where.status = filters.status;
+            } else if (filters.published === undefined) {
+                where.published = true;
+            }
 
             const [courses, total] = await Promise.all([
                 prisma.course.findMany({
@@ -331,6 +346,62 @@ export class CourseService extends BaseService {
     async getCourseBySlug(slug: string) {
         const res = await this.findBySlug(slug);
         return res.data;
+    }
+    async markLessonComplete(userId: string, lessonId: string): Promise<ServiceResponse> {
+        try {
+            const lesson = await prisma.lesson.findUnique({
+                where: { id: lessonId },
+                select: { courseId: true }
+            });
+
+            if (!lesson || !lesson.courseId) {
+                throw AppError.NotFound('Lesson or associated course not found');
+            }
+
+            const courseId = lesson.courseId;
+
+            // 1. Create completion
+            await prisma.lessonCompletion.upsert({
+                where: { lessonId_studentId: { lessonId, studentId: userId } },
+                create: { lessonId, studentId: userId },
+                update: { completedAt: new Date() }
+            });
+
+            // 2. Update Enrollment progress
+            const enrollment = await prisma.enrollment.findUnique({
+                where: { studentId_courseId: { studentId: userId, courseId } }
+            });
+
+            if (enrollment) {
+                const totalLessons = await prisma.lesson.count({
+                    where: { courseId, status: { in: ['PUBLIC', 'PUBLISHED'] } }
+                });
+
+                const completedLessons = await prisma.lessonCompletion.count({
+                    where: {
+                        studentId: userId,
+                        lesson: { courseId }
+                    }
+                });
+
+                const progress = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+
+                await prisma.enrollment.update({
+                    where: { id: enrollment.id },
+                    data: {
+                        progress,
+                        completedLessonsCount: completedLessons,
+                        lastAccessedLessonId: lessonId,
+                        status: progress === 100 ? 'COMPLETED' : enrollment.status,
+                        completedAt: progress === 100 ? new Date() : enrollment.completedAt
+                    }
+                });
+            }
+
+            return this.success({ completed: true });
+        } catch (err) {
+            return this.error(err);
+        }
     }
 }
 

@@ -21,6 +21,13 @@ export interface CoursePreview {
     shortDescription: string | null;
     thumbnail: string | null;
     teacherName: string;
+    teacherId: string;
+    teacher: {
+        id: string;
+        email: string;
+        teacherProfile?: { bio: string | null; pictureUrl: string | null } | null;
+    };
+    published: boolean;
     status: string;
     level: string;
     category: string | null;
@@ -118,7 +125,12 @@ export class CoursePreviewService extends BaseService {
             const skip = (page - 1) * pageSize;
 
             // Build where clause
-            const where: Prisma.CourseWhereInput = { status };
+            const where: Prisma.CourseWhereInput = {};
+            if (status === Status.PUBLISHED) {
+                where.published = true;
+            } else {
+                where.status = status;
+            }
             if (teacherId) where.teacherId = teacherId;
             if (search) {
                 where.OR = [
@@ -149,8 +161,11 @@ export class CoursePreviewService extends BaseService {
                         level: true,
                         category: true,
                         status: true,
+                        published: true,
+                        teacherId: true,
                         teacher: {
                             select: {
+                                id: true,
                                 email: true,
                                 teacherProfile: { select: { bio: true, pictureUrl: true } },
                             },
@@ -171,6 +186,13 @@ export class CoursePreviewService extends BaseService {
                     shortDescription: row.description ?? null,
                     thumbnail: row.imageUrl ?? null,
                     teacherName,
+                    teacherId: row.teacherId,
+                    teacher: {
+                        id: row.teacher.id,
+                        email: row.teacher.email,
+                        teacherProfile: row.teacher.teacherProfile
+                    },
+                    published: row.published,
                     status: row.status,
                     level: row.level,
                     category: row.category ?? 'Uncategorized',

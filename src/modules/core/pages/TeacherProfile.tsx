@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { getTeacherProfile, TeacherProfile as TeacherProfileType, User as UserType, TeacherCourses, getTeacherArticles, getTeacherLessons, TeacherLesson, TeacherLesson as TeacherLessonType } from '@/modules/core/services/authService';
 import { ArticleListItem, categoryLabels, categoryColors } from '@/modules/articles/services/articleService';
+import { CourseCard } from '@/modules/courses/components/CourseCard';
 
 interface TeacherData {
   teacher: UserType;
@@ -132,7 +133,7 @@ export default function TeacherProfilePage() {
   const totalLessons = courses.reduce((acc, c) => acc + (c._count?.lessons || 0), 0);
   const totalStudents = courses.reduce((acc, c) => acc + (c._count?.enrollments || 0), 0);
 
-  const displayName = teacher.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const displayName = teacher?.email?.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? 'Teacher';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
@@ -193,7 +194,7 @@ export default function TeacherProfilePage() {
                   <Avatar className="h-32 w-32 mx-auto border-4 border-primary/20">
                     <AvatarImage src={profile?.pictureUrl || undefined} />
                     <AvatarFallback className="bg-primary/10 text-primary text-3xl">
-                      {teacher.email.substring(0, 2).toUpperCase()}
+                      {teacher?.email?.substring(0, 2).toUpperCase() ?? 'TE'}
                     </AvatarFallback>
                   </Avatar>
 
@@ -206,7 +207,7 @@ export default function TeacherProfilePage() {
                   </Badge>
                   <p className="text-muted-foreground flex items-center justify-center gap-1 mt-2">
                     <Mail className="h-4 w-4" />
-                    {teacher.email}
+                    {teacher?.email}
                   </p>
                 </div>
 
@@ -336,7 +337,14 @@ export default function TeacherProfilePage() {
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2">
                     {courses.map(course => (
-                      <CourseCard key={course.id} course={course} />
+                      <CourseCard 
+                        key={course.id} 
+                        course={{
+                          ...course,
+                          teacherId: teacher.id,
+                          teacherName: displayName
+                        }} 
+                      />
                     ))}
                   </div>
                 )}
@@ -397,81 +405,6 @@ export default function TeacherProfilePage() {
   );
 }
 
-interface CourseCardProps {
-  course: TeacherCourses;
-}
-
-function CourseCard({ course }: CourseCardProps) {
-  return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
-      {course.imageUrl ? (
-        <div className="aspect-video bg-muted overflow-hidden">
-          <img
-            src={course.imageUrl}
-            alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-      ) : (
-        <div className="aspect-video bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-          <BookOpen className="h-12 w-12 text-primary/30" />
-        </div>
-      )}
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
-        </div>
-        {course.description && (
-          <CardDescription className="line-clamp-2">
-            {course.description}
-          </CardDescription>
-        )}
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <FileText className="h-4 w-4" />
-            {course._count?.lessons || course.lessons?.length || 0} lessons
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            {course._count?.enrollments || 0} students
-          </span>
-        </div>
-        {course.lessons && course.lessons.length > 0 && (
-          <div className="mt-3 space-y-1">
-            <p className="text-xs font-medium text-muted-foreground">Lessons:</p>
-            <ul className="text-sm space-y-1">
-              {course.lessons.slice(0, 3).map((lesson, idx) => (
-                <li key={lesson.id} className="flex items-center gap-2 text-muted-foreground">
-                  <span className="text-xs bg-muted px-1.5 py-0.5 rounded">{idx + 1}</span>
-                  <span className="truncate">{lesson.title}</span>
-                </li>
-              ))}
-              {course.lessons.length > 3 && (
-                <li className="text-xs text-muted-foreground">
-                  +{course.lessons.length - 3} more lessons
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
-        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
-          <Calendar className="h-3 w-3" />
-          {new Date(course.createdAt).toLocaleDateString()}
-        </div>
-      </CardContent>
-      <CardFooter className="pt-2">
-        <Button className="w-full" asChild>
-          <Link to={`/courses/${course.slug}`}>
-            <Eye className="h-4 w-4 mr-2" />
-            View Course
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-}
 
 interface NewspaperCardProps {
   article: ArticleListItem;
@@ -504,7 +437,7 @@ function NewspaperCard({ article }: NewspaperCardProps) {
           {article.author && (
             <span className="flex items-center gap-1">
               <User className="h-4 w-4" />
-              {article.author.email.split('@')[0]}
+              {article.author?.email?.split('@')[0] ?? 'Author'}
             </span>
           )}
         </div>

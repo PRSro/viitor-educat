@@ -38,6 +38,12 @@ export interface Lesson {
     question: string;
     answer: string;
   }[];
+  questions?: {
+    id: string;
+    prompt: string;
+    questionType: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE';
+    order: number;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +56,7 @@ export interface CreateLessonData {
   order?: number;
   status?: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
   attachmentUrl?: string;
+  questions?: { prompt: string; type: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE' }[];
 }
 
 export interface UpdateLessonData {
@@ -159,8 +166,11 @@ export interface LessonViewResponse {
   };
 }
 
-export async function completeLesson(lessonId: string): Promise<LessonCompleteResponse> {
-  return api.post(`/lessons/${lessonId}/complete`, {});
+export async function completeLesson(lessonId: string, courseId?: string): Promise<LessonCompleteResponse> {
+  const url = courseId 
+    ? `/courses/${courseId}/lessons/${lessonId}/complete`
+    : `/lessons/${lessonId}/complete`;
+  return api.post(url, {});
 }
 
 export async function getLessonProgress(lessonId: string): Promise<LessonProgress> {
@@ -169,4 +179,8 @@ export async function getLessonProgress(lessonId: string): Promise<LessonProgres
 
 export async function viewLesson(lessonId: string): Promise<LessonViewResponse> {
   return api.get(`/lessons/${lessonId}/view`);
+}
+
+export async function submitAnswer(lessonId: string, questionId: string, answer: string): Promise<{ success: boolean }> {
+  return api.post(`/lessons/${lessonId}/questions/${questionId}/answer`, { answer });
 }

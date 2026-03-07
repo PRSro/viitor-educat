@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Volume2, VolumeX, Music, X, Play, Pause, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
 import {
   Popover,
   PopoverContent,
@@ -11,6 +12,8 @@ import { useAudioPlayer, Track } from '@/hooks/use-audio-player';
 import { api } from '@/lib/apiClient';
 import { getToken } from '@/modules/core/services/authService';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
+import { useSettings } from '@/contexts/SettingsContext';
+import { Sparkles } from 'lucide-react';
 
 interface MusicPlayerProps {
   className?: string;
@@ -30,8 +33,9 @@ interface PreferenceResponse {
 
 export function MusicPlayer({ className }: MusicPlayerProps) {
   const { isOpen, openPlayer, closePlayer } = useMusicPlayer();
+  const { theme } = useSettings();
   const [tracks, setTracks] = useState<Track[]>([
-    { id: '1', frequencyHz: 432, name: 'Frutiger Aero', benefit: 'Aquatic serenity and nature-tech harmony.', duration: 3600, order: 0, url: '/music/safe-haven.mp3' },
+    { id: '1', frequencyHz: 432, name: 'Frutiger Aero', benefit: 'Aquatic serenity and nature-tech harmony.', duration: 3600, order: 0, url: '/assets/music/safe-haven.mp3' },
     { id: '2', frequencyHz: 174, name: 'Foundation', benefit: 'Removes pain and strengthens the feeling of security.', duration: 3600, order: 1 },
     { id: '3', frequencyHz: 285, name: 'Healing', benefit: 'Heals tissues and organs; resets them to original perfect state.', duration: 3600, order: 2 },
     { id: '4', frequencyHz: 396, name: 'Liberation', benefit: 'Liberates guilt and fear; transforms grief into joy.', duration: 3600, order: 3 },
@@ -214,16 +218,18 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
             variant="default"
             size="icon"
             className={`
-              h-12 w-12 rounded-full shadow-lg bg-primary/90 backdrop-blur
-              border-2 border-white/20 hover:bg-primary
+              h-12 w-12 rounded-full shadow-lg
+              bg-emerald-500 hover:bg-emerald-600
+              dark:bg-emerald-500 dark:hover:bg-emerald-600
+              border-2 border-white/40 text-white
               transition-all duration-300
-              ${isPlaying ? 'animate-pulse shadow-primary/40' : ''}
+              ${isPlaying ? 'animate-pulse shadow-emerald-400/60' : 'shadow-emerald-500/30'}
             `}
           >
             {isPlaying ? (
-              <Volume2 className="h-5 w-5 text-white" />
+              <Volume2 className="h-5 w-5" />
             ) : (
-              <Music className="h-5 w-5 text-white" />
+              <Music className="h-5 w-5" />
             )}
           </Button>
         </PopoverTrigger>
@@ -275,17 +281,25 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
                   className={`
                     w-full flex items-center justify-between p-2 rounded-lg
                     text-left transition-colors hover:bg-accent
+                    relative group/item
                     ${currentTrack?.id === track.id ? 'bg-primary/10 border border-primary/30' : ''}
                   `}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{track.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{track.name}</p>
+                      {track.name === 'Frutiger Aero' && theme === 'light' && (
+                        <Badge variant="outline" className="h-4 px-1 text-[10px] bg-accent/20 border-accent/30 text-accent gap-1 animate-pulse">
+                          <Sparkles className="h-2 w-2" /> Theme Track
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{track.benefit}</p>
                   </div>
                   {currentTrack?.id === track.id && isPlaying ? (
                     <Pause className="h-4 w-4 text-primary flex-shrink-0" />
                   ) : (
-                    <Play className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <Play className="h-4 w-4 text-muted-foreground flex-shrink-0 group-hover/item:text-primary" />
                   )}
                 </button>
               ))

@@ -48,7 +48,10 @@ import {
   getCourses,
   enrollInCourse,
   Course,
+  CoursePreview,
+  EnrolledCourseItem
 } from '@/modules/courses/services/courseService';
+import { CourseCard } from '@/modules/courses/components/CourseCard';
 import { getStudentCourses, getStudentProgress, CourseWithProgress } from '@/modules/core/services/studentService';
 import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
 import { getLessons, Lesson } from '@/modules/lessons/services/lessonService';
@@ -83,7 +86,7 @@ export default function StudentDashboard() {
     totalInProgress: number;
     percentComplete: number;
   } | null>(null);
-  const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [allCourses, setAllCourses] = useState<CoursePreview[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [enrollingId, setEnrollingId] = useState<string | null>(null);
 
@@ -272,7 +275,7 @@ export default function StudentDashboard() {
       const search = courseSearch.toLowerCase();
       courses = courses.filter(c =>
         c.title.toLowerCase().includes(search) ||
-        c.description?.toLowerCase().includes(search)
+        c.shortDescription?.toLowerCase().includes(search)
       );
     }
 
@@ -287,13 +290,14 @@ export default function StudentDashboard() {
   const teachers = useMemo(() => {
     const teacherMap = new Map<string, { id: string; email: string; name: string }>();
     allCourses.forEach(course => {
-      if (!teacherMap.has(course.teacherId)) {
-        teacherMap.set(course.teacherId, {
-          id: course.teacherId,
-          email: course.teacher.email,
-          name: course.teacher.teacherProfile?.bio
-            ? course.teacher.teacherProfile.bio.substring(0, 30) + '...'
-            : course.teacher.email.split('@')[0]
+      const teacherId = course.teacherId || course.teacher?.id;
+      if (teacherId && !teacherMap.has(teacherId)) {
+        teacherMap.set(teacherId, {
+          id: teacherId,
+          email: course.teacher?.email ?? '',
+          name: course.teacherName || course.teacher?.teacherProfile?.bio
+            ? (course.teacherName || course.teacher?.teacherProfile?.bio || '').substring(0, 30)
+            : (course.teacher?.email?.split('@')[0] ?? 'Teacher')
         });
       }
     });
@@ -314,7 +318,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* Header */}
-      <header className="border-b bg-card/30 backdrop-blur-md sticky top-0 z-10">
+      <header className="border-b aero-panel sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -431,9 +435,9 @@ export default function StudentDashboard() {
                       {inProgressCourses.map((enrollment) => (
                         <CourseCard
                           key={enrollment.id}
-                          course={enrollment.course}
+                          course={enrollment.course as unknown as CoursePreview}
                           progress={enrollment.progress}
-                          enrolledAt={enrollment.enrolledAt}
+                          showProgress
                         />
                       ))}
                     </div>
@@ -451,9 +455,9 @@ export default function StudentDashboard() {
                       {completedCourses.map((enrollment) => (
                         <CourseCard
                           key={enrollment.id}
-                          course={enrollment.course}
+                          course={enrollment.course as unknown as CoursePreview}
                           progress={enrollment.progress}
-                          enrolledAt={enrollment.enrolledAt}
+                          showProgress
                         />
                       ))}
                     </div>
@@ -471,7 +475,7 @@ export default function StudentDashboard() {
                       {recommendedCourses.map((course) => (
                         <CourseCard
                           key={course.id}
-                          course={course}
+                          course={course as unknown as CoursePreview}
                           onEnroll={() => handleEnroll(course.id)}
                           enrolling={enrollingId === course.id}
                         />
@@ -755,9 +759,9 @@ export default function StudentDashboard() {
                           <CardTitle className="text-lg">
                             {teacher.teacherProfile?.bio
                               ? teacher.teacherProfile.bio.substring(0, 30) + (teacher.teacherProfile.bio.length > 30 ? '...' : '')
-                              : teacher.email.split('@')[0]}
+                              : (teacher?.email?.split('@')[0] ?? 'Teacher')}
                           </CardTitle>
-                          <p className="text-sm text-muted-foreground">{teacher.email}</p>
+                          <p className="text-sm text-muted-foreground">{teacher?.email}</p>
                         </div>
                       </div>
                     </CardHeader>
@@ -970,7 +974,7 @@ export default function StudentDashboard() {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <Card>
+            <Card className="aero-glass">
               <CardHeader>
                 <CardTitle>Setări</CardTitle>
               </CardHeader>
@@ -1003,139 +1007,6 @@ export default function StudentDashboard() {
   );
 }
 
-// Course Card Component
-interface CourseCardProps {
-  course: {
-    id: string;
-    title: string;
-    slug: string;
-    description?: string | null;
-    imageUrl?: string | null;
-    level: string;
-    category?: string;
-    teacher: {
-      id: string;
-      email: string;
-      teacherProfile?: {
-        bio: string | null;
-        pictureUrl: string | null;
-      } | null;
-    };
-    _count?: {
-      lessons: number;
-      enrollments: number;
-    };
-    totalLessons?: number;
-  };
-  progress?: number;
-  enrolledAt?: string;
-  onEnroll?: () => void;
-  enrolling?: boolean;
-}
-
-function CourseCard({ course, progress, enrolledAt, onEnroll, enrolling }: CourseCardProps) {
-  const isEnrolled = progress !== undefined;
-  const lessonCount = course._count?.lessons ?? course.totalLessons ?? 0;
-
-  return (
-    <Card className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
-      {course.imageUrl && (
-        <div className="aspect-video bg-muted overflow-hidden">
-          <img
-            src={course.imageUrl}
-            alt={course.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
-        </div>
-        {course.description && (
-          <CardDescription className="line-clamp-2">
-            {course.description}
-          </CardDescription>
-        )}
-      </CardHeader>
-      <CardContent className="flex-1 pb-2">
-        <div className="flex items-center gap-3 mb-3">
-          {course.teacher.teacherProfile?.pictureUrl ? (
-            <img
-              src={course.teacher.teacherProfile.pictureUrl}
-              alt={course.teacher.email}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-4 w-4 text-primary" />
-            </div>
-          )}
-          <Link
-            to={`/teachers/${course.teacher.id}`}
-            className="text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            {course.teacher.teacherProfile?.bio
-              ? course.teacher.teacherProfile.bio.substring(0, 30) + '...'
-              : course.teacher.email}
-          </Link>
-        </div>
-        {lessonCount > 0 && (
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <BookOpen className="h-4 w-4" />
-              {lessonCount} lessons
-            </span>
-            {!isEnrolled && course._count && course._count.enrollments > 0 && (
-              <span className="flex items-center gap-1">
-                <GraduationCap className="h-4 w-4" />
-                {course._count.enrollments} enrolled
-              </span>
-            )}
-          </div>
-        )}
-        {isEnrolled && (
-          <div className="mt-4">
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{Math.round(progress)}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="pt-2 flex gap-2">
-        {isEnrolled ? (
-          <Link to={`/courses/${course.slug}`} className="w-full">
-            <Button className="w-full">Continue Learning</Button>
-          </Link>
-        ) : (
-          <>
-            <Link to={`/courses/${course.slug}`} className="flex-1">
-              <Button variant="outline" className="w-full">Preview</Button>
-            </Link>
-            {onEnroll && (
-              <Button
-                className="flex-1"
-                onClick={onEnroll}
-                disabled={enrolling}
-              >
-                {enrolling ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enrolling...
-                  </>
-                ) : (
-                  'Enroll'
-                )}
-              </Button>
-            )}
-          </>
-        )}
-      </CardFooter>
-    </Card >
-  );
-}
 
 // Article Card Component
 interface ArticleCardProps {
@@ -1178,7 +1049,7 @@ function ArticleCard({ article }: ArticleCardProps) {
           {article.author && (
             <span className="flex items-center gap-1">
               <User className="h-3 w-3" />
-              {article.author.email}
+              {article.author?.email?.split('@')[0] ?? 'Author'}
             </span>
           )}
           <span className="flex items-center gap-1">
