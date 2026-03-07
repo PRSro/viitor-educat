@@ -42,6 +42,7 @@ export interface UpdateCourseData {
     category?: string;
     tags?: string[];
     status?: Status;
+    published?: boolean;
     enrollmentLimit?: number | null;
     waitlistEnabled?: boolean;
 }
@@ -129,7 +130,14 @@ export class CourseService extends BaseService {
                     where: { id },
                     data: {
                         ...data,
-                        ...(data.status !== undefined && { published: data.status === Status.PUBLISHED }),
+                        // If published is explicitly set, sync status to match
+                        ...(data.published !== undefined && {
+                            status: data.published ? Status.PUBLISHED : Status.DRAFT
+                        }),
+                        // If status is explicitly set, sync published to match
+                        ...(data.status !== undefined && {
+                            published: data.status === Status.PUBLISHED
+                        }),
                         ...(data.title && { slug: this.generateSlug(data.title) })
                     }
                 });
@@ -211,13 +219,14 @@ export class CourseService extends BaseService {
             }
 
             await prisma.$transaction(async (tx) => {
-                // 1. Delete lesson completions for all lessons in this course
+                // Cascade-delete manually to avoid FK constraint issues
                 await tx.lessonCompletion.deleteMany({ where: { lesson: { courseId: id } } });
-                // 2. Delete all lessons
+                await tx.lessonResponse.deleteMany({ where: { lesson: { courseId: id } } });
+                await tx.quiz.deleteMany({ where: { lesson: { courseId: id } } });
+                await tx.flashcard.deleteMany({ where: { lesson: { courseId: id } } });
+                await tx.comment.deleteMany({ where: { lesson: { courseId: id } } });
                 await tx.lesson.deleteMany({ where: { courseId: id } });
-                // 3. Delete all enrollments
                 await tx.enrollment.deleteMany({ where: { courseId: id } });
-                // 4. Now delete the course
                 await tx.course.delete({ where: { id } });
             });
 

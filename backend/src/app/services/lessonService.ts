@@ -32,7 +32,7 @@ export const lessonService = {
                 courseId: data.courseId,
                 teacherId,
                 slug,
-                status: data.status || Status.PRIVATE,
+                status: data.status || Status.PUBLIC,
                 questions: (data as any).questions ? {
                     create: (data as any).questions.map((q: any, i: number) => ({
                         prompt: q.prompt,

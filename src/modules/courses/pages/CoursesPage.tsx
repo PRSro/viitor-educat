@@ -89,7 +89,7 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-card/50 backdrop-blur-sm">
+      <div className="border-b aero-glass rounded-none border-x-0 border-t-0">
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -143,7 +143,7 @@ export default function CoursesPage() {
               <TabsTrigger 
                 key={cat.value} 
                 value={cat.value}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                className="data-[state=active]:aero-button-accent data-[state=active]:text-white rounded-xl transition-all"
               >
                 {cat.label}
                 <Badge variant="secondary" className="ml-2 text-xs">

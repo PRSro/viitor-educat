@@ -10,7 +10,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle, ArrowLeft, BookOpen, LogIn } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft, BookOpen, LogIn, CheckCircle } from 'lucide-react';
 import { LessonViewer } from '@/components/LessonViewer';
 import { viewLesson, completeLesson, LessonViewResponse, LessonCompleteResponse } from '@/modules/lessons/services/lessonService';
 
@@ -166,6 +166,31 @@ export default function LessonViewerPage() {
           onMarkComplete={handleMarkComplete}
           isCompleting={completing}
         />
+
+        {/* Manual completion button as requested in Prompt 7 */}
+        <div className="mt-8 pt-8 border-t flex justify-center">
+          {!lessonData?.isCompleted && (
+            <Button
+              onClick={handleMarkComplete}
+              disabled={completing}
+              className="px-8 bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg transition-all hover:scale-105"
+            >
+              {completing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                '✓ Mark as Complete'
+              )}
+            </Button>
+          )}
+          {lessonData?.isCompleted && (
+            <p className="text-emerald-600 font-medium flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
+              <CheckCircle className="w-5 h-5" /> Lesson completed
+            </p>
+          )}
+        </div>
       </main>
     </div>
   );

@@ -187,11 +187,7 @@ export class CoursePreviewService extends BaseService {
                     thumbnail: row.imageUrl ?? null,
                     teacherName,
                     teacherId: row.teacherId,
-                    teacher: {
-                        id: row.teacher.id,
-                        email: row.teacher.email,
-                        teacherProfile: row.teacher.teacherProfile
-                    },
+                    teacher: row.teacher,
                     published: row.published,
                     status: row.status,
                     level: row.level,
