@@ -150,11 +150,11 @@ export function useFeatureEnabled(feature: 'showArticles' | 'showFlashcards' | '
 // Hook to get default dashboard view
 export function useDefaultDashboardView() {
   const { settings } = useSettings();
-  return settings?.defaultDashboardView ?? 'courses';
+  return settings?.defaultDashboardView ?? 'lessons'; // Changed courses to lessons
 }
 
 // Hook to get content priority
 export function useContentPriority() {
   const { settings } = useSettings();
-  return settings?.contentPriority ?? 'courses';
+  return settings?.contentPriority ?? 'lessons'; // Changed courses to lessons
 }

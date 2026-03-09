@@ -8,7 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -52,7 +52,6 @@ import {
   Theme,
   DashboardView,
   ContentPriority,
-  ResourceType,
   themeLabels,
   dashboardViewLabels,
   categoryLabels,
@@ -126,16 +125,16 @@ export default function SettingsPage() {
               <Link to="/student">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
+                  Înapoi
                 </Button>
               </Link>
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                   <Settings className="h-6 w-6" />
-                  Settings
+                  Setări
                 </h1>
                 <p className="text-muted-foreground">
-                  Manage your preferences and account settings
+                  Administrează preferințele și setările contului tău
                 </p>
               </div>
             </div>
@@ -144,20 +143,20 @@ export default function SettingsPage() {
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" disabled={saving}>
                     <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset to Defaults
+                    Resetează
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Reset Settings</AlertDialogTitle>
+                    <AlertDialogTitle>Resetează Setările</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will reset all your settings to their default values. This action cannot be undone.
+                      Această acțiune va reseta toate setările la valorile implicite. Această acțiune este ireversibilă.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>Anulează</AlertDialogCancel>
                     <AlertDialogAction onClick={handleReset}>
-                      Reset Settings
+                      Resetează Setările
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -168,7 +167,7 @@ export default function SettingsPage() {
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
                 )}
-                Save Changes
+                Salvează Modificările
               </Button>
             </div>
           </div>
@@ -184,20 +183,20 @@ export default function SettingsPage() {
             </TabsTrigger>
             <TabsTrigger value="study" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Study</span>
+              <span className="hidden sm:inline">Studiu</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">Notifications</span>
+              <span className="hidden sm:inline">Notificări</span>
             </TabsTrigger>
             <TabsTrigger value="privacy" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Privacy</span>
+              <span className="hidden sm:inline">Confidențialitate</span>
             </TabsTrigger>
             {isTeacher && (
               <TabsTrigger value="teacher" className="flex items-center gap-2">
                 <Wrench className="h-4 w-4" />
-                <span className="hidden sm:inline">Teacher Tools</span>
+                <span className="hidden sm:inline">Unelte Profesor</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -208,16 +207,16 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Palette className="h-5 w-5" />
-                  Appearance
+                  Aspect
                 </CardTitle>
                 <CardDescription>
-                  Customize how the application looks and feels
+                  Personalizează modul în care aplicația arată
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Theme */}
                 <div className="space-y-3">
-                  <Label>Theme</Label>
+                  <Label>Temă</Label>
                   <div className="grid grid-cols-3 gap-4">
                     {(['light', 'dark', 'system'] as Theme[]).map((theme) => (
                       <div
@@ -242,13 +241,13 @@ export default function SettingsPage() {
 
                 {/* Language */}
                 <div className="space-y-3">
-                  <Label>Language</Label>
+                  <Label>Limbă</Label>
                   <Select
-                    value={localSettings.language || 'en'}
+                    value={localSettings.language || 'ro'}
                     onValueChange={(value) => updateLocalSetting('language', value)}
                   >
                     <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Select language" />
+                      <SelectValue placeholder="Selectează limba" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en">English</SelectItem>
@@ -261,24 +260,24 @@ export default function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Dashboard Preferences</CardTitle>
+                <CardTitle>Preferințe Dashboard</CardTitle>
                 <CardDescription>
-                  Configure your default dashboard view and content priority
+                  Configurează vederea implicită a dashboard-ului
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Default Dashboard View */}
                 <div className="space-y-3">
-                  <Label>Default Dashboard View</Label>
+                  <Label>Vedere Implicită Dashboard</Label>
                   <Select
-                    value={localSettings.defaultDashboardView || 'courses'}
+                    value={localSettings.defaultDashboardView || 'lessons'}
                     onValueChange={(value) => updateLocalSetting('defaultDashboardView', value)}
                   >
                     <SelectTrigger className="w-64">
-                      <SelectValue placeholder="Select default view" />
+                      <SelectValue placeholder="Selectează vederea" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(['courses', 'articles', 'resources', 'flashcards'] as DashboardView[]).map((view) => (
+                      {(['lessons', 'articles', 'resources', 'flashcards'] as DashboardView[]).map((view) => (
                         <SelectItem key={view} value={view}>
                           {dashboardViewLabels[view]}
                         </SelectItem>
@@ -289,25 +288,25 @@ export default function SettingsPage() {
 
                 {/* Content Priority */}
                 <div className="space-y-3">
-                  <Label>Content Priority</Label>
+                  <Label>Prioritate Conținut</Label>
                   <Select
-                    value={localSettings.contentPriority || 'courses'}
+                    value={localSettings.contentPriority || 'lessons'}
                     onValueChange={(value) => updateLocalSetting('contentPriority', value)}
                   >
                     <SelectTrigger className="w-64">
-                      <SelectValue placeholder="Select priority" />
+                      <SelectValue placeholder="Selectează prioritatea" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="courses">
+                      <SelectItem value="lessons">
                         <div className="flex items-center gap-2">
                           <GraduationCap className="h-4 w-4" />
-                          Courses over Teacher Profiles
+                          Lecții înaintea Profilurilor de Profesori
                         </div>
                       </SelectItem>
                       <SelectItem value="teacher_profiles">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          Teacher Profiles over Courses
+                          Profiluri de Profesori înaintea Lecțiilor
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -321,9 +320,9 @@ export default function SettingsPage() {
           <TabsContent value="study" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Dashboard Sections</CardTitle>
+                <CardTitle>Secțiuni Dashboard</CardTitle>
                 <CardDescription>
-                  Choose which sections to show in your dashboard
+                  Alege ce secțiuni să apară în dashboard-ul tău
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -331,8 +330,8 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <Label>Show Articles</Label>
-                      <p className="text-sm text-muted-foreground">Display articles in your dashboard</p>
+                      <Label>Arată Articole</Label>
+                      <p className="text-sm text-muted-foreground">Afișează articolele în dashboard</p>
                     </div>
                   </div>
                   <Switch
@@ -345,8 +344,8 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     <Layers className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <Label>Show Flashcards</Label>
-                      <p className="text-sm text-muted-foreground">Display flashcards in your dashboard</p>
+                      <Label>Arată Flashcard-uri</Label>
+                      <p className="text-sm text-muted-foreground">Afișează flashcard-urile în dashboard</p>
                     </div>
                   </div>
                   <Switch
@@ -359,8 +358,8 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     <LinkIcon className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <Label>Show Resources</Label>
-                      <p className="text-sm text-muted-foreground">Display external resources in your dashboard</p>
+                      <Label>Arată Resurse</Label>
+                      <p className="text-sm text-muted-foreground">Afișează resursele externe în dashboard</p>
                     </div>
                   </div>
                   <Switch
@@ -373,9 +372,9 @@ export default function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Preferred Categories</CardTitle>
+                <CardTitle>Categorii Preferate</CardTitle>
                 <CardDescription>
-                  Select your preferred content categories
+                  Selectează categoriile de conținut preferate
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -404,14 +403,14 @@ export default function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Hidden Content</CardTitle>
+                <CardTitle>Conținut Ascuns</CardTitle>
                 <CardDescription>
-                  Filter out categories or tags you don't want to see
+                  Filtrează categoriile sau tag-urile pe care nu vrei să le vezi
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  <Label>Hidden Categories</Label>
+                  <Label>Categorii Ascunse</Label>
                   <div className="flex flex-wrap gap-2">
                     {categories.map((category) => (
                       <Badge
@@ -441,16 +440,16 @@ export default function SettingsPage() {
           <TabsContent value="notifications" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Email Notifications</CardTitle>
+                <CardTitle>Notificări Email</CardTitle>
                 <CardDescription>
-                  Manage your email notification preferences
+                  Administrează preferințele pentru notificările pe email
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive email notifications</p>
+                    <Label>Notificări Email</Label>
+                    <p className="text-sm text-muted-foreground">Primește notificări prin email</p>
                   </div>
                   <Switch
                     checked={localSettings.emailNotifications ?? true}
@@ -460,20 +459,20 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Course Updates</Label>
-                    <p className="text-sm text-muted-foreground">Get notified about course updates</p>
+                    <Label>Actualizări Lecții</Label>
+                    <p className="text-sm text-muted-foreground">Primește notificări despre actualizări ale lecțiilor</p>
                   </div>
                   <Switch
-                    checked={localSettings.courseUpdates ?? true}
-                    onCheckedChange={(checked) => updateLocalSetting('courseUpdates', checked)}
+                    checked={localSettings.lessonUpdates ?? true}
+                    onCheckedChange={(checked) => updateLocalSetting('lessonUpdates', checked)}
                     disabled={!localSettings.emailNotifications}
                   />
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>New Articles</Label>
-                    <p className="text-sm text-muted-foreground">Get notified about new articles</p>
+                    <Label>Articole Noi</Label>
+                    <p className="text-sm text-muted-foreground">Fii notificat despre articole noi</p>
                   </div>
                   <Switch
                     checked={localSettings.newArticles ?? true}
@@ -484,8 +483,8 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>New Resources</Label>
-                    <p className="text-sm text-muted-foreground">Get notified about new resources</p>
+                    <Label>Resurse Noi</Label>
+                    <p className="text-sm text-muted-foreground">Fii notificat despre resurse noi</p>
                   </div>
                   <Switch
                     checked={localSettings.newResources ?? true}
@@ -498,16 +497,16 @@ export default function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Study Reminders</CardTitle>
+                <CardTitle>Mementouri Studiu</CardTitle>
                 <CardDescription>
-                  Set up reminders to stay on track with your studies
+                  Setează mementouri pentru a rămâne consecvent
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Study Reminders</Label>
-                    <p className="text-sm text-muted-foreground">Enable daily study reminders</p>
+                    <Label>Mementouri Studiu</Label>
+                    <p className="text-sm text-muted-foreground">Activează mementourile zilnice</p>
                   </div>
                   <Switch
                     checked={localSettings.studyReminderEnabled ?? false}
@@ -517,7 +516,7 @@ export default function SettingsPage() {
 
                 {localSettings.studyReminderEnabled && (
                   <div className="space-y-3">
-                    <Label>Reminder Time</Label>
+                    <Label>Ora Mementoului</Label>
                     <Input
                       type="time"
                       className="w-32"
@@ -529,8 +528,8 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Flashcard Reminders</Label>
-                    <p className="text-sm text-muted-foreground">Get reminded to review flashcards</p>
+                    <Label>Mementouri Flashcard-uri</Label>
+                    <p className="text-sm text-muted-foreground">Primește mementouri pentru repetarea flashcard-urilor</p>
                   </div>
                   <Switch
                     checked={localSettings.flashcardReminders ?? false}
@@ -545,16 +544,16 @@ export default function SettingsPage() {
           <TabsContent value="privacy" className="space-y-6 mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Visibility</CardTitle>
+                <CardTitle>Vizibilitate Profil</CardTitle>
                 <CardDescription>
-                  Control who can see your profile information
+                  Controlează cine îți poate vedea profilul
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Show Profile</Label>
-                    <p className="text-sm text-muted-foreground">Allow others to view your profile</p>
+                    <Label>Arată Profilul</Label>
+                    <p className="text-sm text-muted-foreground">Permite altora să îți vadă profilul</p>
                   </div>
                   <Switch
                     checked={localSettings.showProfile ?? true}
@@ -564,8 +563,8 @@ export default function SettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Show Progress</Label>
-                    <p className="text-sm text-muted-foreground">Display your learning progress</p>
+                    <Label>Arată Progresul</Label>
+                    <p className="text-sm text-muted-foreground">Afișează progresul tău în învățare</p>
                   </div>
                   <Switch
                     checked={localSettings.showProgress ?? true}
@@ -577,16 +576,16 @@ export default function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Analytics</CardTitle>
+                <CardTitle>Analitice</CardTitle>
                 <CardDescription>
-                  Help us improve by sharing usage data
+                  Ajută-ne să îmbunătățim platforma
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label>Allow Analytics</Label>
-                    <p className="text-sm text-muted-foreground">Share anonymous usage data to help us improve</p>
+                    <Label>Permite Analitice</Label>
+                    <p className="text-sm text-muted-foreground">Partajează date anonime de utilizare</p>
                   </div>
                   <Switch
                     checked={localSettings.allowAnalytics ?? true}
@@ -602,16 +601,16 @@ export default function SettingsPage() {
             <TabsContent value="teacher" className="space-y-6 mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Teacher Dashboard</CardTitle>
+                  <CardTitle>Dashboard Profesor</CardTitle>
                   <CardDescription>
-                    Configure your teaching experience
+                    Configurează experiența ta de predare
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <Label>Expand Teacher Tools</Label>
-                      <p className="text-sm text-muted-foreground">Show teacher tools by default</p>
+                      <Label>Extinde Uneltele Profesor</Label>
+                      <p className="text-sm text-muted-foreground">Arată automat uneltele de profesor</p>
                     </div>
                     <Switch
                       checked={localSettings.teacherToolsExpanded ?? false}
@@ -623,9 +622,9 @@ export default function SettingsPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Default Resource Type</CardTitle>
+                  <CardTitle>Tip Resursă Implicit</CardTitle>
                   <CardDescription>
-                    Set your preferred resource type when adding new resources
+                    Setează tipul preferat de resursă la adăugarea uneia noi
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -634,12 +633,12 @@ export default function SettingsPage() {
                     onValueChange={(value) => updateLocalSetting('defaultResourceType', value)}
                   >
                     <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Select resource type" />
+                      <SelectValue placeholder="Selectează tipul" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="LINK">External Link</SelectItem>
-                      <SelectItem value="YOUTUBE">YouTube Video</SelectItem>
-                      <SelectItem value="PDF">PDF Document</SelectItem>
+                      <SelectItem value="LINK">Link Extern</SelectItem>
+                      <SelectItem value="YOUTUBE">Video YouTube</SelectItem>
+                      <SelectItem value="PDF">Document PDF</SelectItem>
                       <SelectItem value="DOCUMENT">Document</SelectItem>
                     </SelectContent>
                   </Select>

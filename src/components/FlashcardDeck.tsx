@@ -13,11 +13,10 @@ import { ChevronLeft, ChevronRight, RotateCcw, Layers, CheckCircle } from 'lucid
 interface FlashcardDeckProps {
   flashcards: FlashcardListItem[];
   title?: string;
-  showCourse?: boolean;
   onComplete?: () => void;
 }
 
-export function FlashcardDeck({ flashcards, title, showCourse = false, onComplete }: FlashcardDeckProps) {
+export function FlashcardDeck({ flashcards, title, onComplete }: FlashcardDeckProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [studiedIds, setStudiedIds] = useState<Set<string>>(new Set());
@@ -129,9 +128,9 @@ export function FlashcardDeck({ flashcards, title, showCourse = false, onComplet
           </div>
         </div>
 
-        {showCourse && currentCard.course && (
+        {currentCard.lesson && (
           <div className="mt-4 flex justify-center">
-            <Badge variant="secondary">{currentCard.course.title}</Badge>
+            <Badge variant="secondary">{currentCard.lesson.title}</Badge>
           </div>
         )}
       </CardContent>
@@ -173,10 +172,9 @@ export function FlashcardDeck({ flashcards, title, showCourse = false, onComplet
  */
 interface FlashcardItemProps {
   flashcard: FlashcardListItem;
-  showCourse?: boolean;
 }
 
-export function FlashcardItem({ flashcard, showCourse = false }: FlashcardItemProps) {
+export function FlashcardItem({ flashcard }: FlashcardItemProps) {
   return (
     <Card className="mb-4">
       <CardHeader className="pb-2">
@@ -185,10 +183,10 @@ export function FlashcardItem({ flashcard, showCourse = false }: FlashcardItemPr
       <CardContent className="pb-2">
         <p className="text-muted-foreground">{flashcard.answer}</p>
       </CardContent>
-      {showCourse && flashcard.course && (
+      {flashcard.lesson && (
         <CardFooter>
           <Badge variant="outline" className="text-xs">
-            {flashcard.course.title}
+            {flashcard.lesson.title}
           </Badge>
         </CardFooter>
       )}

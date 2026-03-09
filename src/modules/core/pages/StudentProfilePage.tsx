@@ -1,11 +1,11 @@
 /**
  * Student Profile Page
  * 
- * Shows student profile, enrolled courses with progress, and learning history
+ * Shows student profile and learning history
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,44 +15,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ProgressBar } from '@/components/ProgressBar';
-import { CourseCard } from '@/modules/courses/components/CourseCard';
 import { 
-  User, 
   Mail, 
-  Shield, 
-  Calendar, 
   Loader2, 
   Save,
   Upload,
   BookOpen,
   CheckCircle,
-  Clock,
   GraduationCap,
   Settings,
   LogOut,
-  ChevronRight,
-  TrendingUp,
-  Target,
-  History
+  History,
+  User
 } from 'lucide-react';
 import { 
   getStudentProfile, 
   updateStudentProfile, 
   uploadStudentProfilePicture,
   StudentProfile as StudentProfileType,
-  CourseWithProgress,
   LearningHistoryItem,
   StudentStats
 } from '@/modules/core/services/studentService';
 
-import { api } from '@/lib/apiClient';
-
 export default function StudentProfilePage() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<StudentProfileType | null>(null);
-  const [enrollments, setEnrollments] = useState<CourseWithProgress[]>([]);
   const [learningHistory, setLearningHistory] = useState<LearningHistoryItem[]>([]);
   const [stats, setStats] = useState<StudentStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +62,6 @@ export default function StudentProfilePage() {
         setLoading(true);
         const data = await getStudentProfile();
         setProfile(data.profile);
-        setEnrollments(data.enrollments);
         setLearningHistory(data.learningHistory);
         setStats(data.stats);
         
@@ -156,8 +142,8 @@ export default function StudentProfilePage() {
                 <GraduationCap className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">My Profile</h1>
-                <p className="text-sm text-muted-foreground">Track your learning journey</p>
+                <h1 className="text-xl font-bold">Profilul Meu</h1>
+                <p className="text-sm text-muted-foreground">Monitorizează evoluția ta</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -169,12 +155,12 @@ export default function StudentProfilePage() {
               <Link to="/settings">
                 <Button variant="outline" size="sm" className="aero-button">
                   <Settings className="h-4 w-4 mr-2" />
-                  Settings
+                  Setări
                 </Button>
               </Link>
               <Button variant="outline" size="sm" onClick={logout}>
                 <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                Deconectare
               </Button>
             </div>
           </div>
@@ -222,18 +208,10 @@ export default function StudentProfilePage() {
 
                 {/* Stats */}
                 {stats && (
-                  <div className="mt-6 grid grid-cols-3 gap-2 text-center">
-                    <div className="p-3 rounded-lg bg-muted">
-                      <p className="text-2xl font-bold">{stats.totalCoursesEnrolled}</p>
-                      <p className="text-xs text-muted-foreground">Courses</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted">
-                      <p className="text-2xl font-bold">{stats.totalLessonsCompleted}</p>
-                      <p className="text-xs text-muted-foreground">Lessons</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted">
-                      <p className="text-2xl font-bold">{stats.coursesCompleted}</p>
-                      <p className="text-xs text-muted-foreground">Completed</p>
+                  <div className="mt-6 flex justify-center">
+                    <div className="p-4 rounded-xl bg-muted/50 w-full text-center">
+                      <p className="text-3xl font-bold text-primary">{stats.totalLessonsCompleted}</p>
+                      <p className="text-sm text-muted-foreground font-medium">Lecții Completate</p>
                     </div>
                   </div>
                 )}
@@ -243,7 +221,7 @@ export default function StudentProfilePage() {
                   <Button variant="outline" className="w-full justify-start" asChild>
                     <Link to="/student">
                       <BookOpen className="h-4 w-4 mr-2" />
-                      My Courses
+                      Lecțiile Mele
                     </Link>
                   </Button>
                 </div>
@@ -253,91 +231,53 @@ export default function StudentProfilePage() {
 
           {/* Main Content */}
           <div className="lg:col-span-2">
-            <Tabs defaultValue="courses" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="courses" className="gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  My Courses
-                </TabsTrigger>
+            <Tabs defaultValue="history" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="history" className="gap-2">
                   <History className="h-4 w-4" />
-                  History
+                  Istoric Învățare
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="gap-2">
                   <User className="h-4 w-4" />
-                  Profile
+                  Profil
                 </TabsTrigger>
               </TabsList>
-
-              {/* Courses Tab */}
-              <TabsContent value="courses" className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-semibold mb-2">Enrolled Courses</h2>
-                  <p className="text-muted-foreground">Continue learning where you left off</p>
-                </div>
-
-                {enrollments.length === 0 ? (
-                  <Card className="p-12 text-center">
-                    <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No courses yet</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Browse courses and start learning!
-                    </p>
-                    <Button onClick={() => navigate('/student')}>
-                      Browse Courses
-                      <ChevronRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Card>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {enrollments.map((enrollment) => (
-                      <CourseCard
-                        key={enrollment.id}
-                        course={enrollment.course}
-                        progress={enrollment.progress}
-                        showProgress
-                      />
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
 
               {/* History Tab */}
               <TabsContent value="history" className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2">Learning History</h2>
-                  <p className="text-muted-foreground">Recently completed lessons</p>
+                  <h2 className="text-2xl font-semibold mb-2">Istoric Învățare</h2>
+                  <p className="text-muted-foreground">Lecții finalizate recent</p>
                 </div>
 
                 {learningHistory.length === 0 ? (
                   <Card className="p-12 text-center">
                     <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No completed lessons yet</h3>
+                    <h3 className="text-lg font-medium mb-2">Nicio lecție finalizată încă</h3>
                     <p className="text-muted-foreground">
-                      Start learning to see your progress here
+                      Începe să înveți pentru a vedea progresul tău aici
                     </p>
                   </Card>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {learningHistory.map((item) => (
-                      <Card key={item.id} className="p-4">
+                      <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                               <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                             </div>
                             <div>
-                              <p className="font-medium">{item.lesson.title}</p>
-                              {item.lesson.courseTitle && (
-                                <p className="text-sm text-muted-foreground">
-                                  {item.lesson.courseTitle}
-                                </p>
-                              )}
+                              <p className="font-semibold">{item.lesson.title}</p>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <BookOpen className="h-3 w-3" />
+                                Standalone Lesson
+                              </p>
                             </div>
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-muted-foreground">
-                              {new Date(item.completedAt).toLocaleDateString()}
+                              {new Date(item.completedAt).toLocaleDateString('ro-RO')}
                             </p>
                           </div>
                         </div>
@@ -350,14 +290,14 @@ export default function StudentProfilePage() {
               {/* Settings Tab */}
               <TabsContent value="settings" className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-semibold mb-2">Profile Settings</h2>
-                  <p className="text-muted-foreground">Manage your profile information</p>
+                  <h2 className="text-2xl font-semibold mb-2">Setări Profil</h2>
+                  <p className="text-muted-foreground">Administrează informațiile tale</p>
                 </div>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Profile Picture</CardTitle>
-                    <CardDescription>Upload a profile picture to personalize your account</CardDescription>
+                    <CardTitle>Poză de Profil</CardTitle>
+                    <CardDescription>Încarcă o poză pentru a personaliza contul tău</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-4">
@@ -386,11 +326,11 @@ export default function StudentProfilePage() {
                           ) : (
                             <Upload className="h-4 w-4 mr-2" />
                           )}
-                          Upload Photo
+                          Încarcă Poză
                         </Button>
                         <p className="text-xs text-muted-foreground">
                           JPEG, PNG, GIF, WebP max 5MB
-                        </p>
+                          </p>
                       </div>
                     </div>
                   </CardContent>
@@ -399,7 +339,7 @@ export default function StudentProfilePage() {
                 <form onSubmit={handleSubmit}>
                   <Card>
                     <CardHeader>
-                      <CardTitle>Personal Information</CardTitle>
+                      <CardTitle>Informații Personale</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="space-y-2">
@@ -408,13 +348,13 @@ export default function StudentProfilePage() {
                           id="bio"
                           value={formData.bio}
                           onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                          placeholder="Tell us about yourself..."
+                          placeholder="Spune-ne ceva despre tine..."
                           rows={4}
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="learningGoals">Learning Goals</Label>
+                        <Label htmlFor="learningGoals">Obiective de Învățare</Label>
                         <Input
                           id="learningGoals"
                           value={formData.learningGoals}
@@ -422,20 +362,20 @@ export default function StudentProfilePage() {
                           placeholder="Web development, Data Science, etc."
                         />
                         <p className="text-xs text-muted-foreground">
-                          Separate multiple goals with commas
+                          Separă obiectivele prin virgulă
                         </p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="interests">Interests</Label>
+                        <Label htmlFor="interests">Interese</Label>
                         <Input
                           id="interests"
                           value={formData.interests}
                           onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
-                          placeholder="Programming, Math, Design, etc."
+                          placeholder="Programare, Matematică, Design, etc."
                         />
                         <p className="text-xs text-muted-foreground">
-                          Separate multiple interests with commas
+                          Separă interesele prin virgulă
                         </p>
                       </div>
 
@@ -443,12 +383,12 @@ export default function StudentProfilePage() {
                         {saving ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
+                            Se salvează...
                           </>
                         ) : (
                           <>
                             <Save className="h-4 w-4 mr-2" />
-                            Save Changes
+                            Salvează Modificările
                           </>
                         )}
                       </Button>

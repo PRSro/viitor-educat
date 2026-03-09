@@ -21,7 +21,7 @@ interface Quiz {
   description: string | null;
   timeLimit: number | null;
   passingScore: number;
-  course?: { id: string; title: string; slug: string };
+  lesson?: { id: string; title: string };
   questions: Question[];
 }
 
@@ -87,9 +87,9 @@ export default function QuizPage() {
   if (!quiz) {
     return (
       <div className="min-h-screen py-24 flex flex-col items-center justify-center">
-        <h2 className="text-xl font-semibold mb-4">Quiz not found</h2>
+        <h2 className="text-xl font-semibold mb-4">Quiz-ul nu a fost găsit</h2>
         <Button asChild>
-          <Link to="/student">Go to Dashboard</Link>
+          <Link to="/student">Mergi la Dashboard</Link>
         </Button>
       </div>
     );
@@ -100,10 +100,10 @@ export default function QuizPage() {
   return (
     <div className="min-h-screen py-24 lg:py-32">
       <div className="container mx-auto px-4 lg:px-8 max-w-3xl">
-        <Link to={quiz.course ? `/courses/${quiz.course.slug}` : '/student'}>
+        <Link to={quiz.lesson ? `/lessons/${quiz.lesson.id}` : '/student'}>
           <Button variant="ghost" size="sm" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {quiz.course ? 'Back to Course' : 'Back to Dashboard'}
+            {quiz.lesson ? 'Înapoi la Lecție' : 'Înapoi la Dashboard'}
           </Button>
         </Link>
 
@@ -125,7 +125,7 @@ export default function QuizPage() {
               {quiz.timeLimit && (
                 <span>{quiz.timeLimit} min</span>
               )}
-              <span>Pass: {quiz.passingScore}%</span>
+              <span>Trecere: {quiz.passingScore}%</span>
             </div>
           </CardHeader>
         </Card>
@@ -180,8 +180,8 @@ export default function QuizPage() {
                 })}
               </div>
               <Button asChild className="w-full mt-6">
-                <Link to={quiz.course ? `/courses/${quiz.course.slug}` : '/student'}>
-                  Înapoi la Curs
+                <Link to={quiz.lesson ? `/lessons/${quiz.lesson.id}` : '/student'}>
+                  Înapoi
                 </Link>
               </Button>
             </CardContent>

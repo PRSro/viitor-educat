@@ -1,7 +1,7 @@
 /**
  * Search Page
  * 
- * Global search with filters for courses, teachers, and articles
+ * Global search with filters for teachers and articles
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -19,11 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CourseCard } from '@/modules/courses/components/CourseCard';
 import { TeacherCard } from '@/components/TeacherCard';
 import {
   Search as SearchIcon,
-  GraduationCap,
   BookOpen,
   Users,
   Loader2,
@@ -38,8 +36,6 @@ import {
   getSearchSuggestions,
   SearchResponse,
   SearchFiltersResponse,
-  SearchResultCourse,
-  SearchResultLesson,
   SearchResultTeacher,
   SearchResultArticle,
   SearchFilters,
@@ -61,18 +57,15 @@ export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Debounced search state
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [suggestions, setSuggestions] = useState<SearchSuggestionsResponse['suggestions'] | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
-  // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
   const [selectedTeacher, setSelectedTeacher] = useState<string>('ALL');
 
-  // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
@@ -80,7 +73,6 @@ export default function SearchPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch suggestions when query changes
   useEffect(() => {
     if (debouncedQuery.length < 2) {
       setSuggestions(null);
@@ -103,14 +95,12 @@ export default function SearchPage() {
     return () => clearTimeout(timer);
   }, [debouncedQuery]);
 
-  // Auto-search when debounced query or filters change
   useEffect(() => {
     if (debouncedQuery || selectedCategory !== 'ALL' || selectedLevel !== 'ALL' || selectedTeacher !== 'ALL') {
       handleSearch();
     }
   }, [debouncedQuery, selectedCategory, selectedLevel, selectedTeacher, searchType]);
 
-  // Fetch filters on mount
   useEffect(() => {
     async function fetchFilters() {
       try {
@@ -163,7 +153,6 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -174,7 +163,7 @@ export default function SearchPage() {
               <div>
                 <h1 className="text-xl font-bold">Search</h1>
                 <p className="text-sm text-muted-foreground">
-                  Find courses, teachers, and articles
+                  Find teachers and articles
                 </p>
               </div>
             </div>
@@ -191,13 +180,12 @@ export default function SearchPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Box */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search courses, teachers, articles..."
+                placeholder="Search teachers, articles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -215,7 +203,6 @@ export default function SearchPage() {
           </div>
         </div>
 
-        {/* Filters */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Filter className="h-4 w-4 text-muted-foreground" />
@@ -275,14 +262,9 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Results */}
         {hasSearched ? (
-          <Tabs defaultValue="courses" className="space-y-6">
+          <Tabs defaultValue="teachers" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="courses" className="gap-2">
-                <BookOpen className="h-4 w-4" />
-                Courses ({results?.courses.length || 0})
-              </TabsTrigger>
               <TabsTrigger value="teachers" className="gap-2">
                 <Users className="h-4 w-4" />
                 Teachers ({results?.teachers.length || 0})
@@ -294,22 +276,6 @@ export default function SearchPage() {
                 </TabsTrigger>
               )}
             </TabsList>
-
-            <TabsContent value="courses">
-              {results?.courses.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No courses found</h3>
-                  <p className="text-muted-foreground">Try adjusting your search or filters</p>
-                </Card>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {results?.courses.map((course) => (
-                    <CourseCard key={course.id} course={course} />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
 
             <TabsContent value="teachers">
               {results?.teachers.length === 0 ? (
@@ -349,7 +315,7 @@ export default function SearchPage() {
                           <div className="flex items-center justify-between">
                             <Badge variant="secondary">{article.category}</Badge>
                             <Button variant="outline" asChild>
-                              <Link to={`/articles/${article.slug}`}>
+                              <Link to={`/articles/${article.id}`}>
                                 Read More
                                 <ExternalLink className="h-4 w-4 ml-2" />
                               </Link>
@@ -366,7 +332,7 @@ export default function SearchPage() {
         ) : (
           <Card className="p-12 text-center">
             <SearchIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Search for courses and teachers</h3>
+            <h3 className="text-lg font-medium mb-2">Search for teachers and articles</h3>
             <p className="text-muted-foreground">
               Use the search box above to find what you're looking for
             </p>

@@ -2,44 +2,12 @@ import DOMPurify from 'isomorphic-dompurify';
 
 const MAX_CONTENT_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_TITLE_LENGTH = 300;
-const MAX_SLUG_LENGTH = 100;
 const MAX_EXCERPT_LENGTH = 500;
 
 interface SanitizationResult {
   valid: boolean;
   sanitized?: string;
   errors: string[];
-}
-
-// Path traversal prevention
-export function isValidSlug(slug: string): boolean {
-  if (!slug || typeof slug !== 'string') return false;
-
-  // Prevent path traversal
-  if (slug.includes('..') || slug.includes('/') || slug.includes('\\')) {
-    return false;
-  }
-
-  // Only allow lowercase letters, numbers, and hyphens
-  if (!/^[a-z0-9-]+$/.test(slug)) {
-    return false;
-  }
-
-  // Length check
-  if (slug.length < 1 || slug.length > MAX_SLUG_LENGTH) {
-    return false;
-  }
-
-  return true;
-}
-
-export function sanitizeSlug(slug: string): string {
-  return slug
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, MAX_SLUG_LENGTH)
-    .toLowerCase();
 }
 
 // XSS protection for HTML content
@@ -247,7 +215,7 @@ export interface ArticleInputValidation {
     title: string;
     content: string;
     excerpt?: string;
-    slug: string;
+    id: string;
     authorId: string;
     sourceUrl?: string;
   };
@@ -257,7 +225,7 @@ export function validateArticleInput(input: {
   title: string;
   content: string;
   excerpt?: string;
-  slug?: string;
+  id?: string;
   authorId: string;
   sourceUrl?: string;
 }): ArticleInputValidation {
@@ -274,12 +242,6 @@ export function validateArticleInput(input: {
   // Validate excerpt
   const excerptResult = validateExcerpt(input.excerpt);
   if (!excerptResult.valid) allErrors.push(...excerptResult.errors);
-
-  // Validate slug
-  let sanitizedSlug = input.slug || input.title;
-  if (!isValidSlug(sanitizedSlug)) {
-    sanitizedSlug = sanitizeSlug(sanitizedSlug);
-  }
 
   // Validate authorId
   const authorResult = validateAuthorId(input.authorId);
@@ -300,7 +262,7 @@ export function validateArticleInput(input: {
       title: titleResult.sanitized!,
       content: contentResult.sanitized!,
       excerpt: excerptResult.sanitized,
-      slug: sanitizedSlug,
+      id: input.id || `article_${Date.now()}`,
       authorId: input.authorId,
       sourceUrl: urlResult.sanitized
     }

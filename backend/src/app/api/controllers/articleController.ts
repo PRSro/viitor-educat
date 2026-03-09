@@ -1,56 +1,49 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { articleService } from '../../services/articleService.js';
-import { AppError } from '../../core/errors/AppError.js';
 import { z } from 'zod';
-import { formatZodError } from '../../schemas/validation/schemas.js';
 
-// Schemas are kept in the controller or moved to a shared place
-const articleCategoryEnum = z.enum([
-    'MATH', 'SCIENCE', 'LITERATURE', 'HISTORY',
-    'COMPUTER_SCIENCE', 'ARTS', 'LANGUAGES', 'GENERAL'
-]);
+export class ArticleController {
+    async create(request: FastifyRequest, reply: FastifyReply) {
+        const user = (request as any).user;
+        const result = await articleService.create(request.body as any, user.role);
+        return reply.status(201).send(result);
+    }
 
-const articleQuerySchema = z.object({
-    category: articleCategoryEnum.optional(),
-    teacherId: z.string().optional(),
-    tags: z.string().optional(),
-    search: z.string().max(100).optional(),
-    page: z.coerce.number().min(1).optional().default(1),
-    limit: z.coerce.number().min(1).max(50).optional().default(10),
-});
+    async update(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+        const user = (request as any).user;
+        const result = await articleService.update(request.params.id, request.body as any, user.id, user.role);
+        return result;
+    }
 
-export const articleController = {
+    async delete(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+        const user = (request as any).user;
+        await articleService.delete(request.params.id, user.id, user.role);
+        return reply.status(204).send();
+    }
+
+    async getById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+        const result = await articleService.findById(request.params.id);
+        if (!result) return reply.status(404).send({ error: 'Article not found' });
+        return result;
+    }
+
     async getAll(request: FastifyRequest, reply: FastifyReply) {
-        try {
-            const query = articleQuerySchema.parse(request.query);
-            const result = await articleService.findAll(query as any, { page: query.page, limit: query.limit });
-
-            if (!result.success) {
-                return reply.status(400).send(result);
+        const { page, limit, category, teacherId, tags, search, published, status } = request.query as any;
+        return articleService.findAll(
+            { category, teacherId, tags: tags ? tags.split(',') : [], search, published, status },
+            {
+                page: page ? parseInt(page) : 1,
+                limit: limit ? parseInt(limit) : 10
             }
+        );
+    }
 
-            return reply.send({ articles: result.data, pagination: result.meta });
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                return reply.status(400).send({
-                    error: 'Validation failed',
-                    message: formatZodError(error)
-                });
-            }
-            throw error;
-        }
-    },
+    async import(request: FastifyRequest, reply: FastifyReply) {
+        const { url } = request.body as { url: string };
+        const user = (request as any).user;
+        const result = await articleService.import(url, user.id, user.role);
+        return reply.status(201).send(result);
+    }
+}
 
-    async getBySlug(request: FastifyRequest<{ Params: { slug: string } }>, reply: FastifyReply) {
-        const result = await articleService.findBySlug(request.params.slug);
-
-        if (!result.success) {
-            return reply.status(404).send(result);
-        }
-
-        return reply.send({ article: result.data });
-    },
-
-    // other methods (create, import, update, delete) will be routed here similarly
-    // I will refactor `articles.ts` to use these soon.
-};
+export const articleController = new ArticleController();

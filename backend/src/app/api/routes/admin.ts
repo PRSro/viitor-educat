@@ -34,7 +34,6 @@ export async function adminRoutes(server: FastifyInstance) {
 
       return { users };
     } catch (error) {
-      // Log error server-side only (no sensitive details to client)
       server.log.error(error);
       return reply.status(500).send({ 
         error: 'Internal Server Error',
@@ -52,20 +51,13 @@ export async function adminRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, adminOnly],
   }, async (request, reply) => {
     try {
-      const [userCount, lessonCount, courseCount, enrollmentCount, completionCount] = await Promise.all([
+      const [userCount, lessonCount, articleCount, quizCount, completionCount] = await Promise.all([
         prisma.user.count(),
         prisma.lesson.count(),
-        prisma.course.count({ where: { published: true } }),
-        prisma.enrollment.count(),
+        prisma.article.count(),
+        prisma.quiz.count(),
         prisma.lessonCompletion.count(),
       ]);
-
-      const activeStudents = await prisma.user.count({
-        where: {
-          role: 'STUDENT',
-          enrollments: { some: {} }
-        }
-      });
 
       const usersByRole = await prisma.user.groupBy({
         by: ['role'],
@@ -75,17 +67,15 @@ export async function adminRoutes(server: FastifyInstance) {
       return {
         totalUsers: userCount,
         totalLessons: lessonCount,
-        totalCourses: courseCount,
-        totalEnrollments: enrollmentCount,
+        totalArticles: articleCount,
+        totalQuizzes: quizCount,
         totalCompletions: completionCount,
-        activeStudents,
         usersByRole: usersByRole.map(r => ({ 
           role: r.role, 
           count: r._count 
         })),
       };
     } catch (error) {
-      // Log error server-side only
       server.log.error(error);
       return reply.status(500).send({ 
         error: 'Internal Server Error',

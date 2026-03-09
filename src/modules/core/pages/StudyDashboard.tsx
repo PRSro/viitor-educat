@@ -1,6 +1,6 @@
 /**
  * Student Study Dashboard
- * Central hub for students to access courses, articles, flashcards, and resources
+ * Central hub for students to access lessons, articles, flashcards, and resources
  */
 
 import { useState, useEffect } from 'react';
@@ -12,15 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArticleCard } from '@/components/ArticleCard';
-import { ResourceCard } from '@/components/ResourceCard';
-import { FlashcardItem } from '@/components/FlashcardDeck';
-import {
-  getCourses,
-  getEnrolledCourses,
-  CoursePreview,
-  Enrollment
-} from '@/modules/courses/services/courseService';
 import {
   getArticles,
   getLatestArticles,
@@ -34,6 +25,10 @@ import {
   getFlashcards,
   FlashcardListItem
 } from '@/modules/core/services/flashcardService';
+import {
+  getEnrolledLessons, // Changed to getEnrolledLessons
+  LessonListItem
+} from '@/modules/lessons/services/lessonService';
 import {
   GraduationCap,
   BookOpen,
@@ -61,14 +56,13 @@ export default function StudyDashboard() {
   const showResources = useFeatureEnabled('showResources');
 
   // Data states
-  const [enrolledCourses, setEnrolledCourses] = useState<Enrollment[]>([]);
-  const [allCourses, setAllCourses] = useState<CoursePreview[]>([]);
+  const [enrolledLessons, setEnrolledLessons] = useState<LessonListItem[]>([]);
   const [latestArticles, setLatestArticles] = useState<ArticleListItem[]>([]);
   const [recentResources, setRecentResources] = useState<ResourceListItem[]>([]);
   const [recentFlashcards, setRecentFlashcards] = useState<FlashcardListItem[]>([]);
 
   // Loading states
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingLessons, setLoadingLessons] = useState(true);
   const [loadingArticles, setLoadingArticles] = useState(true);
   const [loadingResources, setLoadingResources] = useState(true);
   const [loadingFlashcards, setLoadingFlashcards] = useState(true);
@@ -80,29 +74,28 @@ export default function StudyDashboard() {
   async function fetchData() {
     try {
       // Fetch all data in parallel
-      const [coursesData, articlesData, resourcesData, flashcardsData] = await Promise.all([
-        Promise.all([getEnrolledCourses(), getCourses()]),
+      const [lessonsData, articlesData, resourcesData, flashcardsData] = await Promise.all([
+        getEnrolledLessons(),
         getLatestArticles(),
         getResources({ limit: 6 }),
         getFlashcards({ limit: 6 })
       ]);
 
-      setEnrolledCourses(coursesData[0]);
-      setAllCourses(coursesData[1]);
+      setEnrolledLessons(lessonsData);
       setLatestArticles(articlesData);
       setRecentResources(resourcesData.resources);
       setRecentFlashcards(flashcardsData.flashcards);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
     } finally {
-      setLoadingCourses(false);
+      setLoadingLessons(false);
       setLoadingArticles(false);
       setLoadingResources(false);
       setLoadingFlashcards(false);
     }
   }
 
-  const isLoading = loadingCourses || loadingArticles || loadingResources || loadingFlashcards;
+  const isLoading = loadingLessons || loadingArticles || loadingResources || loadingFlashcards;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -157,12 +150,12 @@ export default function StudyDashboard() {
           </div>
         ) : (
           <>
-            {/* My Courses Section */}
+            {/* My Lessons Section */}
             <section>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <GraduationCap className="h-6 w-6" />
-                  <h2 className="text-xl font-semibold">My Courses</h2>
+                  <h2 className="text-xl font-semibold">My Lessons</h2>
                 </div>
                 <Link to="/student">
                   <Button variant="ghost" size="sm">
@@ -171,23 +164,23 @@ export default function StudyDashboard() {
                 </Link>
               </div>
 
-              {enrolledCourses.length === 0 ? (
+              {enrolledLessons.length === 0 ? (
                 <Card className="p-8 text-center">
                   <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No courses yet</h3>
+                  <h3 className="text-lg font-medium mb-2">No lessons yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    Browse available courses and start learning!
+                    Browse available lessons and start learning!
                   </p>
                   <Link to="/student">
-                    <Button>Browse Courses</Button>
+                    <Button>Browse Lessons</Button>
                   </Link>
                 </Card>
               ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {enrolledCourses.slice(0, 3).map((enrollment) => (
-                    <CourseProgressCard
-                      key={enrollment.enrollment.id}
-                      enrollment={enrollment}
+                  {enrolledLessons.slice(0, 3).map((lesson) => (
+                    <LessonProgressCard
+                      key={lesson.id}
+                      lesson={lesson}
                     />
                   ))}
                 </div>
@@ -220,7 +213,7 @@ export default function StudyDashboard() {
                     {latestArticles.slice(0, 3).map((article) => (
                       <Card key={article.id} className="hover:shadow-md transition-shadow">
                         <CardHeader className="pb-2">
-                          <Link to={`/articles/${article.slug}`} className="hover:text-primary">
+                          <Link to={`/articles/${article.id}`} className="hover:text-primary">
                             <CardTitle className="text-base line-clamp-1">{article.title}</CardTitle>
                           </Link>
                         </CardHeader>
@@ -278,11 +271,6 @@ export default function StudyDashboard() {
                                 <Badge variant="outline" className="text-xs">
                                   {resource.type}
                                 </Badge>
-                                {resource.course && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {resource.course.title}
-                                  </span>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -320,7 +308,17 @@ export default function StudyDashboard() {
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                   {recentFlashcards.slice(0, 4).map((flashcard) => (
-                    <FlashcardItem key={flashcard.id} flashcard={flashcard} showCourse />
+                    <Card key={flashcard.id} className="aero-glass p-4">
+                      <div className="flex flex-col gap-2">
+                        <p className="font-medium">{flashcard.question}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-1 italic">{flashcard.answer}</p>
+                        {flashcard.lesson && (
+                          <Badge variant="outline" className="w-fit mt-2">
+                            {flashcard.lesson.title}
+                          </Badge>
+                        )}
+                      </div>
+                    </Card>
                   ))}
                 </div>
               )}
@@ -332,8 +330,8 @@ export default function StudyDashboard() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
                   icon={BookOpen}
-                  label="Enrolled Courses"
-                  value={enrolledCourses.length}
+                  label="Enrolled Lessons"
+                  value={enrolledLessons.length}
                   color="blue"
                 />
                 <StatCard
@@ -363,43 +361,34 @@ export default function StudyDashboard() {
   );
 }
 
-// Course Progress Card Component
-function CourseProgressCard({ enrollment }: { enrollment: Enrollment }) {
-  const course = enrollment.course;
-  const progress = enrollment.enrollment.progress;
+// Lesson Progress Card Component
+function LessonProgressCard({ lesson }: { lesson: LessonListItem }) {
+  const isCompleted = lesson.completed;
+  const progress = isCompleted ? 100 : 0;
 
   return (
     <Card className="flex flex-col aero-glass hover:shadow-aero-strong transition-all duration-300 hover:-translate-y-1">
-      {course.imageUrl && (
-        <div className="aspect-video bg-muted overflow-hidden rounded-t-[1.25rem]">
-          <img
-            src={course.imageUrl}
-            alt={course.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
-        {course.description && (
+        <CardTitle className="text-lg line-clamp-2">{lesson.title}</CardTitle>
+        {lesson.description && (
           <CardDescription className="line-clamp-2">
-            {course.description}
+            {lesson.description}
           </CardDescription>
         )}
       </CardHeader>
       <CardContent className="flex-1">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{Math.round(progress)}%</span>
+            <span className="text-muted-foreground">Status</span>
+            <span className="font-medium">{isCompleted ? 'Completed' : 'In Progress'}</span>
           </div>
           <Progress value={progress} className="h-2 bg-muted/50" />
         </div>
       </CardContent>
       <CardFooter>
-        <Link to={`/courses/${course.id}`} className="w-full">
+        <Link to={`/lessons/${lesson.id}`} className="w-full">
           <Button className="w-full aero-button-accent">
-            {progress > 0 ? 'Continue Learning' : 'Start Learning'}
+            {isCompleted ? 'Review Lesson' : 'Start Learning'}
           </Button>
         </Link>
       </CardFooter>

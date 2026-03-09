@@ -10,18 +10,12 @@ export interface Quiz {
   title: string;
   description?: string;
   lessonId?: string;
-  courseId?: string;
   published: boolean;
   timeLimit?: number;
   passingScore: number;
   teacher: {
     id: string;
     email: string;
-  };
-  course?: {
-    id: string;
-    title: string;
-    slug: string;
   };
   lesson?: {
     id: string;
@@ -62,10 +56,6 @@ export interface QuizAttempt {
   quiz?: {
     id: string;
     title: string;
-    courseId?: string;
-    course?: {
-      title: string;
-    };
   };
 }
 
@@ -73,7 +63,6 @@ export interface CreateQuizData {
   title: string;
   description?: string;
   lessonId?: string;
-  courseId?: string;
   published?: boolean;
   timeLimit?: number;
   passingScore?: number;
@@ -95,15 +84,13 @@ export interface SubmitAttemptData {
 }
 
 /**
- * Get all quizzes (published for students, all for teachers)
+ * Get all quizzes
  */
 export async function getQuizzes(options?: {
-  courseId?: string;
   lessonId?: string;
   published?: boolean;
 }): Promise<Quiz[]> {
   const params = new URLSearchParams();
-  if (options?.courseId) params.append('courseId', options.courseId);
   if (options?.lessonId) params.append('lessonId', options.lessonId);
   if (options?.published !== undefined) params.append('published', String(options.published));
 

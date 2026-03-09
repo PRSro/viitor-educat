@@ -1,11 +1,11 @@
 /**
  * Student Profile Routes
- * Handles student profile, progress tracking, and enrolled courses
+ * Handles student profile and progress tracking
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware.js';
-import { anyRole, teacherOnly } from '../../core/middleware/permissionMiddleware.js';
+import { anyRole } from '../../core/middleware/permissionMiddleware.js';
 import { z } from 'zod';
 import { prisma } from '../../models/prisma.js';
 
@@ -25,7 +25,7 @@ export async function studentProfileRoutes(server: FastifyInstance) {
 
   /**
    * GET /profiles/student
-   * Get current student's profile with enrolled courses and progress
+   * Get current student's profile and progress
    */
   server.get('/student', {
     preHandler: [authMiddleware, anyRole]
@@ -45,32 +45,12 @@ export async function studentProfileRoutes(server: FastifyInstance) {
         return reply.status(404).send({ error: 'User not found' });
       }
 
-      // Get enrolled courses with progress
-      const enrollments = await prisma.enrollment.findMany({
-        where: { studentId },
-        include: {
-          course: {
-            include: {
-              teacher: {
-                select: { id: true, email: true, teacherProfile: true }
-              },
-              _count: { select: { lessons: true } }
-            }
-          }
-        },
-        orderBy: { updatedAt: 'desc' }
-      });
-
-      // Get completed lessons count for learning history
+      // Get completed lessons for learning history
       const completedLessons = await prisma.lessonCompletion.findMany({
         where: { studentId },
         include: {
           lesson: {
-            include: {
-              course: {
-                select: { id: true, title: true, slug: true }
-              }
-            }
+            select: { id: true, title: true }
           }
         },
         orderBy: { completedAt: 'desc' },
@@ -79,6 +59,10 @@ export async function studentProfileRoutes(server: FastifyInstance) {
 
       const totalLessonsCompleted = await prisma.lessonCompletion.count({
         where: { studentId }
+      });
+
+      const quizAttemptsCount = await prisma.quizAttempt.count({
+        where: { userId: studentId }
       });
 
       return {
@@ -90,39 +74,14 @@ export async function studentProfileRoutes(server: FastifyInstance) {
         },
         profile: user.studentProfile,
         settings: user.settings,
-        enrollments: enrollments.map(e => ({
-          id: e.id,
-          progress: e.progress,
-          completedLessonsCount: e.completedLessonsCount,
-          lastAccessedLessonId: e.lastAccessedLessonId,
-          completedAt: e.completedAt,
-          enrolledAt: e.createdAt,
-          course: {
-            id: e.course.id,
-            title: e.course.title,
-            slug: e.course.slug,
-            description: e.course.description,
-            imageUrl: e.course.imageUrl,
-            level: e.course.level,
-            category: e.course.category,
-            totalLessons: e.course._count.lessons,
-            teacher: e.course.teacher || null
-          }
-        })),
         learningHistory: completedLessons.map(l => ({
           id: l.id,
           completedAt: l.completedAt,
-          lesson: {
-            id: l.lesson.id,
-            title: l.lesson.title,
-            courseId: l.lesson.courseId,
-            courseTitle: l.lesson.course?.title
-          }
+          lesson: l.lesson
         })),
         stats: {
-          totalCoursesEnrolled: enrollments.length,
           totalLessonsCompleted,
-          coursesCompleted: enrollments.filter(e => e.completedAt !== null).length
+          totalQuizAttempts: quizAttemptsCount
         }
       };
     } catch (error) {
@@ -148,7 +107,7 @@ export async function studentProfileRoutes(server: FastifyInstance) {
       });
 
       if (!profile) {
-        // Get default school
+        // Get default school if applicable
         const school = await prisma.school.findFirst();
         profile = await prisma.studentProfile.create({
           data: {
@@ -173,171 +132,6 @@ export async function studentProfileRoutes(server: FastifyInstance) {
         });
       }
       server.log.error(error, 'Error updating student profile');
-      throw error;
-    }
-  });
-
-  /**
-   * GET /profiles/student/progress/:courseId
-   * Get detailed progress for a specific course
-   */
-  server.get<{ Params: { courseId: string } }>('/student/progress/:courseId', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request: FastifyRequest<{ Params: { courseId: string } }>, reply: FastifyReply) => {
-    try {
-      const { courseId } = request.params;
-      const studentId = getCurrentUser(request).id;
-
-      const enrollment = await prisma.enrollment.findUnique({
-        where: {
-          studentId_courseId: { studentId, courseId }
-        },
-        include: {
-          course: {
-            include: {
-              lessons: {
-                orderBy: { order: 'asc' },
-                select: {
-                  id: true,
-                  title: true,
-                  description: true,
-                  order: true
-                }
-              }
-            }
-          }
-        }
-      });
-
-      if (!enrollment) {
-        return reply.status(404).send({ error: 'Not enrolled in this course' });
-      }
-
-      // Get completed lessons for this course
-      const completedLessons = await prisma.lessonCompletion.findMany({
-        where: {
-          studentId,
-          lesson: { courseId }
-        },
-        select: { lessonId: true }
-      });
-
-      const completedSet = new Set(completedLessons.map(c => c.lessonId));
-
-      const lessons = enrollment.course.lessons.map(l => ({
-        id: l.id,
-        title: l.title,
-        description: l.description,
-        order: l.order,
-        completed: completedSet.has(l.id)
-      }));
-
-      return {
-        courseId: enrollment.courseId,
-        courseTitle: enrollment.course.title,
-        progress: enrollment.progress,
-        completedLessonsCount: enrollment.completedLessonsCount,
-        lastAccessedLessonId: enrollment.lastAccessedLessonId,
-        completedAt: enrollment.completedAt,
-        lessons
-      };
-    } catch (error) {
-      server.log.error(error, 'Error fetching course progress');
-      throw error;
-    }
-  });
-
-  /**
-   * POST /profiles/student/progress/:courseId/resume
-   * Get the last accessed lesson to resume
-   */
-  server.post<{ Params: { courseId: string } }>('/student/progress/:courseId/resume', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request: FastifyRequest<{ Params: { courseId: string } }>, reply: FastifyReply) => {
-    try {
-      const { courseId } = request.params;
-      const studentId = getCurrentUser(request).id;
-
-      const enrollment = await prisma.enrollment.findUnique({
-        where: {
-          studentId_courseId: { studentId, courseId }
-        },
-        include: {
-          course: {
-            include: {
-              lessons: {
-                orderBy: { order: 'asc' },
-                select: {
-                  id: true,
-                  slug: true,
-                  title: true,
-                  description: true,
-                  order: true
-                }
-              }
-            }
-          }
-        }
-      });
-
-      if (!enrollment) {
-        return reply.status(404).send({ error: 'Not enrolled in this course' });
-      }
-
-      let lessonToResume = null;
-      const lessons = enrollment.course.lessons;
-
-      // If there's a last accessed lesson, try to find the next incomplete one
-      if (enrollment.lastAccessedLessonId) {
-        const lastLessonIndex = lessons.findIndex(
-          l => l.id === enrollment.lastAccessedLessonId
-        );
-
-        if (lastLessonIndex !== -1) {
-          // Look for next incomplete lesson
-          for (let i = lastLessonIndex; i < lessons.length; i++) {
-            const l = lessons[i];
-            const isCompleted = await prisma.lessonCompletion.findUnique({
-              where: {
-                lessonId_studentId: { lessonId: l.id, studentId }
-              }
-            });
-            if (!isCompleted) {
-              lessonToResume = { ...l, lessonId: l.id };
-              break;
-            }
-          }
-        }
-      }
-
-      // If no lesson to resume found, start from beginning
-      if (!lessonToResume && lessons.length > 0) {
-        for (const l of lessons) {
-          const isCompleted = await prisma.lessonCompletion.findUnique({
-            where: {
-              lessonId_studentId: { lessonId: l.id, studentId }
-            }
-          });
-          if (!isCompleted) {
-            lessonToResume = { ...l, lessonId: l.id };
-            break;
-          }
-        }
-      }
-
-      // If all completed, return the last lesson
-      if (!lessonToResume && lessons.length > 0) {
-        const lastL = lessons[lessons.length - 1];
-        lessonToResume = { ...lastL, lessonId: lastL.id };
-      }
-
-      return {
-        lesson: lessonToResume,
-        progress: enrollment.progress,
-        courseSlug: enrollment.course.slug
-      };
-    } catch (error) {
-      server.log.error(error, 'Error resuming course');
       throw error;
     }
   });

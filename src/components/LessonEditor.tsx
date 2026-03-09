@@ -40,21 +40,17 @@ import { Lesson, CreateLessonData, UpdateLessonData } from '@/modules/lessons/se
 
 interface LessonEditorProps {
   lesson?: Lesson;
-  courseId: string;
   onSave: (data: CreateLessonData | UpdateLessonData) => Promise<Lesson>;
   onDelete?: () => Promise<void>;
   onPublish?: (publish: boolean) => Promise<void>;
-  onViewCourse?: () => void;
   isLoading?: boolean;
 }
 
 export function LessonEditor({ 
   lesson, 
-  courseId,
   onSave, 
   onDelete, 
   onPublish,
-  onViewCourse,
   isLoading = false 
 }: LessonEditorProps) {
   const [title, setTitle] = useState(lesson?.title || '');
@@ -160,20 +156,12 @@ export function LessonEditor({
     <div className="container mx-auto py-8 px-4 max-w-5xl">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <div className="flex items-center gap-4 mb-2">
-            {onViewCourse && (
-              <Button variant="ghost" size="sm" onClick={onViewCourse}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Course
-              </Button>
-            )}
-          </div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <FileText className="w-8 h-8 text-primary" />
             {lesson ? 'Edit Lesson' : 'Create Lesson'}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {lesson ? 'Update your lesson content' : 'Add a new lesson to your course'}
+            {lesson ? 'Update your lesson content' : 'Create a new standalone lesson'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -281,13 +269,13 @@ export function LessonEditor({
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
                       placeholder={`Write your lesson content here...
-
-You can use HTML tags:
-- <strong>bold</strong>
-- <em>italic</em>
-- <h1>Headings</h1>
-- <a href="url">links</a>
-- <ul><li>lists</li></ul>`}
+                    
+                    You can use HTML tags:
+                    - <strong>bold</strong>
+                    - <em>italic</em>
+                    - <h1>Headings</h1>
+                    - <a href="url">links</a>
+                    - <ul><li>lists</li></ul>`}
                       className="aero-input min-h-[400px] font-mono"
                     />
                   </TabsContent>
@@ -470,7 +458,7 @@ You can use HTML tags:
             <h3 className="font-semibold mb-4">Settings</h3>
             <div className="space-y-4">
               <div>
-                <Label>Order</Label>
+                <Label>Order / Gravity</Label>
                 <Input
                   type="number"
                   value={order}
@@ -479,7 +467,7 @@ You can use HTML tags:
                   className="aero-input mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Position in course (0 = first)
+                  Higher numbers appear later (0 = first)
                 </p>
               </div>
 
@@ -524,7 +512,7 @@ You can use HTML tags:
                 id="linkUrl"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
-                placeholder="https://example.com or /courses/my-course"
+                placeholder="https://example.com or /path"
                 className="mt-1"
               />
             </div>

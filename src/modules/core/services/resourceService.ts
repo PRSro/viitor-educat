@@ -14,15 +14,9 @@ export interface ExternalResource {
   title: string;
   description?: string;
   lessonId?: string;
-  courseId?: string;
   teacherId: string;
   createdAt: string;
   updatedAt: string;
-  course?: {
-    id: string;
-    title: string;
-    slug: string;
-  };
   lesson?: {
     id: string;
     title: string;
@@ -40,14 +34,8 @@ export interface ResourceListItem {
   title: string;
   description?: string;
   lessonId?: string;
-  courseId?: string;
   teacherId: string;
   createdAt: string;
-  course?: {
-    id: string;
-    title: string;
-    slug: string;
-  };
   lesson?: {
     id: string;
     title: string;
@@ -70,7 +58,6 @@ export interface ResourcesResponse {
 
 export interface ResourceFilters {
   type?: ResourceType;
-  courseId?: string;
   lessonId?: string;
   teacherId?: string;
   page?: number;
@@ -83,7 +70,6 @@ export interface CreateResourceData {
   title: string;
   description?: string;
   lessonId?: string;
-  courseId?: string;
 }
 
 /**
@@ -93,7 +79,6 @@ export async function getResources(filters?: ResourceFilters): Promise<Resources
   const params = new URLSearchParams();
   
   if (filters?.type) params.set('type', filters.type);
-  if (filters?.courseId) params.set('courseId', filters.courseId);
   if (filters?.lessonId) params.set('lessonId', filters.lessonId);
   if (filters?.teacherId) params.set('teacherId', filters.teacherId);
   if (filters?.page) params.set('page', filters.page.toString());
@@ -101,14 +86,6 @@ export async function getResources(filters?: ResourceFilters): Promise<Resources
   
   const queryString = params.toString();
   return api.get(`/resources${queryString ? `?${queryString}` : ''}`);
-}
-
-/**
- * Get resources for a specific course
- */
-export async function getResourcesByCourse(courseId: string): Promise<ResourceListItem[]> {
-  const data = await api.get<{ resources: ResourceListItem[] }>(`/resources/course/${courseId}`);
-  return data.resources;
 }
 
 /**

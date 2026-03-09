@@ -125,16 +125,16 @@ export function createRequestLogger(request: FastifyRequest, reply: FastifyReply
 export function logArticleAction(
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE' | 'VALIDATION_ERROR' | 'PERMISSION_DENIED',
   userId: string,
-  slug: string,
+  id: string,
   metadata?: Record<string, any>
 ): void {
   const messages: Record<string, string> = {
-    CREATE: `Article created: ${slug}`,
-    UPDATE: `Article updated: ${slug}`,
-    DELETE: `Article deleted: ${slug}`,
-    RESTORE: `Article restored: ${slug}`,
-    VALIDATION_ERROR: `Validation failed for: ${slug}`,
-    PERMISSION_DENIED: `Permission denied for: ${slug}`
+    CREATE: `Article created: ${id}`,
+    UPDATE: `Article updated: ${id}`,
+    DELETE: `Article deleted: ${id}`,
+    RESTORE: `Article restored: ${id}`,
+    VALIDATION_ERROR: `Validation failed for: ${id}`,
+    PERMISSION_DENIED: `Permission denied for: ${id}`
   };
   
   auditLogger.log({
@@ -142,7 +142,7 @@ export function logArticleAction(
     message: messages[action],
     userId,
     action,
-    resource: slug,
+    resource: id,
     metadata
   });
 }

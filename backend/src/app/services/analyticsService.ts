@@ -20,8 +20,6 @@ export async function getLessonCompletionRates(teacherId: string, page: number =
       select: {
         id: true,
         title: true,
-        courseId: true,
-        course: { select: { title: true } },
         _count: {
           select: {
             completions: true
@@ -35,22 +33,11 @@ export async function getLessonCompletionRates(teacherId: string, page: number =
     prisma.lesson.count({ where: { teacherId } })
   ]);
 
-  const courseIds = [...new Set(lessons.filter(l => l.courseId).map(l => l.courseId!))];
-  const enrollmentsByCourse = await prisma.enrollment.groupBy({
-    by: ['courseId'],
-    where: { courseId: { in: courseIds } },
-    _count: { id: true }
-  });
-
-  const enrollmentsMap = new Map(enrollmentsByCourse.map(e => [e.courseId, e._count.id]));
-
   const result = {
     lessons: lessons.map(l => ({
       lessonId: l.id,
       title: l.title,
-      courseTitle: l.course?.title || 'Standalone',
-      completions: l._count.completions,
-      enrolledStudents: l.courseId ? (enrollmentsMap.get(l.courseId) || 0) : 0
+      completions: l._count.completions
     })),
     pagination: {
       page,
@@ -58,74 +45,6 @@ export async function getLessonCompletionRates(teacherId: string, page: number =
       total,
       totalPages: Math.ceil(total / limit)
     }
-  };
-
-  await redisService.set(cacheKeyValue, result, CACHE_TTL);
-  return result;
-}
-
-export async function getLessonDropoff(teacherId: string, lessonId: string) {
-  const cacheKeyValue = cacheKey(teacherId, `dropoff:${lessonId}`);
-  const cached = await redisService.get<any>(cacheKeyValue);
-  if (cached) return cached;
-
-  const lesson = await prisma.lesson.findFirst({
-    where: { id: lessonId, teacherId },
-    select: { id: true, title: true }
-  });
-
-  if (!lesson) {
-    throw new Error('Lesson not found or access denied');
-  }
-
-  const lessonCompletions = await prisma.lessonCompletion.findMany({
-    where: { lessonId },
-    select: {
-      completedAt: true,
-      student: {
-        select: {
-          enrollments: {
-            where: { course: { teacherId } },
-            select: { progress: true, completedAt: true }
-          }
-        }
-      }
-    }
-  });
-
-  const enrollmentCount = lessonCompletions.length;
-  const completedCount = lessonCompletions.filter(lc => lc.completedAt !== null).length;
-
-  const enrollments = await prisma.enrollment.findMany({
-    where: { 
-      course: { teacherId, lessons: { some: { id: lessonId } } } 
-    },
-    select: { progress: true }
-  });
-
-  const distribution = [
-    { range: '0-25%', count: 0 },
-    { range: '26-50%', count: 0 },
-    { range: '51-75%', count: 0 },
-    { range: '76-99%', count: 0 },
-    { range: '100%', count: completedCount }
-  ];
-
-  enrollments.forEach(e => {
-    const p = e.progress;
-    if (p <= 25) distribution[0].count++;
-    else if (p <= 50) distribution[1].count++;
-    else if (p <= 75) distribution[2].count++;
-    else if (p < 100) distribution[3].count++;
-  });
-
-  const result = {
-    lessonId: lesson.id,
-    title: lesson.title,
-    totalStudents: enrollmentCount,
-    completedCount,
-    completionRate: enrollmentCount > 0 ? Math.round((completedCount / enrollmentCount) * 100) : 0,
-    distribution
   };
 
   await redisService.set(cacheKeyValue, result, CACHE_TTL);
@@ -181,8 +100,6 @@ export async function getQuizPerformance(teacherId: string, page: number = 1, li
       select: {
         id: true,
         title: true,
-        courseId: true,
-        course: { select: { title: true } },
         _count: { select: { attempts: true } }
       },
       orderBy: { createdAt: 'desc' },
@@ -213,7 +130,6 @@ export async function getQuizPerformance(teacherId: string, page: number = 1, li
       return {
         quizId: q.id,
         title: q.title,
-        courseTitle: q.course?.title || 'Standalone',
         totalAttempts: q._count.attempts,
         averageScore: stats.count > 0 ? Math.round(stats.totalScore / stats.count) : 0,
         hasAttempts: stats.count > 0
@@ -234,5 +150,7 @@ export async function getQuizPerformance(teacherId: string, page: number = 1, li
 export async function invalidateTeacherCache(teacherId: string) {
   const pattern = `analytics:${teacherId}:*`;
   const keys = await redisService.keys(pattern);
-  await Promise.all(keys.map(key => redisService.del(key)));
+  if (keys.length > 0) {
+    await Promise.all(keys.map(key => redisService.del(key)));
+  }
 }

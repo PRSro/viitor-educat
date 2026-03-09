@@ -11,19 +11,6 @@ interface ArticleDraft {
   updatedAt: string;
 }
 
-interface CourseDraft {
-  id: string;
-  title: string;
-  description?: string;
-  imageUrl?: string;
-  level: string;
-  category: string;
-  tags: string[];
-  lessons: LessonDraft[];
-  status: 'draft';
-  updatedAt: string;
-}
-
 interface LessonDraft {
   id: string;
   title: string;
@@ -31,33 +18,34 @@ interface LessonDraft {
   content: string;
   order: number;
   status: 'draft';
+  updatedAt: string;
 }
 
 interface DraftContextType {
   articleDrafts: ArticleDraft[];
-  courseDrafts: CourseDraft[];
+  lessonDrafts: LessonDraft[]; // Changed courseDrafts to lessonDrafts
   saveArticleDraft: (draft: Omit<ArticleDraft, 'id' | 'updatedAt' | 'status'>) => void;
-  saveCourseDraft: (draft: Omit<CourseDraft, 'id' | 'updatedAt' | 'status'>) => void;
+  saveLessonDraft: (draft: Omit<LessonDraft, 'id' | 'updatedAt' | 'status'>) => void; // Changed saveCourseDraft to saveLessonDraft
   deleteArticleDraft: (id: string) => void;
-  deleteCourseDraft: (id: string) => void;
+  deleteLessonDraft: (id: string) => void; // Changed deleteCourseDraft to deleteLessonDraft
   getArticleDraft: (id: string) => ArticleDraft | undefined;
-  getCourseDraft: (id: string) => CourseDraft | undefined;
+  getLessonDraft: (id: string) => LessonDraft | undefined; // Changed getCourseDraft to getLessonDraft
 }
 
 const DraftContext = createContext<DraftContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
   articles: 'viitor_educat_article_drafts',
-  courses: 'viitor_educat_course_drafts',
+  lessons: 'viitor_educat_lesson_drafts', // Changed courses to lessons
 };
 
 export function DraftProvider({ children }: { children: ReactNode }) {
   const [articleDrafts, setArticleDrafts] = useState<ArticleDraft[]>([]);
-  const [courseDrafts, setCourseDrafts] = useState<CourseDraft[]>([]);
+  const [lessonDrafts, setLessonDrafts] = useState<LessonDraft[]>([]); // Changed courseDrafts to lessonDrafts
 
   useEffect(() => {
     const storedArticles = localStorage.getItem(STORAGE_KEYS.articles);
-    const storedCourses = localStorage.getItem(STORAGE_KEYS.courses);
+    const storedLessons = localStorage.getItem(STORAGE_KEYS.lessons);
 
     if (storedArticles) {
       try {
@@ -67,11 +55,11 @@ export function DraftProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    if (storedCourses) {
+    if (storedLessons) {
       try {
-        setCourseDrafts(JSON.parse(storedCourses));
+        setLessonDrafts(JSON.parse(storedLessons));
       } catch (e) {
-        console.error('Failed to parse course drafts:', e);
+        console.error('Failed to parse lesson drafts:', e);
       }
     }
   }, []);
@@ -81,8 +69,8 @@ export function DraftProvider({ children }: { children: ReactNode }) {
   }, [articleDrafts]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.courses, JSON.stringify(courseDrafts));
-  }, [courseDrafts]);
+    localStorage.setItem(STORAGE_KEYS.lessons, JSON.stringify(lessonDrafts));
+  }, [lessonDrafts]);
 
   const saveArticleDraft = (draft: Omit<ArticleDraft, 'id' | 'updatedAt' | 'status'>) => {
     const newDraft: ArticleDraft = {
@@ -94,42 +82,42 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     setArticleDrafts(prev => [...prev, newDraft]);
   };
 
-  const saveCourseDraft = (draft: Omit<CourseDraft, 'id' | 'updatedAt' | 'status'>) => {
-    const newDraft: CourseDraft = {
+  const saveLessonDraft = (draft: Omit<LessonDraft, 'id' | 'updatedAt' | 'status'>) => {
+    const newDraft: LessonDraft = {
       ...draft,
       id: crypto.randomUUID(),
       status: 'draft',
       updatedAt: new Date().toISOString(),
     };
-    setCourseDrafts(prev => [...prev, newDraft]);
+    setLessonDrafts(prev => [...prev, newDraft]);
   };
 
   const deleteArticleDraft = (id: string) => {
     setArticleDrafts(prev => prev.filter(d => d.id !== id));
   };
 
-  const deleteCourseDraft = (id: string) => {
-    setCourseDrafts(prev => prev.filter(d => d.id !== id));
+  const deleteLessonDraft = (id: string) => {
+    setLessonDrafts(prev => prev.filter(d => d.id !== id));
   };
 
   const getArticleDraft = (id: string) => {
     return articleDrafts.find(d => d.id === id);
   };
 
-  const getCourseDraft = (id: string) => {
-    return courseDrafts.find(d => d.id === id);
+  const getLessonDraft = (id: string) => {
+    return lessonDrafts.find(d => d.id === id);
   };
 
   return (
     <DraftContext.Provider value={{
       articleDrafts,
-      courseDrafts,
+      lessonDrafts,
       saveArticleDraft,
-      saveCourseDraft,
+      saveLessonDraft,
       deleteArticleDraft,
-      deleteCourseDraft,
+      deleteLessonDraft,
       getArticleDraft,
-      getCourseDraft,
+      getLessonDraft,
     }}>
       {children}
     </DraftContext.Provider>

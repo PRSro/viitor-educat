@@ -22,10 +22,9 @@ export async function lessonRoutes(server: FastifyInstance) {
         status: 'PRIVATE'
       },
       include: {
-        course: { select: { id: true, title: true, slug: true } },
         _count: { select: { completions: true } }
       },
-      orderBy: [{ courseId: 'asc' }, { order: 'asc' }]
+      orderBy: { order: 'asc' }
     });
     return { lessons };
   });

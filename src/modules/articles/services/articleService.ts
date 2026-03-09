@@ -18,7 +18,6 @@ export type ArticleCategory =
 export interface Article {
   id: string;
   title: string;
-  slug: string;
   content: string;
   excerpt?: string;
   sourceUrl?: string;
@@ -37,7 +36,6 @@ export interface Article {
 export interface ArticleListItem {
   id: string;
   title: string;
-  slug: string;
   excerpt?: string;
   category: ArticleCategory;
   tags: string[];
@@ -115,10 +113,10 @@ export async function getArticlesByTeacher(teacherId: string, page = 1, limit = 
 }
 
 /**
- * Get article by slug
+ * Get article by ID
  */
-export async function getArticleBySlug(slug: string): Promise<Article> {
-  const data = await api.get<{ article: Article }>(`/articles/${slug}`);
+export async function getArticle(id: string): Promise<Article> {
+  const data = await api.get<{ article: Article }>(`/articles/${id}`);
   return data.article;
 }
 

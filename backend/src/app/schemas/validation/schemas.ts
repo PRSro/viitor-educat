@@ -61,10 +61,6 @@ export const createLessonSchema = z.object({
     .trim()
     .min(1, { message: 'Content is required' })
     .max(50000, { message: 'Content must be less than 50000 characters' }),
-  courseId: z
-    .string()
-    .uuid({ message: 'Invalid course ID format' })
-    .min(1, { message: 'Course ID is required' }),
   order: z
     .number()
     .int()
@@ -90,10 +86,6 @@ export const updateLessonSchema = z.object({
     .trim()
     .min(1, { message: 'Content cannot be empty' })
     .max(50000, { message: 'Content must be less than 50000 characters' })
-    .optional(),
-  courseId: z
-    .string()
-    .uuid({ message: 'Invalid course ID format' })
     .optional(),
   order: z
     .number()
@@ -185,10 +177,6 @@ export const createChallengeSchema = z.object({
     .max(3600)
     .optional(),
   tags: z.array(z.string()).optional(),
-  courseId: z
-    .string()
-    .uuid({ message: 'Invalid course ID format' })
-    .optional(),
 });
 
 export const updateChallengeSchema = createChallengeSchema.partial().extend({

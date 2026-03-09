@@ -1,24 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["id", "title", "slug", "content", "authorId", "createdAt"],
+  "required": ["id", "title", "content", "authorId", "createdAt"],
   "properties": {
     "id": {
       "type": "string",
-      "description": "Unique article identifier"
+      "pattern": "^article_[a-z0-9]+$"
     },
     "title": {
       "type": "string",
       "minLength": 1,
       "maxLength": 300
     },
-    "slug": {
-      "type": "string",
-      "pattern": "^[a-z0-9-]+$"
-    },
     "content": {
       "type": "string",
-      "description": "HTML content of the article"
+      "minLength": 1
     },
     "excerpt": {
       "type": "string",
@@ -29,8 +25,7 @@
       "format": "uri"
     },
     "category": {
-      "type": "string",
-      "enum": ["MATH", "SCIENCE", "LITERATURE", "HISTORY", "COMPUTER_SCIENCE", "ARTS", "LANGUAGES", "GENERAL"]
+      "type": "string"
     },
     "tags": {
       "type": "array",
@@ -42,57 +37,22 @@
       "type": "string"
     },
     "published": {
-      "type": "boolean",
-      "default": false
+      "type": "boolean"
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "published", "archived"],
-      "default": "draft"
+      "enum": ["draft", "published", "archived"]
     },
     "paths": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "path": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["heading", "paragraph", "image", "link", "list", "code", "quote"]
-          },
-          "level": {
-            "type": "number"
-          },
-          "text": {
-            "type": "string"
-          },
-          "href": {
-            "type": "string"
-          },
-          "src": {
-            "type": "string"
-          }
-        }
-      }
+      "type": "array"
     },
     "metadata": {
       "type": "object",
       "properties": {
-        "wordCount": {
-          "type": "number"
-        },
-        "readingTime": {
-          "type": "number"
-        },
-        "lastModified": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "version": {
-          "type": "number"
-        }
+        "wordCount": { "type": "number" },
+        "readingTime": { "type": "number" },
+        "lastModified": { "type": "string", "format": "date-time" },
+        "version": { "type": "number" }
       }
     },
     "createdAt": {

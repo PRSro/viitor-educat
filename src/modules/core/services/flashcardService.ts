@@ -10,14 +10,8 @@ export interface Flashcard {
   question: string;
   answer: string;
   lessonId?: string;
-  courseId?: string;
   createdAt: string;
   updatedAt: string;
-  course?: {
-    id: string;
-    title: string;
-    slug: string;
-  };
   lesson?: {
     id: string;
     title: string;
@@ -29,13 +23,7 @@ export interface FlashcardListItem {
   question: string;
   answer: string;
   lessonId?: string;
-  courseId?: string;
   createdAt: string;
-  course?: {
-    id: string;
-    title: string;
-    slug: string;
-  };
   lesson?: {
     id: string;
     title: string;
@@ -59,7 +47,6 @@ export interface FlashcardDeck {
 }
 
 export interface FlashcardFilters {
-  courseId?: string;
   lessonId?: string;
   page?: number;
   limit?: number;
@@ -69,7 +56,6 @@ export interface CreateFlashcardData {
   question: string;
   answer: string;
   lessonId?: string;
-  courseId?: string;
 }
 
 export interface StudyPrompt {
@@ -77,8 +63,6 @@ export interface StudyPrompt {
   question: string;
   topic: string;
   lessonId?: string;
-  courseId?: string;
-  courseTitle?: string;
   articleId?: string;
   category?: string;
 }
@@ -89,20 +73,12 @@ export interface StudyPrompt {
 export async function getFlashcards(filters?: FlashcardFilters): Promise<FlashcardsResponse> {
   const params = new URLSearchParams();
   
-  if (filters?.courseId) params.set('courseId', filters.courseId);
   if (filters?.lessonId) params.set('lessonId', filters.lessonId);
   if (filters?.page) params.set('page', filters.page.toString());
   if (filters?.limit) params.set('limit', filters.limit.toString());
   
   const queryString = params.toString();
   return api.get(`/flashcards${queryString ? `?${queryString}` : ''}`);
-}
-
-/**
- * Get flashcards for a specific course (organized as deck)
- */
-export async function getFlashcardsByCourse(courseId: string): Promise<FlashcardDeck> {
-  return api.get(`/flashcards/course/${courseId}`);
 }
 
 /**
@@ -153,8 +129,7 @@ export async function deleteFlashcard(id: string): Promise<void> {
 }
 
 /**
- * Get study prompts for a lesson (placeholder logic)
- * TODO: Implement AI-powered prompt generation
+ * Get study prompts for a lesson
  */
 export async function getStudyPromptsByLesson(lessonId: string): Promise<{
   prompts: StudyPrompt[];
@@ -165,8 +140,7 @@ export async function getStudyPromptsByLesson(lessonId: string): Promise<{
 }
 
 /**
- * Get study prompts for an article (placeholder logic)
- * TODO: Implement AI-powered prompt generation
+ * Get study prompts for an article
  */
 export async function getStudyPromptsByArticle(articleId: string): Promise<{
   prompts: StudyPrompt[];

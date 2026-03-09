@@ -90,7 +90,7 @@ export default function BookmarksPage() {
               Apasă iconița 🔖 pe orice lecție sau articol pentru a-l salva.
             </p>
             <Button asChild>
-              <Link to="/courses">Explorează Lecții</Link>
+              <Link to="/lessons">Explorează Lecții</Link>
             </Button>
           </Card>
         ) : (

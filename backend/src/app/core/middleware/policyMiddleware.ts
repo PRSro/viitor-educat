@@ -18,7 +18,7 @@ export interface PolicyContext {
   ownershipField?: string;
 }
 
-export type Action = 'create' | 'read' | 'update' | 'delete' | 'publish' | 'enroll';
+export type Action = 'create' | 'read' | 'update' | 'delete' | 'publish';
 
 class AccessPolicy {
   private policies: Map<string, (ctx: PolicyContext) => boolean> = new Map();
@@ -28,38 +28,6 @@ class AccessPolicy {
   }
 
   private initializePolicies() {
-    // Course policies
-    this.register('course:create', (ctx) => {
-      return ['TEACHER', 'ADMIN'].includes(ctx.user.role);
-    });
-
-    this.register('course:read', (ctx) => {
-      if (!ctx.resource) return true;
-      const { published, authorId } = ctx.resource;
-      if (published) return true;
-      return ctx.user.id === authorId || ctx.user.role === 'ADMIN';
-    });
-
-    this.register('course:update', (ctx) => {
-      if (!ctx.resource) return false;
-      return ctx.user.id === ctx.resource.authorId || ctx.user.role === 'ADMIN';
-    });
-
-    this.register('course:delete', (ctx) => {
-      if (!ctx.resource) return false;
-      return ctx.user.id === ctx.resource.authorId || ctx.user.role === 'ADMIN';
-    });
-
-    this.register('course:publish', (ctx) => {
-      if (!ctx.resource) return false;
-      return ctx.user.id === ctx.resource.authorId || ctx.user.role === 'ADMIN';
-    });
-
-    this.register('course:enroll', (ctx) => {
-      if (!ctx.resource) return false;
-      return !!ctx.resource.published && ctx.user.role === 'STUDENT';
-    });
-
     // Lesson policies
     this.register('lesson:create', (ctx) => {
       return ['TEACHER', 'ADMIN'].includes(ctx.user.role);
@@ -68,18 +36,19 @@ class AccessPolicy {
     this.register('lesson:read', (ctx) => {
       if (!ctx.resource) return true;
       const { published, authorId } = ctx.resource;
-      if (published) return true;
+      const isPublic = ctx.resource.status === 'PUBLIC' || published;
+      if (isPublic) return true;
       return ctx.user.id === authorId || ctx.user.role === 'ADMIN';
     });
 
     this.register('lesson:update', (ctx) => {
       if (!ctx.resource) return false;
-      return ctx.user.id === ctx.resource.authorId || ctx.user.role === 'ADMIN';
+      return ctx.user.id === ctx.resource.authorId || ctx.user.id === ctx.resource.teacherId || ctx.user.role === 'ADMIN';
     });
 
     this.register('lesson:delete', (ctx) => {
       if (!ctx.resource) return false;
-      return ctx.user.id === ctx.resource.authorId || ctx.user.role === 'ADMIN';
+      return ctx.user.id === ctx.resource.authorId || ctx.user.id === ctx.resource.teacherId || ctx.user.role === 'ADMIN';
     });
 
     // Article policies
@@ -134,16 +103,6 @@ class AccessPolicy {
     // Admin policies
     this.register('admin:*', (ctx) => {
       return ctx.user.role === 'ADMIN';
-    });
-
-    // Enrollment policies
-    this.register('enrollment:create', (ctx) => {
-      return ctx.user.role === 'STUDENT';
-    });
-
-    this.register('enrollment:read', (ctx) => {
-      if (!ctx.resource) return true;
-      return ctx.user.id === ctx.resource.ownerId || ctx.user.role === 'ADMIN';
     });
   }
 

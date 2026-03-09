@@ -1,26 +1,19 @@
-import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArticleEditor } from '@/components/ArticleEditor';
-import { getArticleBySlug, createArticle, updateArticle, deleteArticle, CreateArticleData, Article } from '@/modules/articles/services/articleService';
+import { getArticle, createArticle, updateArticle, deleteArticle, CreateArticleData } from '@/modules/articles/services/articleService';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface ArticleEditorPageProps {
-  articleSlug?: string;
-}
-
-export default function ArticleEditorPage({ articleSlug }: ArticleEditorPageProps) {
+export default function ArticleEditorPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { slug } = useParams();
-
-  const articleIdOrSlug = articleSlug || slug;
+  const { id } = useParams();
 
   const { data: article, isLoading } = useQuery({
-    queryKey: ['article', articleIdOrSlug],
-    queryFn: () => getArticleBySlug(articleIdOrSlug!),
-    enabled: !!articleIdOrSlug,
+    queryKey: ['article', id],
+    queryFn: () => getArticle(id!),
+    enabled: !!id,
   });
 
   const saveMutation = useMutation({
@@ -33,9 +26,11 @@ export default function ArticleEditorPage({ articleSlug }: ArticleEditorPageProp
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
-      queryClient.invalidateQueries({ queryKey: ['article', articleIdOrSlug] });
+      queryClient.invalidateQueries({ queryKey: ['article', id] });
       if (!article) {
-        navigate(`/articles/${data.slug}`);
+        navigate(`/articles/${data.id}`);
+      } else {
+        navigate('/teacher');
       }
     },
   });
@@ -44,11 +39,11 @@ export default function ArticleEditorPage({ articleSlug }: ArticleEditorPageProp
     mutationFn: () => deleteArticle(article!.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
-      navigate('/student/articles');
+      navigate('/teacher');
     },
   });
 
-  if (articleIdOrSlug && isLoading) {
+  if (id && isLoading) {
     return (
       <div className="container mx-auto py-8">
         <div className="animate-pulse space-y-4">

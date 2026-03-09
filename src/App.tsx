@@ -18,8 +18,6 @@ import TeacherDashboard from "@/modules/core/pages/TeacherDashboard";
 import StudentDashboard from "@/modules/core/pages/StudentDashboard";
 import AdminDashboard from "@/modules/core/pages/AdminDashboard";
 import ArticleDetail from "@/modules/articles/pages/ArticleDetail";
-import CourseDetail from "@/modules/courses/pages/CourseDetail";
-import CoursesPage from "@/modules/courses/pages/CoursesPage";
 import AccessDenied from "@/modules/core/pages/AccessDenied";
 import NotFound from "@/modules/core/pages/NotFound";
 import Profile from "@/modules/core/pages/Profile";
@@ -34,13 +32,10 @@ import StudentProfilePage from "@/modules/core/pages/StudentProfilePage";
 import LessonViewerPage from "@/modules/lessons/pages/LessonViewerPage";
 import SearchPage from "@/modules/core/pages/SearchPage";
 import ArticleEditorPage from "@/modules/articles/pages/ArticleEditorPage";
-import CourseEditorPage from "@/modules/courses/pages/CourseEditorPage";
 import LessonEditorPage from "@/modules/lessons/pages/LessonEditorPage";
 import BookmarksPage from "@/modules/core/pages/BookmarksPage";
 import QuizPage from "@/modules/core/pages/QuizPage";
 import TeacherDirectoryPage from "@/modules/core/pages/TeacherDirectoryPage";
-import ForumPage from '@/pages/ForumPage';
-import ForumThreadPage from '@/pages/ForumThreadPage';
 import { MusicPlayer } from "@/components/MusicPlayer";
 
 const queryClient = new QueryClient();
@@ -96,22 +91,6 @@ const App = () => (
                         }
                       />
 
-                      {/* Course Detail - Public */}
-                      <Route
-                        path="/courses/:slug"
-                        element={
-                          <ErrorBoundary><CourseDetail /></ErrorBoundary>
-                        }
-                      />
-
-                      {/* Course Catalog - Public */}
-                      <Route
-                        path="/courses"
-                        element={
-                          <ErrorBoundary><CoursesPage /></ErrorBoundary>
-                        }
-                      />
-
                       {/* Profile - All authenticated users */}
                       <Route
                         path="/profile"
@@ -124,7 +103,7 @@ const App = () => (
 
                       {/* Article Detail - All authenticated users */}
                       <Route
-                        path="/articles/:slug"
+                        path="/articles/:id"
                         element={
                           <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
                             <ErrorBoundary><ArticleDetail /></ErrorBoundary>
@@ -233,7 +212,7 @@ const App = () => (
                       />
 
                       <Route
-                        path="/articles/:slug/edit"
+                        path="/articles/:id/edit"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
                             <ErrorBoundary><ArticleEditorPage /></ErrorBoundary>
@@ -241,28 +220,9 @@ const App = () => (
                         }
                       />
 
-                      {/* Course Editor - Teacher/Admin only */}
-                      <Route
-                        path="/courses/new"
-                        element={
-                          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
-                            <ErrorBoundary><CourseEditorPage /></ErrorBoundary>
-                          </ProtectedRoute>
-                        }
-                      />
-
-                      <Route
-                        path="/courses/:courseId/edit"
-                        element={
-                          <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
-                            <ErrorBoundary><CourseEditorPage /></ErrorBoundary>
-                          </ProtectedRoute>
-                        }
-                      />
-
                       {/* Lesson Editor - Teacher/Admin only */}
                       <Route
-                        path="/courses/:courseId/lessons/new"
+                        path="/lessons/new"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
                             <ErrorBoundary><LessonEditorPage /></ErrorBoundary>
@@ -271,7 +231,7 @@ const App = () => (
                       />
 
                       <Route
-                        path="/courses/:courseId/lessons/:lessonId/edit"
+                        path="/lessons/:lessonId/edit"
                         element={
                           <ProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
                             <ErrorBoundary><LessonEditorPage /></ErrorBoundary>
@@ -298,25 +258,6 @@ const App = () => (
                           </ProtectedRoute>
                         }
                       />
-
-/*
-                      <Route
-                        path="/forum"
-                        element={
-                          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <ErrorBoundary><ForumPage /></ErrorBoundary>
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/forum/thread/:id"
-                        element={
-                          <ProtectedRoute allowedRoles={['STUDENT', 'TEACHER', 'ADMIN']}>
-                            <ErrorBoundary><ForumThreadPage /></ErrorBoundary>
-                          </ProtectedRoute>
-                        }
-                      />
-                      */
 
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />

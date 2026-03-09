@@ -54,20 +54,13 @@ const articleQuerySchema = z.object({
  * 
  * Permissions:
  * - GET /articles - All authenticated users can view published articles
- * - GET /articles/:slug - View article details
+ * - GET /articles/:id - View article details
  * - POST /articles - Teacher/Admin can create articles
  * - POST /articles/import - Teacher/Admin can import from whitelisted URLs
  * - PUT /articles/:id - Author/Admin can update
  * - DELETE /articles/:id - Author/Admin can delete
  */
 
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .slice(0, 100) + '-' + Date.now().toString(36);
-}
 
 // Sanitize HTML content to prevent XSS
 function sanitizeContent(html: string): string {
@@ -207,7 +200,6 @@ export async function articleRoutes(server: FastifyInstance) {
           select: {
             id: true,
             title: true,
-            slug: true,
             excerpt: true,
             category: true,
             tags: true,
@@ -254,7 +246,6 @@ export async function articleRoutes(server: FastifyInstance) {
       select: {
         id: true,
         title: true,
-        slug: true,
         excerpt: true,
         category: true,
         tags: true,
@@ -287,7 +278,6 @@ export async function articleRoutes(server: FastifyInstance) {
           select: {
             id: true,
             title: true,
-            slug: true,
             excerpt: true,
             category: true,
             tags: true,
@@ -330,16 +320,16 @@ export async function articleRoutes(server: FastifyInstance) {
   });
 
   /**
-   * GET /articles/:slug
-   * Get article details by slug
+   * GET /articles/:id
+   * Get article details by ID
    */
-  server.get<{ Params: { slug: string } }>('/:slug', {
+  server.get<{ Params: { id: string } }>('/:id', {
     preHandler: [authMiddleware, anyRole]
-  }, async (request: FastifyRequest<{ Params: { slug: string } }>, reply: FastifyReply) => {
-    const { slug } = request.params;
+  }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const { id } = request.params;
 
     const article = await prisma.article.findUnique({
-      where: { slug },
+      where: { id },
       include: {
         author: { select: { id: true, email: true } }
       }
@@ -475,7 +465,6 @@ export async function articleRoutes(server: FastifyInstance) {
       const article = await prisma.article.create({
         data: {
           title: sanitizeContent(title),
-          slug: generateSlug(title),
           content,
           excerpt,
           sourceUrl: url,

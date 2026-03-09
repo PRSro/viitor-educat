@@ -10,76 +10,38 @@ function getCurrentUser(request: FastifyRequest): JwtPayload {
 export async function studentRoutes(server: FastifyInstance) {
 
   /**
-   * GET /student/enrollments
-   * Get all courses the current student is enrolled in
+   * GET /student/completions
+   * Get all lessons completed by the current student
    */
-  server.get('/enrollments', {
+  server.get('/completions', {
     preHandler: [authMiddleware, requireRole(['STUDENT'])]
   }, async (request, reply) => {
     try {
       const user = getCurrentUser(request);
-      const { status, page, limit } = (request.query as any) || {};
+      const { page, limit } = (request.query as any) || {};
       const pageNum = parseInt(page || '1');
       const limitNum = Math.min(parseInt(limit || '20'), 50);
       const skip = (pageNum - 1) * limitNum;
 
-      const where: any = {
-        studentId: user.id,
-        status: status || 'ACTIVE'
-      };
-
-      if (!status) {
-        delete where.status;
-        where.OR = [
-          { status: 'ACTIVE' },
-          { status: 'COMPLETED' }
-        ];
-      }
-
-      const [enrollments, total] = await Promise.all([
-        prisma.enrollment.findMany({
-          where,
+      const [completions, total] = await Promise.all([
+        prisma.lessonCompletion.findMany({
+          where: { studentId: user.id },
           include: {
-            course: {
+            lesson: {
               include: {
-                teacher: {
-                  select: { id: true, email: true }
-                },
-                _count: {
-                  select: { lessons: true }
-                }
+                teacher: { select: { id: true, email: true } }
               }
             }
           },
-          orderBy: { enrolledAt: 'desc' },
+          orderBy: { completedAt: 'desc' },
           take: limitNum,
           skip
         }),
-        prisma.enrollment.count({ where })
+        prisma.lessonCompletion.count({ where: { studentId: user.id } })
       ]);
 
-      const courses = enrollments.map(enrollment => ({
-        enrollment: {
-          id: enrollment.id,
-          status: enrollment.status,
-          progress: enrollment.progress,
-          enrolledAt: enrollment.enrolledAt,
-          completedAt: enrollment.completedAt,
-          completedLessonsCount: enrollment.completedLessonsCount
-        },
-        course: {
-          id: enrollment.course.id,
-          title: enrollment.course.title,
-          description: enrollment.course.description,
-          imageUrl: enrollment.course.imageUrl,
-          level: enrollment.course.level,
-          teacher: enrollment.course.teacher,
-          totalLessons: enrollment.course._count.lessons
-        }
-      }));
-
       return {
-        courses,
+        completions,
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -88,30 +50,27 @@ export async function studentRoutes(server: FastifyInstance) {
         }
       };
     } catch (error) {
-      server.log.error(error, 'Error fetching student enrollments');
+      server.log.error(error, 'Error fetching student completions');
       throw error;
     }
   });
 
   /**
-   * GET /student/progress
-   * Get overall learning progress stats for the student
+   * GET /student/stats
+   * Get overall learning stats for the student
    */
-  server.get('/progress', {
+  server.get('/stats', {
     preHandler: [authMiddleware, requireRole(['STUDENT'])]
   }, async (request, reply) => {
     const user = getCurrentUser(request);
-    const enrollments = await prisma.enrollment.findMany({
-      where: { studentId: user.id },
-    });
-    const total = enrollments.length;
-    const completed = enrollments.filter(e => e.status === 'COMPLETED').length;
-    const inProgress = enrollments.filter(e => e.status === 'ACTIVE' && e.progress > 0).length;
+    const [completionsCount, quizAttemptsCount] = await Promise.all([
+      prisma.lessonCompletion.count({ where: { studentId: user.id } }),
+      prisma.quizAttempt.count({ where: { userId: user.id } })
+    ]);
+
     return {
-      totalEnrolled: total,
-      totalCompleted: completed,
-      totalInProgress: inProgress,
-      percentComplete: total > 0 ? Math.round((completed / total) * 100) : 0,
+      totalLessonsCompleted: completionsCount,
+      totalQuizzesAttempted: quizAttemptsCount
     };
   });
 }

@@ -1,6 +1,6 @@
 /**
  * Flashcards Page
- * View and study flashcards organized by course and lesson
+ * View and study flashcards organized by lesson
  */
 
 import { useState, useEffect } from 'react';
@@ -16,34 +16,22 @@ import {
 } from '@/components/FlashcardDeck';
 import {
   getFlashcards,
-  getFlashcardsByCourse,
   FlashcardListItem,
-  FlashcardDeck as FlashcardDeckType,
-  CreateFlashcardData
+  FlashcardDeck as FlashcardDeckType
 } from '@/modules/core/services/flashcardService';
-import {
-  getCourses,
-  CoursePreview
-} from '@/modules/courses/services/courseService';
 import {
   Layers,
   Loader2,
   BookOpen,
-  Plus,
   Play,
   Eye
 } from 'lucide-react';
 
 export default function FlashcardsPage() {
   const { user } = useAuth();
-  const isTeacher = user?.role === 'TEACHER' || user?.role === 'ADMIN';
 
   const [flashcards, setFlashcards] = useState<FlashcardListItem[]>([]);
-  const [courses, setCourses] = useState<CoursePreview[]>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
-  const [courseFlashcards, setCourseFlashcards] = useState<FlashcardDeckType | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingDeck, setLoadingDeck] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [studyMode, setStudyMode] = useState(false);
@@ -51,14 +39,7 @@ export default function FlashcardsPage() {
 
   useEffect(() => {
     fetchFlashcards();
-    fetchCourses();
   }, []);
-
-  useEffect(() => {
-    if (selectedCourseId) {
-      fetchCourseFlashcards(selectedCourseId);
-    }
-  }, [selectedCourseId]);
 
   async function fetchFlashcards() {
     try {
@@ -73,40 +54,9 @@ export default function FlashcardsPage() {
     }
   }
 
-  async function fetchCourses() {
-    try {
-      const response = await getCourses();
-      setCourses(response);
-      if (response.length > 0 && !selectedCourseId) {
-        setSelectedCourseId(response[0].id);
-      }
-    } catch (err) {
-      console.error('Failed to fetch courses:', err);
-    }
-  }
-
-  async function fetchCourseFlashcards(courseId: string) {
-    try {
-      setLoadingDeck(true);
-      const data = await getFlashcardsByCourse(courseId);
-      setCourseFlashcards(data);
-    } catch (err) {
-      console.error('Failed to fetch course flashcards:', err);
-    } finally {
-      setLoadingDeck(false);
-    }
-  }
-
   const handleStudyDeck = (cards: FlashcardListItem[]) => {
     setCurrentDeck(cards);
     setStudyMode(true);
-  };
-
-  const handleStudyAll = () => {
-    if (courseFlashcards?.flashcards) {
-      setCurrentDeck(courseFlashcards.flashcards);
-      setStudyMode(true);
-    }
   };
 
   if (studyMode && currentDeck.length > 0) {
@@ -115,15 +65,14 @@ export default function FlashcardsPage() {
         <header className="border-b bg-card/50 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <Button variant="ghost" onClick={() => setStudyMode(false)}>
-              ← Back to Flashcards
+              ← Înapoi la Flashcard-uri
             </Button>
           </div>
         </header>
         <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <FlashcardDeck
             flashcards={currentDeck}
-            title="Study Mode"
-            showCourse
+            title="Mod Studiu"
             onComplete={() => setStudyMode(false)}
           />
         </main>
@@ -138,14 +87,14 @@ export default function FlashcardsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold">Flashcards</h1>
+              <h1 className="text-2xl font-bold">Flashcard-uri</h1>
               <p className="text-muted-foreground">
-                Study and review with interactive flashcards
+                Studiază și repetă cu flashcard-uri interactive
               </p>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-sm">
-                {flashcards.length} cards total
+                {flashcards.length} carduri în total
               </Badge>
             </div>
           </div>
@@ -153,7 +102,6 @@ export default function FlashcardsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
             {error}
@@ -164,15 +112,11 @@ export default function FlashcardsPage() {
           <TabsList>
             <TabsTrigger value="browse" className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
-              Browse
-            </TabsTrigger>
-            <TabsTrigger value="study" className="flex items-center gap-2">
-              <Play className="h-4 w-4" />
-              Study by Course
+              Răsfoiește
             </TabsTrigger>
             <TabsTrigger value="all" className="flex items-center gap-2">
               <Layers className="h-4 w-4" />
-              All Cards
+              Toate Cardurile
             </TabsTrigger>
           </TabsList>
 
@@ -185,71 +129,17 @@ export default function FlashcardsPage() {
             ) : flashcards.length === 0 ? (
               <Card className="p-12 text-center">
                 <Layers className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No flashcards available</h3>
+                <h3 className="text-lg font-medium mb-2">Niciun flashcard disponibil</h3>
                 <p className="text-muted-foreground">
-                  Flashcards will appear here when teachers create them for their courses
+                  Flashcard-urile vor apărea aici când profesorii le vor crea pentru lecții
                 </p>
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {flashcards.slice(0, 12).map((flashcard) => (
-                  <FlashcardItem key={flashcard.id} flashcard={flashcard} showCourse />
+                  <FlashcardItem key={flashcard.id} flashcard={flashcard} />
                 ))}
               </div>
-            )}
-          </TabsContent>
-
-          {/* Study by Course Tab */}
-          <TabsContent value="study" className="space-y-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <select
-                className="flex h-10 w-full sm:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={selectedCourseId || ''}
-                onChange={(e) => setSelectedCourseId(e.target.value)}
-              >
-                <option value="">Select a course</option>
-                {courses.map((course) => (
-                  <option key={course.id} value={course.id}>
-                    {course.title}
-                  </option>
-                ))}
-              </select>
-
-              {courseFlashcards && courseFlashcards.totalCount > 0 && (
-                <Button onClick={handleStudyAll} className="sm:ml-auto">
-                  <Play className="h-4 w-4 mr-2" />
-                  Study All ({courseFlashcards.totalCount})
-                </Button>
-              )}
-            </div>
-
-            {loadingDeck ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : selectedCourseId && courseFlashcards ? (
-              courseFlashcards.totalCount === 0 ? (
-                <Card className="p-12 text-center">
-                  <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No flashcards for this course</h3>
-                  <p className="text-muted-foreground">
-                    This course doesn't have any flashcards yet
-                  </p>
-                </Card>
-              ) : (
-                <FlashcardDeckGrouped
-                  groupedByLesson={courseFlashcards.groupedByLesson}
-                  onStudyDeck={handleStudyDeck}
-                />
-              )
-            ) : (
-              <Card className="p-12 text-center">
-                <Layers className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Select a course</h3>
-                <p className="text-muted-foreground">
-                  Choose a course from the dropdown to see its flashcard decks
-                </p>
-              </Card>
             )}
           </TabsContent>
 
@@ -262,9 +152,9 @@ export default function FlashcardsPage() {
             ) : flashcards.length === 0 ? (
               <Card className="p-12 text-center">
                 <Layers className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No flashcards available</h3>
+                <h3 className="text-lg font-medium mb-2">Niciun flashcard disponibil</h3>
                 <p className="text-muted-foreground">
-                  Flashcards will appear here when teachers create them
+                  Flashcard-urile vor apărea aici când profesorii le vor crea
                 </p>
               </Card>
             ) : (
@@ -275,12 +165,12 @@ export default function FlashcardsPage() {
                     setStudyMode(true);
                   }}>
                     <Play className="h-4 w-4 mr-2" />
-                    Study All ({flashcards.length})
+                    Studiază Toate ({flashcards.length})
                   </Button>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   {flashcards.map((flashcard) => (
-                    <FlashcardItem key={flashcard.id} flashcard={flashcard} showCourse />
+                    <FlashcardItem key={flashcard.id} flashcard={flashcard} />
                   ))}
                 </div>
               </>

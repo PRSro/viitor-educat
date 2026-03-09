@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LessonEditor } from '@/components/LessonEditor';
@@ -9,13 +8,12 @@ import {
   deleteLesson, 
   CreateLessonData,
   UpdateLessonData,
-  Lesson 
 } from '@/modules/lessons/services/lessonService';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LessonEditorPage() {
   const navigate = useNavigate();
-  const { courseId, lessonId } = useParams();
+  const { lessonId } = useParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -29,22 +27,17 @@ export default function LessonEditorPage() {
     mutationFn: async (data: CreateLessonData | UpdateLessonData) => {
       if (lessonId) {
         return updateLesson(lessonId, data);
-      } else if (courseId) {
-        return createLesson({
-          title: (data as CreateLessonData).title,
-          content: (data as CreateLessonData).content,
-          description: (data as CreateLessonData).description,
-          courseId,
-          order: (data as CreateLessonData).order || 0,
-        });
+      } else {
+        return createLesson(data as CreateLessonData);
       }
-      throw new Error('Course ID is required');
     },
-    onSuccess: () => {
+    onSuccess: (savedLesson) => {
       queryClient.invalidateQueries({ queryKey: ['lessons'] });
       queryClient.invalidateQueries({ queryKey: ['lesson', lessonId] });
       if (!lessonId) {
-        navigate(`/courses/${courseId}/lessons`);
+        navigate(`/lessons/${savedLesson.id}`);
+      } else {
+        navigate(`/teacher`);
       }
     },
   });
@@ -53,7 +46,7 @@ export default function LessonEditorPage() {
     mutationFn: () => deleteLesson(lessonId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lessons'] });
-      navigate(`/courses/${courseId}/lessons`);
+      navigate(`/teacher`);
     },
   });
 
@@ -70,11 +63,10 @@ export default function LessonEditorPage() {
 
   return (
     <LessonEditor
-      lesson={lesson}
-      courseId={courseId!}
+      lesson={lesson?.lesson}
       onSave={saveMutation.mutateAsync}
       onDelete={lessonId ? deleteMutation.mutateAsync : undefined}
-      onViewCourse={() => navigate(`/courses/${courseId}`)}
+      onViewLesson={() => lessonId && navigate(`/lessons/${lessonId}`)}
       isLoading={saveMutation.isPending || deleteMutation.isPending}
     />
   );

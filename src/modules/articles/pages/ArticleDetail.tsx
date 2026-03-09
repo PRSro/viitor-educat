@@ -10,7 +10,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SafeHtml } from '@/components/SafeHtml';
 import { 
@@ -22,14 +22,14 @@ import {
   BookOpen
 } from 'lucide-react';
 import { 
-  getArticleBySlug, 
+  getArticle, 
   Article,
   categoryLabels,
   categoryColors
 } from '@/modules/articles/services/articleService';
 
 export default function ArticleDetail() {
-  const { slug } = useParams<{ slug: string }>();
+  const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   
@@ -43,15 +43,15 @@ export default function ArticleDetail() {
       return;
     }
     
-    if (slug) {
-      fetchArticle(slug);
+    if (id) {
+      fetchArticle(id);
     }
-  }, [slug, isAuthenticated, navigate]);
+  }, [id, isAuthenticated, navigate]);
 
-  async function fetchArticle(articleSlug: string) {
+  async function fetchArticle(articleId: string) {
     try {
       setLoading(true);
-      const data = await getArticleBySlug(articleSlug);
+      const data = await getArticle(articleId);
       setArticle(data);
       setError(null);
     } catch (err) {
@@ -96,7 +96,6 @@ export default function ArticleDetail() {
 
   return (
     <>
-      {/* SEO Meta Tags */}
       <Helmet>
         <title>{article.title} | Educational Platform</title>
         <meta name="description" content={metaDescription} />

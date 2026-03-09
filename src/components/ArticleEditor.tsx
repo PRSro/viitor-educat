@@ -20,7 +20,6 @@ import {
   Download,
   Upload as UploadIcon,
   Link,
-  Unlink,
   Bold,
   Italic,
   List,
@@ -31,7 +30,7 @@ import {
   Heading2,
   Heading3
 } from 'lucide-react';
-import { GlassCard, GlowButton } from './ParallaxLayout';
+import { GlassCard } from './ParallaxLayout';
 import { Article, ArticleCategory, CreateArticleData } from '@/modules/articles/services/articleService';
 
 interface ArticleEditorProps {
@@ -62,18 +61,13 @@ export function ArticleEditor({
   const [tagInput, setTagInput] = useState('');
   const [published, setPublished] = useState(article?.published || false);
   const [activeTab, setActiveTab] = useState('edit');
-  const [previewContent, setPreviewContent] = useState('');
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
 
-  // Insert hyperlink at cursor position
   const insertLink = useCallback(() => {
     if (!linkUrl || !linkText) return;
-    
     const linkHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">${linkText}</a>`;
-    
-    // Insert at cursor position or at end
     const textarea = document.querySelector('textarea[name="content"]') as HTMLTextAreaElement;
     if (textarea) {
       const start = textarea.selectionStart;
@@ -84,13 +78,11 @@ export function ArticleEditor({
     } else {
       setContent(content + linkHtml);
     }
-    
     setLinkDialogOpen(false);
     setLinkUrl('');
     setLinkText('');
   }, [linkUrl, linkText, content]);
 
-  // Insert formatting tags
   const insertFormatting = useCallback((before: string, after: string, placeholder: string) => {
     const textarea = document.querySelector('textarea[name="content"]') as HTMLTextAreaElement;
     if (textarea) {
@@ -170,13 +162,6 @@ export function ArticleEditor({
     reader.readAsText(file);
   };
 
-  const generatePreview = () => {
-    const text = content.replace(/<[^>]*>/g, '');
-    const preview = text.slice(0, 300) + (text.length > 300 ? '...' : '');
-    setPreviewContent(preview);
-    setActiveTab('preview');
-  };
-
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl">
       <div className="flex items-center justify-between mb-8">
@@ -185,7 +170,7 @@ export function ArticleEditor({
             {article ? 'Edit Article' : 'Create Article'}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {article ? 'Update your article content' : 'Write a new article for your students'}
+            {article ? 'Update your article content' : 'Write a new standalone article'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -196,7 +181,6 @@ export function ArticleEditor({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Editor */}
         <div className="lg:col-span-2 space-y-6">
           <GlassCard className="p-6">
             <div className="space-y-4">
@@ -237,101 +221,26 @@ export function ArticleEditor({
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="edit" className="mt-4">
-                    {/* Formatting Toolbar */}
                     <div className="flex flex-wrap items-center gap-1 mb-2 p-2 bg-muted/30 rounded-lg">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<strong>', '</strong>', 'bold text')}
-                        title="Bold"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={() => insertFormatting('<strong>', '</strong>', 'bold')} title="Bold">
                         <Bold className="w-4 h-4" />
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<em>', '</em>', 'italic text')}
-                        title="Italic"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={() => insertFormatting('<em>', '</em>', 'italic')} title="Italic">
                         <Italic className="w-4 h-4" />
                       </Button>
                       <div className="w-px h-6 bg-border mx-1" />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<h1>', '</h1>', 'Heading 1')}
-                        title="Heading 1"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={() => insertFormatting('<h1>', '</h1>', 'Heading 1')} title="Heading 1">
                         <Heading1 className="w-4 h-4" />
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<h2>', '</h2>', 'Heading 2')}
-                        title="Heading 2"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={() => insertFormatting('<h2>', '</h2>', 'Heading 2')} title="Heading 2">
                         <Heading2 className="w-4 h-4" />
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<h3>', '</h3>', 'Heading 3')}
-                        title="Heading 3"
-                      >
-                        <Heading3 className="w-4 h-4" />
-                      </Button>
                       <div className="w-px h-6 bg-border mx-1" />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<ul>\n  <li>', '</li>\n</ul>', 'list item')}
-                        title="Bullet List"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={() => insertFormatting('<ul>\n  <li>', '</li>\n</ul>', 'item')} title="Bullet List">
                         <List className="w-4 h-4" />
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<ol>\n  <li>', '</li>\n</ol>', 'list item')}
-                        title="Numbered List"
-                      >
-                        <ListOrdered className="w-4 h-4" />
-                      </Button>
                       <div className="w-px h-6 bg-border mx-1" />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<blockquote>', '</blockquote>', 'quote')}
-                        title="Quote"
-                      >
-                        <Quote className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertFormatting('<code>', '</code>', 'code')}
-                        title="Code"
-                      >
-                        <Code className="w-4 h-4" />
-                      </Button>
-                      <div className="w-px h-6 bg-border mx-1" />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setLinkDialogOpen(true)}
-                        title="Insert Link"
-                        className="text-blue-600"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setLinkDialogOpen(true)} title="Insert Link" className="text-blue-600">
                         <Link className="w-4 h-4" />
                       </Button>
                     </div>
@@ -340,16 +249,7 @@ export function ArticleEditor({
                       name="content"
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
-                      placeholder={`Write your article content here...
-
-You can use HTML tags for formatting:
-- <strong>bold</strong>
-- <em>italic</em>
-- <h1>Headings</h1>
-- <a href="https://example.com">links</a>
-- <ul><li>lists</li></ul>
-
-Use the toolbar above for quick formatting!`}
+                      placeholder="Write your article content here..."
                       className="aero-input min-h-[400px] font-mono"
                     />
                   </TabsContent>
@@ -357,10 +257,7 @@ Use the toolbar above for quick formatting!`}
                     <div className="prose prose-green dark:prose-invert max-w-none p-4 rounded-lg bg-muted/30 min-h-[400px]">
                       <h2 className="text-xl font-bold">{title}</h2>
                       {excerpt && <p className="text-muted-foreground italic mt-2">{excerpt}</p>}
-                      <div 
-                        className="mt-4"
-                        dangerouslySetInnerHTML={{ __html: content }}
-                      />
+                      <div className="mt-4" dangerouslySetInnerHTML={{ __html: content }} />
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -369,62 +266,35 @@ Use the toolbar above for quick formatting!`}
           </GlassCard>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Actions */}
           <GlassCard className="p-6">
             <h3 className="font-semibold mb-4">Actions</h3>
             <div className="space-y-3">
-              <Button 
-                onClick={() => handleSave(true)} 
-                disabled={isLoading || !title || !content}
-                className="w-full aero-button-accent"
-              >
+              <Button onClick={() => handleSave(true)} disabled={isLoading || !title || !content} className="w-full aero-button-accent">
                 <Save className="w-4 h-4 mr-2" />
                 Save Draft
               </Button>
-              
               {onPublish && (
-                <Button 
-                  onClick={() => handleSave(false)} 
-                  disabled={isLoading || !title || !content}
-                  variant="outline"
-                  className="w-full"
-                >
+                <Button onClick={() => handleSave(false)} disabled={isLoading || !title || !content} variant="outline" className="w-full">
                   <Upload className="w-4 h-4 mr-2" />
                   {published ? 'Update Published' : 'Publish'}
                 </Button>
               )}
-
-              <div className="relative">
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImport}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <Button variant="outline" className="w-full">
-                  <UploadIcon className="w-4 h-4 mr-2" />
-                  Import Draft
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input type="file" accept=".json" onChange={handleImport} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <Button variant="outline" className="w-full">
+                    <UploadIcon className="w-4 h-4 mr-2" />
+                    Import
+                  </Button>
+                </div>
+                <Button variant="outline" onClick={handleExport} disabled={!title} className="flex-1">
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
                 </Button>
               </div>
-
-              <Button 
-                variant="outline" 
-                onClick={handleExport}
-                disabled={!title}
-                className="w-full"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export Draft
-              </Button>
-
               {article && onDelete && (
-                <Button 
-                  variant="destructive" 
-                  onClick={onDelete}
-                  className="w-full"
-                >
+                <Button variant="destructive" onClick={onDelete} className="w-full">
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Article
                 </Button>
@@ -432,7 +302,6 @@ Use the toolbar above for quick formatting!`}
             </div>
           </GlassCard>
 
-          {/* Settings */}
           <GlassCard className="p-6">
             <h3 className="font-semibold mb-4">Settings</h3>
             <div className="space-y-4">
@@ -444,9 +313,7 @@ Use the toolbar above for quick formatting!`}
                   </SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat.replace('_', ' ')}
-                      </SelectItem>
+                      <SelectItem key={cat} value={cat}>{cat.replace('_', ' ')}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -456,38 +323,19 @@ Use the toolbar above for quick formatting!`}
                 <Label>Tags</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {tags.map((tag) => (
-                    <Badge 
-                      key={tag} 
-                      variant="secondary"
-                      className="cursor-pointer"
-                      onClick={() => handleRemoveTag(tag)}
-                    >
-                      {tag} ×
-                    </Badge>
+                    <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => handleRemoveTag(tag)}>{tag} ×</Badge>
                   ))}
                 </div>
                 <div className="flex gap-2 mt-2">
-                  <Input
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                    placeholder="Add a tag"
-                    className="aero-input"
-                  />
-                  <Button variant="outline" size="icon" onClick={handleAddTag}>
-                    <Plus className="w-4 h-4" />
-                  </Button>
+                  <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())} placeholder="Add tag..." className="aero-input" />
+                  <Button variant="outline" size="icon" onClick={handleAddTag}><Plus className="w-4 h-4" /></Button>
                 </div>
               </div>
 
               {onPublish && (
                 <div className="flex items-center justify-between">
                   <Label htmlFor="published">Published</Label>
-                  <Switch
-                    id="published"
-                    checked={published}
-                    onCheckedChange={setPublished}
-                  />
+                  <Switch id="published" checked={published} onCheckedChange={setPublished} />
                 </div>
               )}
             </div>
@@ -495,57 +343,24 @@ Use the toolbar above for quick formatting!`}
         </div>
       </div>
 
-      {/* Link Insertion Dialog */}
       <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Insert Hyperlink</DialogTitle>
-            <DialogDescription>
-              Add a clickable link to your article
-            </DialogDescription>
+            <DialogTitle>Insert Link</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="linkText">Link Text</Label>
-              <Input
-                id="linkText"
-                value={linkText}
-                onChange={(e) => setLinkText(e.target.value)}
-                placeholder="Text to display"
-                className="mt-1"
-              />
+              <Label htmlFor="linkText">Text</Label>
+              <Input id="linkText" value={linkText} onChange={(e) => setLinkText(e.target.value)} placeholder="Display text" />
             </div>
             <div>
               <Label htmlFor="linkUrl">URL</Label>
-              <Input
-                id="linkUrl"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-                placeholder="https://example.com or /courses/my-course"
-                className="mt-1"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Use full URLs (https://...) for external links or /path for internal links
-              </p>
+              <Input id="linkUrl" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." />
             </div>
-            {/* Preview */}
-            {linkText && linkUrl && (
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">Preview:</p>
-                <a href={linkUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">
-                  {linkText}
-                </a>
-              </div>
-            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={insertLink} disabled={!linkText || !linkUrl}>
-              <Link className="w-4 h-4 mr-2" />
-              Insert Link
-            </Button>
+            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
+            <Button onClick={insertLink} disabled={!linkText || !linkUrl}>Insert</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

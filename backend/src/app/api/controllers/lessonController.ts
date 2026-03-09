@@ -10,7 +10,6 @@ function getCurrentUser(request: FastifyRequest): JwtPayload {
 }
 
 const createLessonSchema = z.object({
-  courseId: z.string().min(1).optional(),
   title: z.string().trim().min(1, 'Title is required').max(200),
   description: z.string().trim().max(500).optional(),
   content: z.string().trim().min(1, 'Content is required').max(50000),
@@ -34,26 +33,19 @@ export const lessonController = {
   async getAll(request: FastifyRequest, reply: FastifyReply) {
     const lessons = await prisma.lesson.findMany({
       where: {
-        status: 'PUBLIC',
-        OR: [
-          { courseId: null },
-          { course: { published: true } }
-        ]
+        status: 'PUBLIC'
       },
       select: {
         id: true,
-        slug: true,
         title: true,
         description: true,
         content: true,
         status: true,
         order: true,
-        courseId: true,
         teacherId: true,
         createdAt: true,
         updatedAt: true,
-        teacher: { select: { id: true, email: true } },
-        course: { select: { id: true, title: true, slug: true, published: true } }
+        teacher: { select: { id: true, email: true } }
       },
       orderBy: { createdAt: 'desc' },
       take: 20
@@ -69,29 +61,17 @@ export const lessonController = {
     if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
 
     const isPublic = lesson.status === 'PUBLIC';
-    const coursePublished = lesson.course?.published;
 
-    if (!coursePublished && !isPublic) {
+    if (!isPublic) {
       try {
         const currentUser = getCurrentUser(request);
         const isTeacher = lesson.teacherId === currentUser.id;
 
         if (!isTeacher && currentUser.role !== 'ADMIN') {
-          if (lesson.course) {
-            const enrollment = await prisma.enrollment.findUnique({
-              where: { studentId_courseId: { studentId: currentUser.id, courseId: lesson.course.id } }
-            });
-            if (!enrollment) {
-              return reply.status(403).send({ error: 'Enrollment required' });
-            }
-          } else if (!isPublic) {
-            return reply.status(403).send({ error: 'Lesson not public' });
-          }
+          return reply.status(403).send({ error: 'Lesson not public' });
         }
       } catch {
-        if (!coursePublished || !isPublic) {
-          return reply.status(404).send({ error: 'Lesson not found' });
-        }
+        return reply.status(404).send({ error: 'Lesson not found' });
       }
     }
 
@@ -104,17 +84,13 @@ export const lessonController = {
 
     if (teacherId !== currentUser.id && currentUser.role !== 'ADMIN') {
       const publicLessons = await prisma.lesson.findMany({
-        where: { teacherId, status: 'PUBLIC', course: { published: true } },
-        include: { course: { select: { id: true, title: true } } }
+        where: { teacherId, status: 'PUBLIC' }
       });
       return { lessons: publicLessons };
     }
 
     const lessons = await prisma.lesson.findMany({
       where: { teacherId },
-      include: {
-        course: { select: { id: true, title: true, published: true } }
-      },
       orderBy: { createdAt: 'desc' }
     });
     return { lessons };
@@ -124,15 +100,9 @@ export const lessonController = {
     const { id } = request.params;
     const user = getCurrentUser(request);
 
-    const lesson = await prisma.lesson.findFirst({
-      where: {
-        OR: [
-          { slug: id },
-          { id: id }
-        ]
-      },
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: id },
       include: {
-        course: { select: { id: true, title: true, slug: true, published: true, teacherId: true } },
         teacher: { select: { id: true, email: true, teacherProfile: true } },
         externalResources: true,
         flashcards: true,
@@ -144,35 +114,13 @@ export const lessonController = {
 
     const isTeacher = lesson.teacherId === user.id || user.role === 'ADMIN';
 
-    if (!isTeacher && lesson.courseId) {
-      const enrollment = await prisma.enrollment.findUnique({
-        where: { studentId_courseId: { studentId: user.id, courseId: lesson.courseId } }
-      });
-      if (!enrollment || enrollment.status !== 'ACTIVE') {
-        return reply.status(403).send({
-          error: 'Enrollment required',
-          message: 'You must be enrolled in this course to view this lesson',
-          courseSlug: lesson.course?.slug
-        });
-      }
-
-      await prisma.enrollment.update({
-        where: { studentId_courseId: { studentId: user.id, courseId: lesson.courseId } },
-        data: { lastAccessedLessonId: lesson.id }
-      });
+    if (!isTeacher && lesson.status !== 'PUBLIC') {
+        return reply.status(403).send({ error: 'Lesson not public' });
     }
 
     const progress = await prisma.lessonCompletion.findUnique({
       where: { lessonId_studentId: { lessonId: lesson.id, studentId: user.id } }
     });
-
-    const siblings = lesson.courseId ? await prisma.lesson.findMany({
-      where: { courseId: lesson.courseId },
-      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-      select: { id: true, slug: true, title: true, order: true }
-    }) : [];
-
-    const idx = siblings.findIndex(l => l.id === lesson.id);
 
     return {
       lesson,
@@ -180,8 +128,8 @@ export const lessonController = {
       completedAt: progress?.completedAt ?? null,
       enrollmentProgress: null,
       navigation: {
-        previousLesson: siblings[idx - 1] ?? null,
-        nextLesson: siblings[idx + 1] ?? null,
+        previousLesson: null,
+        nextLesson: null,
       }
     };
   },
@@ -190,8 +138,8 @@ export const lessonController = {
     const { id } = request.params;
     const user = getCurrentUser(request);
 
-    const lesson = await prisma.lesson.findFirst({
-      where: { OR: [{ slug: id }, { id }] }
+    const lesson = await prisma.lesson.findUnique({
+      where: { id }
     });
     if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
 
@@ -201,37 +149,10 @@ export const lessonController = {
       create: { lessonId: lesson.id, studentId: user.id, completedAt: new Date() }
     });
 
-    if (lesson.courseId) {
-      const [totalLessons, completedCount] = await Promise.all([
-        prisma.lesson.count({ where: { courseId: lesson.courseId } }),
-        prisma.lessonCompletion.count({
-          where: { studentId: user.id, lesson: { courseId: lesson.courseId } }
-        })
-      ]);
-      const progress = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
-      await prisma.enrollment.updateMany({
-        where: { studentId: user.id, courseId: lesson.courseId },
-        data: {
-          completedLessonsCount: completedCount,
-          progress,
-          status: progress === 100 ? 'COMPLETED' : 'ACTIVE'
-        }
-      });
-    }
-
-    const siblings = lesson.courseId ? await prisma.lesson.findMany({
-      where: { courseId: lesson.courseId },
-      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-      select: { id: true, slug: true, title: true, order: true }
-    }) : [];
-
-    const idx = siblings.findIndex(l => l.id === lesson.id);
-
     return {
       lessonId: lesson.id,
-      lessonSlug: lesson.slug,
       completed: true,
-      nextLesson: siblings[idx + 1] ?? null,
+      nextLesson: null,
     };
   },
 
@@ -240,20 +161,12 @@ export const lessonController = {
       const validated = createLessonSchema.parse(request.body);
       const teacherId = getCurrentUser(request).id;
 
-      if (validated.courseId) {
-        const course = await prisma.course.findUnique({ where: { id: validated.courseId } });
-        if (!course) return reply.status(404).send({ error: 'Course not found' });
-        if (course.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
-          return reply.status(403).send({ error: 'Forbidden: You do not own this course' });
-        }
-      }
-
       const lesson = await lessonService.createLesson(teacherId, {
         title: validated.title,
         content: validated.content,
         description: validated.description,
         order: validated.order,
-        courseId: validated.courseId
+        status: validated.status
       });
 
       return reply.status(201).send({ message: 'Lesson created', lesson });
@@ -294,8 +207,8 @@ export const lessonController = {
     const user = getCurrentUser(request);
 
     // Ensure lesson exists
-    const lesson = await prisma.lesson.findFirst({
-        where: { OR: [{ slug: lessonId }, { id: lessonId }] }
+    const lesson = await prisma.lesson.findUnique({
+        where: { id: lessonId }
     });
     if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
 
@@ -309,7 +222,7 @@ export const lessonController = {
 
     // Upsert response
     const response = await prisma.lessonResponse.upsert({
-        where: { id: `${user.id}_${questionId}` }, // Custom composite-like ID or we could add a unique constraint
+        where: { id: `${user.id}_${questionId}` },
         create: {
             id: `${user.id}_${questionId}`,
             userId: user.id,

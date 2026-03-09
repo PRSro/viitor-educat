@@ -2,9 +2,9 @@
  * Enhanced Student Dashboard
  * 
  * Features:
- * - Enrolled courses with progress tracking
- * - Browse all available courses
  * - Articles section with category filtering and search
+ * - Standalone lessons browsing
+ * - Saved content (bookmarks)
  * - Responsive design with tabs navigation
  */
 
@@ -39,20 +39,10 @@ import {
   Loader2,
   Users,
   Settings,
-  Layers,
-  Link as LinkIcon,
   Bookmark as BookmarkIcon,
   Trash2
 } from 'lucide-react';
-import {
-  getCourses,
-  enrollInCourse,
-  Course,
-  CoursePreview,
-  EnrolledCourseItem
-} from '@/modules/courses/services/courseService';
-import { CourseCard } from '@/modules/courses/components/CourseCard';
-import { getStudentCourses, getStudentProgress, CourseWithProgress } from '@/modules/core/services/studentService';
+import { getStudentProgress } from '@/modules/core/services/studentService';
 import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
 import { getLessons, Lesson } from '@/modules/lessons/services/lessonService';
 import {
@@ -63,36 +53,23 @@ import {
   categoryLabels,
   categoryColors
 } from '@/modules/articles/services/articleService';
-import { getBookmarks, deleteBookmarkByResource, Bookmark, BookmarkResponse } from '@/modules/core/services/bookmarkService';
+import { getBookmarks, deleteBookmarkByResource, Bookmark } from '@/modules/core/services/bookmarkService';
 
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
-  const { settings, theme, isSettingsLoaded } = useSettings();
+  const { theme } = useSettings();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const activeTab = searchParams.get('tab') || 'progress';
+  const activeTab = searchParams.get('tab') || 'lessons';
 
-  // Feature toggles from settings
+  // Feature toggles
   const showArticles = useFeatureEnabled('showArticles');
-  const showFlashcards = useFeatureEnabled('showFlashcards');
-  const showResources = useFeatureEnabled('showResources');
 
-  // Courses state
-  const [enrolledCourses, setEnrolledCourses] = useState<CourseWithProgress[]>([]);
-  const [studentProgress, setStudentProgress] = useState<{
-    totalEnrolled: number;
-    totalCompleted: number;
-    totalInProgress: number;
-    percentComplete: number;
-  } | null>(null);
-  const [allCourses, setAllCourses] = useState<CoursePreview[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
-  const [enrollingId, setEnrollingId] = useState<string | null>(null);
-
-  // Course search/filter state
-  const [courseSearch, setCourseSearch] = useState('');
-  const [teacherFilter, setTeacherFilter] = useState<string>('ALL');
+  // Lessons state
+  const [allLessons, setAllLessons] = useState<Lesson[]>([]);
+  const [loadingLessons, setLoadingLessons] = useState(true);
+  const [lessonSearch, setLessonSearch] = useState('');
 
   // Articles state
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
@@ -102,11 +79,8 @@ export default function StudentDashboard() {
   const [articlePage, setArticlePage] = useState(1);
   const [articleTotalPages, setArticleTotalPages] = useState(1);
 
-  // Teachers state
-  const [teacherList, setTeacherList] = useState<TeacherWithProfile[]>([]);
-  const [loadingTeachers, setLoadingTeachers] = useState(false);
-  const [allLessons, setAllLessons] = useState<Lesson[]>([]);
-  const [loadingLessons, setLoadingLessons] = useState(false);
+  // Stats state
+  const [progress, setProgress] = useState<{ totalCompleted: number; percentComplete: number } | null>(null);
 
   // Bookmarks state
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -118,21 +92,51 @@ export default function StudentDashboard() {
     setSearchParams({ tab });
   };
 
-  // Fetch bookmarks
   useEffect(() => {
-    async function fetchBookmarks() {
+    async function fetchData() {
       try {
-        setLoadingBookmarks(true);
-        const data = await getBookmarks();
-        setBookmarks(data.bookmarks);
+        setLoadingLessons(true);
+        const [lessonsData, progressData, bookmarksData] = await Promise.all([
+          getLessons(),
+          getStudentProgress().catch(() => null),
+          getBookmarks().catch(() => ({ bookmarks: [] }))
+        ]);
+        setAllLessons(lessonsData);
+        setProgress(progressData);
+        setBookmarks(bookmarksData.bookmarks);
       } catch (err) {
-        console.error('Failed to fetch bookmarks:', err);
+        setError('Failed to load dashboard data');
       } finally {
-        setLoadingBookmarks(false);
+        setLoadingLessons(false);
       }
     }
-    fetchBookmarks();
+    fetchData();
   }, []);
+
+  useEffect(() => {
+    async function fetchArticles() {
+      try {
+        setLoadingArticles(true);
+        const filters: ArticleFilters = {
+          page: articlePage,
+          limit: 9,
+          category: articleCategory !== 'ALL' ? articleCategory : undefined,
+          search: articleSearch.trim() || undefined
+        };
+
+        const response = await getArticles(filters);
+        setArticles(response?.articles ?? []);
+        setArticleTotalPages(response?.pagination?.totalPages ?? 1);
+      } catch (err) {
+        console.error('Failed to fetch articles:', err);
+      } finally {
+        setLoadingArticles(false);
+      }
+    }
+
+    const timer = setTimeout(fetchArticles, 300);
+    return () => clearTimeout(timer);
+  }, [articleSearch, articleCategory, articlePage]);
 
   async function handleRemoveBookmark(resourceType: string, resourceId: string) {
     try {
@@ -143,166 +147,14 @@ export default function StudentDashboard() {
     }
   }
 
-  useEffect(() => {
-    async function fetchCourses() {
-      try {
-        setLoadingCourses(true);
-        setLoadingLessons(true);
-        const [enrolled, progress, all, lessonsData] = await Promise.all([
-          getStudentCourses(),
-          getStudentProgress(),
-          getCourses(),
-          getLessons()
-        ]);
-        setEnrolledCourses(enrolled);
-        setStudentProgress(progress);
-        setAllCourses(all);
-        setAllLessons(lessonsData);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
-      } finally {
-        setLoadingCourses(false);
-        setLoadingLessons(false);
-      }
-    }
-    fetchCourses();
-  }, []);
-
-  // Fetch teachers
-  useEffect(() => {
-    async function fetchTeachers() {
-      try {
-        setLoadingTeachers(true);
-        const data = await getAllTeachers();
-        setTeacherList(data);
-      } catch (err) {
-        console.error('Failed to fetch teachers:', err);
-      } finally {
-        setLoadingTeachers(false);
-      }
-    }
-    fetchTeachers();
-  }, []);
-
-  // Fetch articles with debounced search
-  useEffect(() => {
-    async function fetchArticles() {
-      try {
-        setLoadingArticles(true);
-        const filters: ArticleFilters = {
-          page: articlePage,
-          limit: 9,
-        };
-        if (articleCategory !== 'ALL') {
-          filters.category = articleCategory;
-        }
-        if (articleSearch.trim()) {
-          filters.search = articleSearch.trim();
-        }
-
-        const response = await getArticles(filters);
-        setArticles(response?.articles ?? []);
-        setArticleTotalPages(response?.pagination?.totalPages ?? 1);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch articles');
-      } finally {
-        setLoadingArticles(false);
-      }
-    }
-
-    const timer = setTimeout(() => {
-      fetchArticles();
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [articleSearch, articleCategory, articlePage]);
-
-  async function handleEnroll(courseId: string) {
-    try {
-      setEnrollingId(courseId);
-      await enrollInCourse(courseId);
-      // Find the course slug to navigate to it
-      const course = allCourses.find(c => c.id === courseId);
-      if (course?.slug) {
-        navigate(`/courses/${course.slug}`);
-        return;
-      }
-      // Fallback: refresh lists in place
-      const [enrolled, progress, all] = await Promise.all([
-        getStudentCourses(),
-        getStudentProgress(),
-        getCourses()
-      ]);
-      setEnrolledCourses(enrolled);
-      setStudentProgress(progress);
-      setAllCourses(all);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to enroll');
-    } finally {
-      setEnrollingId(null);
-    }
-  }
-
-  // Filter out already enrolled courses from browse list
-  const enrolledCourseIds = useMemo(() =>
-    new Set(enrolledCourses.map(e => e.course.id)),
-    [enrolledCourses]
-  );
-
-  // Categorize enrolled courses
-  const inProgressCourses = useMemo(() =>
-    enrolledCourses.filter(e => e.progress > 0 && e.progress < 100),
-    [enrolledCourses]
-  );
-
-  const completedCourses = useMemo(() =>
-    enrolledCourses.filter(e => e.progress === 100),
-    [enrolledCourses]
-  );
-
-  // Recommended courses - published courses not enrolled in (limit 3)
-  const recommendedCourses = useMemo(() => {
-    return allCourses
-      .filter(c => c.published && !enrolledCourseIds.has(c.id))
-      .slice(0, 3);
-  }, [allCourses, enrolledCourseIds]);
-
-  const availableCourses = useMemo(() => {
-    let courses = allCourses.filter(c => !enrolledCourseIds.has(c.id));
-
-    if (courseSearch.trim()) {
-      const search = courseSearch.toLowerCase();
-      courses = courses.filter(c =>
-        c.title.toLowerCase().includes(search) ||
-        c.shortDescription?.toLowerCase().includes(search)
-      );
-    }
-
-    if (teacherFilter !== 'ALL') {
-      courses = courses.filter(c => c.teacherId === teacherFilter);
-    }
-
-    return courses;
-  }, [allCourses, enrolledCourseIds, courseSearch, teacherFilter]);
-
-  // Get unique teachers for filter dropdown
-  const teachers = useMemo(() => {
-    const teacherMap = new Map<string, { id: string; email: string; name: string }>();
-    allCourses.forEach(course => {
-      const teacherId = course.teacherId || course.teacher?.id;
-      if (teacherId && !teacherMap.has(teacherId)) {
-        teacherMap.set(teacherId, {
-          id: teacherId,
-          email: course.teacher?.email ?? '',
-          name: course.teacherName || course.teacher?.teacherProfile?.bio
-            ? (course.teacherName || course.teacher?.teacherProfile?.bio || '').substring(0, 30)
-            : (course.teacher?.email?.split('@')[0] ?? 'Teacher')
-        });
-      }
-    });
-    return Array.from(teacherMap.values());
-  }, [allCourses]);
+  const filteredLessons = useMemo(() => {
+    if (!lessonSearch) return allLessons;
+    const s = lessonSearch.toLowerCase();
+    return allLessons.filter(l => 
+      l.title.toLowerCase().includes(s) || 
+      l.description?.toLowerCase().includes(s)
+    );
+  }, [allLessons, lessonSearch]);
 
   const categories: (ArticleCategory | 'ALL')[] = [
     'ALL', 'MATH', 'SCIENCE', 'LITERATURE', 'HISTORY',
@@ -317,33 +169,22 @@ export default function StudentDashboard() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-sky-400/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Header */}
       <header className="border-b aero-panel sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-sm border border-primary/20">
+              <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
                 <GraduationCap className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-                  Student Dashboard
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {user?.email}
-                </p>
+                <h1 className="text-xl font-bold">Student Dashboard</h1>
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell />
               <Link to="/">
-                <Button variant="ghost" size="sm" className="hover:bg-primary/10">Home</Button>
-              </Link>
-              <Link to="/teachers">
-                <Button variant="ghost" size="sm" className="hover:bg-primary/10">
-                  <Users className="h-4 w-4 mr-2" />
-                  Teachers
-                </Button>
+                <Button variant="ghost" size="sm">Home</Button>
               </Link>
               <Link to="/profile">
                 <Button variant="outline" size="sm" className="aero-button">
@@ -357,7 +198,7 @@ export default function StudentDashboard() {
                   Settings
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={logout} className="hover:bg-destructive/10 hover:text-destructive">
+              <Button variant="outline" size="sm" onClick={logout} className="hover:bg-destructive/10">
                 Logout
               </Button>
             </div>
@@ -367,435 +208,91 @@ export default function StudentDashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {error && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive backdrop-blur-sm">
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
             {error}
           </div>
         )}
 
-        <Tabs defaultValue={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 aero-glass p-1 h-auto">
-            <TabsTrigger value="progress" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+        {/* Learning Progress Summary */}
+        {progress && (
+          <Card className="mb-8 aero-glass border-none shadow-sm">
+            <CardContent className="pt-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-2">Your Learning Progress</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Progress value={progress.percentComplete} className="h-2" />
+                    </div>
+                    <span className="text-sm font-medium">{progress.percentComplete}%</span>
+                  </div>
+                </div>
+                <div className="flex gap-8">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">Completions</p>
+                    <p className="text-2xl font-bold">{progress.totalCompleted}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 aero-glass p-1 max-w-md">
+            <TabsTrigger value="lessons" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              Progress
+              Lessons
             </TabsTrigger>
-            <TabsTrigger value="study-feed" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
-              <GraduationCap className="h-4 w-4" />
-              Study Feed
-            </TabsTrigger>
-            <TabsTrigger value="browse" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
-              <Search className="h-4 w-4" />
-              Browse
-            </TabsTrigger>
-            <TabsTrigger value="teachers" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
-              <Users className="h-4 w-4" />
-              Teachers
-            </TabsTrigger>
-            <TabsTrigger value="articles" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+            <TabsTrigger value="articles" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Articles
             </TabsTrigger>
-            <TabsTrigger value="bookmarks" className="flex items-center gap-2 data-[state=active]:bg-primary/20">
+            <TabsTrigger value="bookmarks" className="flex items-center gap-2">
               <BookmarkIcon className="h-4 w-4" />
               Saved
             </TabsTrigger>
           </TabsList>
 
-          {/* Progress Tab */}
-          <TabsContent value="progress" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">My Enrolled Courses</h2>
-              <p className="text-muted-foreground">Track your learning progress</p>
+          <TabsContent value="lessons" className="space-y-6">
+            <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold mb-1">Explore Lessons</h2>
+                <p className="text-muted-foreground">Master subjects through interactive lessons</p>
+              </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search lessons..."
+                  value={lessonSearch}
+                  onChange={(e) => setLessonSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
 
-            {loadingCourses ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            {loadingLessons ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : enrolledCourses.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed rounded-xl">
+            ) : filteredLessons.length === 0 ? (
+              <Card className="p-12 text-center bg-muted/30">
                 <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No courses yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Browse our catalog and enroll in your first course
-                </p>
-                <Button asChild>
-                  <Link to="/courses">Browse Courses</Link>
-                </Button>
-              </div>
-            ) : (
-              <>
-                {/* Continue Learning Section - In Progress */}
-                {inProgressCourses.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
-                      <BookOpen className="h-5 w-5" />
-                      Continue Learning
-                    </h3>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {inProgressCourses.map((enrollment) => (
-                        <CourseCard
-                          key={enrollment.id}
-                          course={enrollment.course as unknown as CoursePreview}
-                          progress={enrollment.progress}
-                          showProgress
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Completed Section - 100% */}
-                {completedCourses.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
-                      <GraduationCap className="h-5 w-5" />
-                      Completed
-                    </h3>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {completedCourses.map((enrollment) => (
-                        <CourseCard
-                          key={enrollment.id}
-                          course={enrollment.course as unknown as CoursePreview}
-                          progress={enrollment.progress}
-                          showProgress
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Recommended Section - Not Enrolled */}
-                {recommendedCourses.length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-semibold flex items-center gap-2">
-                      <Layers className="h-5 w-5" />
-                      Recommended for You
-                    </h3>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {recommendedCourses.map((course) => (
-                        <CourseCard
-                          key={course.id}
-                          course={course as unknown as CoursePreview}
-                          onEnroll={() => handleEnroll(course.id)}
-                          enrolling={enrollingId === course.id}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </TabsContent>
-
-          {/* Browse Courses Tab */}
-          <TabsContent value="browse" className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-semibold mb-2">Explore All Content</h2>
-                <p className="text-muted-foreground">Discover new courses and lessons</p>
-              </div>
-
-              <Tabs defaultValue="all-content" className="w-full md:w-auto">
-                <TabsList className="aero-glass p-1">
-                  <TabsTrigger value="all-content">All Content</TabsTrigger>
-                  <TabsTrigger value="courses">Courses Only</TabsTrigger>
-                  <TabsTrigger value="lessons">Lessons Only</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-
-            {/* Search/Filter UI remains as is - combined for both */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search courses or lessons..."
-                  value={courseSearch}
-                  onChange={(e) => setCourseSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select
-                value={teacherFilter}
-                onValueChange={setTeacherFilter}
-              >
-                <SelectTrigger className="w-full sm:w-56">
-                  <Users className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="All Teachers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Teachers</SelectItem>
-                  {teachers.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {(courseSearch || teacherFilter !== 'ALL') && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setCourseSearch('');
-                    setTeacherFilter('ALL');
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-
-            {loadingCourses || loadingLessons ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="space-y-10">
-                {/* Courses Section */}
-                {availableCourses.length > 0 && (
-                  <section>
-                    <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                      <GraduationCap className="h-5 w-5 text-primary" />
-                      Available Courses ({availableCourses.length})
-                    </h3>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {availableCourses.map((course) => (
-                        <CourseCard
-                          key={course.id}
-                          course={course}
-                          onEnroll={() => handleEnroll(course.id)}
-                          enrolling={enrollingId === course.id}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {/* Lessons Section */}
-                <section>
-                  <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                    Latest Lessons
-                  </h3>
-                  {allLessons.length === 0 ? (
-                    <Card className="p-8 text-center bg-muted/30">
-                      <p className="text-muted-foreground">No standalone lessons found.</p>
-                    </Card>
-                  ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {allLessons
-                        .filter(l => {
-                          if (!courseSearch) return true;
-                          const s = courseSearch.toLowerCase();
-                          return l.title.toLowerCase().includes(s) || l.description?.toLowerCase().includes(s);
-                        })
-                        .slice(0, 12)
-                        .map((lesson) => (
-                          <Card key={lesson.id} className="aero-glass hover:shadow-aero transition-all group">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between items-start">
-                                <Badge variant="outline" className="mb-2">Lesson</Badge>
-                                {lesson.course && (
-                                  <Badge variant="secondary" className="text-[10px]">{lesson.course.title}</Badge>
-                                )}
-                              </div>
-                              <CardTitle className="text-base line-clamp-1 group-hover:text-primary transition-colors">
-                                {lesson.title}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pb-3">
-                              <p className="text-xs text-muted-foreground line-clamp-2">
-                                {lesson.description || 'No description available for this lesson.'}
-                              </p>
-                            </CardContent>
-                            <CardFooter>
-                              <Button asChild variant="ghost" size="sm" className="w-full justify-between">
-                                <Link to={`/lessons/${lesson.slug}`}>
-                                  View Lesson
-                                  <ExternalLink className="h-3 w-3" />
-                                </Link>
-                              </Button>
-                            </CardFooter>
-                          </Card>
-                        ))}
-                    </div>
-                  )}
-                </section>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Articles Tab */}
-          <TabsContent value="articles" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Educational Articles</h2>
-              <p className="text-muted-foreground">Explore learning resources by category</p>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search articles..."
-                  value={articleSearch}
-                  onChange={(e) => {
-                    setArticleSearch(e.target.value);
-                    setArticlePage(1);
-                  }}
-                  className="pl-10"
-                />
-              </div>
-              <Select
-                value={articleCategory}
-                onValueChange={(v) => {
-                  setArticleCategory(v as ArticleCategory | 'ALL');
-                  setArticlePage(1);
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-48">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat === 'ALL' ? 'All Categories' : categoryLabels[cat]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {loadingArticles ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : articles.length === 0 ? (
-              <Card className="p-12 text-center">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No articles found</h3>
-                <p className="text-muted-foreground">
-                  {articleSearch || articleCategory !== 'ALL'
-                    ? 'Try adjusting your search or filters'
-                    : 'Check back later for new content'}
-                </p>
-              </Card>
-            ) : (
-              <>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {articles.map((article) => (
-                    <ArticleCard key={article.id} article={article} />
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                {articleTotalPages > 1 && (
-                  <div className="flex justify-center gap-2 pt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={articlePage === 1}
-                      onClick={() => setArticlePage(p => p - 1)}
-                    >
-                      Previous
-                    </Button>
-                    <span className="flex items-center px-4 text-sm text-muted-foreground">
-                      Page {articlePage} of {articleTotalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={articlePage === articleTotalPages}
-                      onClick={() => setArticlePage(p => p + 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </TabsContent>
-
-          {/* Teachers Tab */}
-          <TabsContent value="teachers" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-semibold mb-2">Browse Teachers</h2>
-                <p className="text-muted-foreground">Discover educators and their courses</p>
-              </div>
-            </div>
-
-            {loadingTeachers ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : teacherList.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No teachers found</h3>
-                <p className="text-muted-foreground">
-                  Check back later for available educators.
-                </p>
+                <h3 className="text-lg font-medium">No lessons found</h3>
+                <p className="text-muted-foreground">Try a different search term</p>
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {teacherList.map((teacher) => (
-                  <Card key={teacher.id} className="aero-glass hover:shadow-aero-strong transition-all">
+                {filteredLessons.map((lesson) => (
+                  <Card key={lesson.id} className="aero-glass group hover:shadow-lg transition-all">
                     <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-                          {teacher.teacherProfile?.pictureUrl ? (
-                            <img
-                              src={teacher.teacherProfile.pictureUrl}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <User className="h-6 w-6 text-primary" />
-                          )}
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">
-                            {teacher.teacherProfile?.bio
-                              ? teacher.teacherProfile.bio.substring(0, 30) + (teacher.teacherProfile.bio.length > 30 ? '...' : '')
-                              : (teacher?.email?.split('@')[0] ?? 'Teacher')}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground">{teacher?.email}</p>
-                        </div>
-                      </div>
+                      <Badge variant="outline" className="w-fit mb-2">Lesson</Badge>
+                      <CardTitle className="group-hover:text-primary transition-colors line-clamp-1">{lesson.title}</CardTitle>
+                      <CardDescription className="line-clamp-2">{lesson.description || 'Interactive educational content.'}</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      {teacher.courses && teacher.courses.length > 0 ? (
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium">{teacher.courses.length} Course(s)</p>
-                          {teacher.courses.slice(0, 2).map((course) => (
-                            <Link
-                              key={course.id}
-                              to={`/courses/${course.slug}`}
-                              className="block p-2 rounded bg-muted/50 hover:bg-muted transition-colors"
-                            >
-                              <p className="font-medium text-sm truncate">{course.title}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {course._count?.lessons || 0} lessons · {course._count?.enrollments || 0} students
-                              </p>
-                            </Link>
-                          ))}
-                          {teacher.courses.length > 2 && (
-                            <Link to={`/teachers/${teacher.id}`} className="text-sm text-primary hover:underline">
-                              +{teacher.courses.length - 2} more courses
-                            </Link>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-sm">No published courses yet</p>
-                      )}
-                    </CardContent>
                     <CardFooter>
                       <Button asChild className="w-full">
-                        <Link to={`/teachers/${teacher.id}`}>
-                          View Profile
-                        </Link>
+                        <Link to={`/lessons/${lesson.id}`}>Start Learning</Link>
                       </Button>
                     </CardFooter>
                   </Card>
@@ -804,267 +301,109 @@ export default function StudentDashboard() {
             )}
           </TabsContent>
 
-          {/* Study Feed Tab */}
-          <TabsContent value="study-feed" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Study Feed</h2>
-              <p className="text-muted-foreground">Access all your learning resources in one place</p>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-3">
-              <Link to="/student">
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <div className="p-3 w-fit rounded-lg bg-primary/10 mb-2">
-                      <GraduationCap className="h-6 w-6 text-primary" />
-                    </div>
-                    <CardTitle>My Progress</CardTitle>
-                    <CardDescription>
-                      Overview of your courses, progress, and recent activity
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </Link>
-
-              <Link to="/student/articles">
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <div className="p-3 w-fit rounded-lg bg-purple-100 dark:bg-purple-900/30 mb-2">
-                      <FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <CardTitle>Articles & News</CardTitle>
-                    <CardDescription>
-                      Browse educational articles and latest updates
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </Link>
-
-              <Link to="/student/resources">
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <div className="p-3 w-fit rounded-lg bg-green-100 dark:bg-green-900/30 mb-2">
-                      <ExternalLink className="h-6 w-6 text-green-600 dark:text-green-400" />
-                    </div>
-                    <CardTitle>Learning Resources</CardTitle>
-                    <CardDescription>
-                      Videos, links, PDFs and documents from your teachers
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </Link>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <Link to="/student/flashcards">
-                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardHeader>
-                    <div className="p-3 w-fit rounded-lg bg-orange-100 dark:bg-orange-900/30 mb-2">
-                      <BookOpen className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <CardTitle>Flashcards</CardTitle>
-                    <CardDescription>
-                      Study with interactive flashcards organized by course
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </Link>
-
-              <Card className="h-full">
-                <CardHeader>
-                  <div className="p-3 w-fit rounded-lg bg-blue-100 dark:bg-blue-900/30 mb-2">
-                    <Search className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <CardTitle>Quick Links</CardTitle>
-                  <CardDescription>
-                    Common actions and shortcuts
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link to="/courses">
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Browse Courses
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link to="/teachers">
-                      <Users className="h-4 w-4 mr-2" />
-                      Browse Teachers
-                    </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link to="/profile">
-                      <User className="h-4 w-4 mr-2" />
-                      My Profile
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Bookmarks Tab */}
-          <TabsContent value="bookmarks" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Saved Items</h2>
-              <p className="text-muted-foreground">Your bookmarked lessons and articles</p>
-            </div>
-
-            {loadingBookmarks ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <TabsContent value="articles" className="space-y-6">
+            <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold mb-1">Knowledge Hub</h2>
+                <p className="text-muted-foreground">Deep dives and educational articles</p>
               </div>
-            ) : bookmarks.length === 0 ? (
-              <Card className="p-12 text-center">
-                <BookmarkIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No saved items</h3>
-                <p className="text-muted-foreground mb-4">
-                  Bookmark lessons and articles to access them quickly later
-                </p>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search articles..."
+                    value={articleSearch}
+                    onChange={(e) => setArticleSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={articleCategory} onValueChange={v => setArticleCategory(v as any)}>
+                  <SelectTrigger className="w-40">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat === 'ALL' ? 'All Categories' : categoryLabels[cat]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {loadingArticles ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : articles.length === 0 ? (
+              <Card className="p-12 text-center bg-muted/30">
+                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium">No articles found</h3>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {bookmarks.map((bookmark) => (
-                  <Card key={bookmark.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${bookmark.resourceType === 'LESSON' ? 'bg-primary/10' : 'bg-blue-100 dark:bg-blue-900/30'}`}>
-                            {bookmark.resourceType === 'LESSON' ? (
-                              <BookOpen className="h-5 w-5 text-primary" />
-                            ) : (
-                              <FileText className="h-5 w-5 text-blue-600" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">{bookmark.title}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {bookmark.resourceType === 'LESSON' ? 'Lesson' : 'Article'} • {new Date(bookmark.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {bookmark.url ? (
-                            <Link to={bookmark.url}>
-                              <Button variant="outline" size="sm">
-                                Open
-                              </Button>
-                            </Link>
-                          ) : (
-                            <Button variant="outline" size="sm" disabled>
-                              Unavailable
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500 hover:text-red-600"
-                            onClick={() => handleRemoveBookmark(bookmark.resourceType, bookmark.resourceId)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {articles.map((article) => (
+                  <Card key={article.id} className="aero-glass flex flex-col">
+                    <CardHeader className="flex-1">
+                      <Badge className={categoryColors[article.category]}>{categoryLabels[article.category]}</Badge>
+                      <CardTitle className="mt-3 line-clamp-1">{article.title}</CardTitle>
+                      <CardDescription className="line-clamp-3">{article.excerpt}</CardDescription>
+                    </CardHeader>
+                    <CardFooter>
+                      <Button asChild variant="outline" className="w-full">
+                        <Link to={`/articles/${article.id}`}>Read Full Article</Link>
+                      </Button>
+                    </CardFooter>
                   </Card>
                 ))}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
-            <Card className="aero-glass">
-              <CardHeader>
-                <CardTitle>Setări</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-                  <div className="space-y-1">
-                    <p className="font-medium">Tema Întunecată</p>
-                    <p className="text-sm text-muted-foreground">
-                      Activează modul întunecat pentru interfață
-                    </p>
-                  </div>
-                  <Link to="/settings">
-                    <Button variant="outline" className="aero-button">
-                      Gestionează Setări
-                    </Button>
-                  </Link>
-                </div>
-
-                <div className="pt-4 border-t">
-                  <Button variant="outline" onClick={logout} className="aero-button">
-                    Deconectare
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="bookmarks" className="space-y-6">
+            <h2 className="text-2xl font-semibold mb-1">Saved for Later</h2>
+            {bookmarks.length === 0 ? (
+              <Card className="p-12 text-center bg-muted/30 border-dashed">
+                <BookmarkIcon className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+                <p className="text-muted-foreground">You haven't saved any content yet.</p>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {bookmarks.map((bookmark) => (
+                  <Card key={bookmark.id} className="aero-glass border-none shadow-sm hover:translate-x-1 transition-transform">
+                    <CardContent className="py-4 flex items-center justify-between">
+                      <Link 
+                        to={bookmark.resourceType === 'LESSON' ? `/lessons/${bookmark.resourceId}` : `/articles/${bookmark.resourceId}`}
+                        className="flex-1 group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded bg-muted">
+                            {bookmark.resourceType === 'LESSON' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                          </div>
+                          <div>
+                            <p className="font-medium group-hover:text-primary transition-colors">{bookmark.resourceTitle}</p>
+                            <p className="text-xs text-muted-foreground">Saved on {new Date(bookmark.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </Link>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive opacity-50 hover:opacity-100"
+                        onClick={() => handleRemoveBookmark(bookmark.resourceType, bookmark.resourceId)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </main>
     </div>
-  );
-}
-
-
-// Article Card Component
-interface ArticleCardProps {
-  article: ArticleListItem;
-}
-
-function ArticleCard({ article }: ArticleCardProps) {
-  return (
-    <Card className="flex flex-col hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <Badge
-            variant="secondary"
-            className={categoryColors[article.category]}
-          >
-            {categoryLabels[article.category]}
-          </Badge>
-          {article.sourceUrl && (
-            <a
-              href={article.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-primary"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          )}
-        </div>
-        <CardTitle className="text-lg line-clamp-2 mt-2">
-          {article.title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 pb-2">
-        {article.excerpt && (
-          <p className="text-sm text-muted-foreground line-clamp-3">
-            {article.excerpt}
-          </p>
-        )}
-        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
-          {article.author && (
-            <span className="flex items-center gap-1">
-              <User className="h-3 w-3" />
-              {article.author?.email?.split('@')[0] ?? 'Author'}
-            </span>
-          )}
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {new Date(article.createdAt).toLocaleDateString()}
-          </span>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-2">
-        <Link to={`/articles/${article.slug}`} className="w-full">
-          <Button variant="outline" className="w-full">
-            Read Article
-          </Button>
-        </Link>
-      </CardFooter>
-    </Card>
   );
 }

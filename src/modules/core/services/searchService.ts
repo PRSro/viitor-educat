@@ -12,15 +12,11 @@ export interface SearchFilters {
   teacherId?: string;
 }
 
-export interface SearchResultCourse {
+export interface SearchResultLesson {
   id: string;
   title: string;
-  slug: string;
   description: string | null;
-  imageUrl: string | null;
-  level: string;
-  category: string;
-  tags: string[];
+  order: number;
   teacherId?: string;
   teacherEmail?: string;
   rank?: number;
@@ -32,20 +28,6 @@ export interface SearchResultCourse {
       pictureUrl: string | null;
     } | null;
   };
-  _count?: {
-    lessons: number;
-    enrollments: number;
-  };
-}
-
-export interface SearchResultLesson {
-  id: string;
-  title: string;
-  description: string | null;
-  order: number;
-  teacherId?: string;
-  teacherEmail?: string;
-  rank?: number;
 }
 
 export interface SearchResultTeacher {
@@ -55,21 +37,11 @@ export interface SearchResultTeacher {
     bio: string | null;
     pictureUrl: string | null;
   } | null;
-  courses: {
-    id: string;
-    title: string;
-    slug: string;
-    _count: {
-      lessons: number;
-      enrollments: number;
-    };
-  }[];
 }
 
 export interface SearchResultArticle {
   id: string;
   title: string;
-  slug: string;
   excerpt: string | null;
   category: string;
   author: {
@@ -84,10 +56,6 @@ export interface SearchResultResource {
   url: string;
   title: string;
   description: string | null;
-  course: {
-    id: string;
-    title: string;
-  } | null;
 }
 
 export interface SearchResponse {
@@ -95,7 +63,6 @@ export interface SearchResponse {
   query: string | undefined;
   filters: SearchFilters;
   results: {
-    courses: SearchResultCourse[];
     lessons: SearchResultLesson[];
     teachers: SearchResultTeacher[];
     articles: SearchResultArticle[];
@@ -104,9 +71,8 @@ export interface SearchResponse {
 }
 
 export interface SearchSuggestions {
-  courses: { type: string; id: string; title: string; slug: string }[];
   teachers: { type: string; id: string; name: string }[];
-  articles: { type: string; id: string; title: string; slug: string }[];
+  articles: { type: string; id: string; title: string }[];
 }
 
 export interface SearchSuggestionsResponse {

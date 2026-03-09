@@ -7,6 +7,7 @@ interface ProgressBarProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'success' | 'warning';
   className?: string;
+  indicatorClassName?: string;
 }
 
 export function ProgressBar({
@@ -16,6 +17,7 @@ export function ProgressBar({
   size = 'md',
   variant = 'default',
   className,
+  indicatorClassName,
 }: ProgressBarProps) {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
   
@@ -35,7 +37,7 @@ export function ProgressBar({
     <div className={cn('w-full', className)}>
       <div className={cn('w-full bg-muted rounded-full overflow-hidden', sizeClasses[size])}>
         <div
-          className={cn('h-full rounded-full transition-all duration-300 ease-in-out', variantClasses[variant])}
+          className={cn('h-full rounded-full transition-all duration-300 ease-in-out', variantClasses[variant], indicatorClassName)}
           style={{ width: `${percentage}%` }}
         />
       </div>

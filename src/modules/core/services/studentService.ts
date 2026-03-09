@@ -16,22 +16,16 @@ export interface StudentProfile {
   preferredLevel: string;
 }
 
-export interface CourseWithProgress {
+export interface LessonWithProgress {
   id: string;
   progress: number;
-  completedLessonsCount: number;
-  lastAccessedLessonId: string | null;
   completedAt: string | null;
   enrolledAt: string;
-  course: {
+  lesson: {
     id: string;
     title: string;
-    slug: string;
     description: string | null;
-    imageUrl: string | null;
-    level: string;
     category: string;
-    totalLessons: number;
     teacher: {
       id: string;
       email: string;
@@ -49,15 +43,11 @@ export interface LearningHistoryItem {
   lesson: {
     id: string;
     title: string;
-    courseId: string | null;
-    courseTitle: string | null;
   };
 }
 
 export interface StudentStats {
-  totalCoursesEnrolled: number;
   totalLessonsCompleted: number;
-  coursesCompleted: number;
 }
 
 export interface StudentProfileResponse {
@@ -68,37 +58,8 @@ export interface StudentProfileResponse {
     createdAt: string;
   };
   profile: StudentProfile | null;
-  enrollments: CourseWithProgress[];
   learningHistory: LearningHistoryItem[];
   stats: StudentStats;
-}
-
-export interface CourseProgress {
-  courseId: string;
-  courseTitle: string;
-  progress: number;
-  completedLessonsCount: number;
-  lastAccessedLessonId: string | null;
-  completedAt: string | null;
-  lessons: {
-    id: string;
-    title: string;
-    description: string | null;
-    order: number;
-    completed: boolean;
-  }[];
-}
-
-export interface ResumeCourseResponse {
-  lesson: {
-    id: string;
-    slug: string;
-    title: string;
-    description: string | null;
-    order: number;
-  } | null;
-  progress: number;
-  courseSlug: string;
 }
 
 export interface UpdateStudentProfileData {
@@ -110,27 +71,17 @@ export interface UpdateStudentProfileData {
 }
 
 /**
- * Get enrolled courses for current student (with progress)
- */
-export async function getStudentCourses(): Promise<CourseWithProgress[]> {
-  const data = await api.get<{ courses: CourseWithProgress[] }>('/courses/student');
-  return data.courses;
-}
-
-/**
- * Get student progress stats (completion stats)
+ * Get student progress stats
  */
 export async function getStudentProgress(): Promise<{
-  totalEnrolled: number;
   totalCompleted: number;
-  totalInProgress: number;
   percentComplete: number;
 }> {
   return api.get('/student/progress');
 }
 
 /**
- * Get current student's profile with enrolled courses and progress
+ * Get current student's profile
  */
 export async function getStudentProfile(): Promise<StudentProfileResponse> {
   return api.get('/profiles/student');
@@ -141,20 +92,6 @@ export async function getStudentProfile(): Promise<StudentProfileResponse> {
  */
 export async function updateStudentProfile(data: UpdateStudentProfileData): Promise<{ message: string; profile: StudentProfile }> {
   return api.put('/profiles/student', data);
-}
-
-/**
- * Get detailed progress for a specific course
- */
-export async function getCourseProgress(courseId: string): Promise<CourseProgress> {
-  return api.get(`/profiles/student/progress/${courseId}`);
-}
-
-/**
- * Get the last accessed lesson to resume for a specific course
- */
-export async function resumeCourse(courseId: string): Promise<ResumeCourseResponse> {
-  return api.post(`/profiles/student/progress/${courseId}/resume`, {});
 }
 
 /**

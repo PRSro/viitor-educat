@@ -15,8 +15,7 @@ import { ExternalLink, FileText, Link as LinkIcon, Play, File } from 'lucide-rea
 
 interface ResourceCardProps {
   resource: ResourceListItem;
-  showCourse?: boolean;
-  showLesson?: boolean;
+  showLesson?: boolean; // Removed showCourse
 }
 
 const resourceTypeIcons = {
@@ -26,7 +25,7 @@ const resourceTypeIcons = {
   DOCUMENT: File,
 };
 
-export function ResourceCard({ resource, showCourse = false, showLesson = false }: ResourceCardProps) {
+export function ResourceCard({ resource, showLesson = false }: ResourceCardProps) {
   const Icon = resourceTypeIcons[resource.type];
   
   return (
@@ -52,14 +51,9 @@ export function ResourceCard({ resource, showCourse = false, showLesson = false 
           </p>
         )}
         
-        {(showCourse || showLesson) && (
+        {showLesson && (
           <div className="flex flex-wrap gap-2 mt-3">
-            {showCourse && resource.course && (
-              <Badge variant="outline" className="text-xs">
-                {resource.course.title}
-              </Badge>
-            )}
-            {showLesson && resource.lesson && (
+            {resource.lesson && (
               <Badge variant="outline" className="text-xs">
                 {resource.lesson.title}
               </Badge>

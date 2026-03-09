@@ -35,7 +35,7 @@ export interface BroadcastData {
   title: string;
   message: string;
   link?: string;
-  courseId?: string;
+  lessonId?: string; // Changed courseId to lessonId
   userIds?: string[];
 }
 
@@ -85,7 +85,7 @@ export async function deleteNotification(notificationId: string): Promise<void> 
 
 export function getNotificationIcon(type: Notification['type']): string {
   switch (type) {
-    case 'COURSE_UPDATE':
+    case 'LESSON_UPDATE': // Changed COURSE_UPDATE to LESSON_UPDATE
       return 'book';
     case 'NEW_ARTICLE':
       return 'file-text';
@@ -93,8 +93,6 @@ export function getNotificationIcon(type: Notification['type']): string {
       return 'link';
     case 'FLASHCARD_REMINDER':
       return 'layers';
-    case 'ENROLLMENT':
-      return 'user-plus';
     default:
       return 'bell';
   }

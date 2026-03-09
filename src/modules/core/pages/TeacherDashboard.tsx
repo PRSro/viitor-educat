@@ -25,7 +25,6 @@ import {
   updateLesson,
   deleteLesson,
 } from '@/modules/lessons/services/lessonService';
-import { getCourses, Course, createCourse, updateCourse, deleteCourse, getTeacherCourses, getCourseAnalytics, getCourseStudents, CourseAnalytics, CourseStudent } from '@/modules/courses/services/courseService';
 import { getTeacherArticles, uploadArticleFile, uploadLessonMaterial, TeacherLesson } from '@/modules/core/services/authService';
 import { ArticleListItem, ArticleCategory, createArticle, getArticles, categoryLabels } from '@/modules/articles/services/articleService';
 import { 
@@ -34,14 +33,15 @@ import {
   getQuizPerformance, 
   LessonCompletionResponse,
   WeeklyActiveResponse,
-  QuizPerformanceResponse
+  QuizPerformanceResponse,
+  getTeacherOverview,
+  TeacherOverview
 } from '@/modules/core/services/analyticsService';
 import { sanitizeInput, containsXssPatterns } from '@/lib/sanitize';
 import { lessonSchema, getFirstError } from '@/lib/validation';
 import { NotificationBell } from '@/components/NotificationBell';
 import { api } from '@/lib/apiClient';
 import { 
-  BookOpen, 
   Plus, 
   Edit, 
   Trash2, 
@@ -52,26 +52,14 @@ import {
   FileText,
   Eye,
   EyeOff,
-  Play,
-  ChevronRight,
-  Clock,
-  Users,
-  CheckCircle2,
-  XCircle,
-  Wand2,
-  ArrowLeft,
-  ArrowRight,
-  View,
-  AlertCircle,
-  Upload,
-  File,
-  FileStack,
-  X,
   Settings,
   TrendingUp,
+  AlertCircle,
+  CheckCircle2,
+  Users,
   BarChart3,
-  Target,
-  Activity
+  Search,
+  BookOpen
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -88,32 +76,20 @@ import {
 export default function TeacherDashboard() {
   const { user, logout } = useAuth();
   const { theme } = useSettings();
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [lessons, setLessons] = useState<TeacherLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const [courseBuilderStep, setCourseBuilderStep] = useState(1);
-  const [courseBuilderData, setCourseBuilderData] = useState({
-    title: '',
-    description: '',
-    imageUrl: '',
-    lessons: [] as Lesson[]
-  });
-  const [courseSaving, setCourseSaving] = useState(false);
-
   const [lessonFormOpen, setLessonFormOpen] = useState(false);
-  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [editingLesson, setEditingLesson] = useState<TeacherLesson | null>(null);
   const [lessonFormData, setLessonFormData] = useState({
     title: '',
     description: '',
-    content: '',
-    courseId: ''
+    content: ''
   });
   const [lessonSaving, setLessonSaving] = useState(false);
-  const [lessonFile, setLessonFile] = useState<File | null>(null);
 
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [articleFormOpen, setArticleFormOpen] = useState(false);
@@ -128,133 +104,57 @@ export default function TeacherDashboard() {
   const [fileError, setFileError] = useState<string | null>(null);
 
   // Analytics state
-  const [analytics, setAnalytics] = useState<CourseAnalytics | null>(null);
-  const [aggregateAnalytics, setAggregateAnalytics] = useState<{
-    totalStudents: number;
-    totalCompletions: number;
-    completionRate: number;
-    lessons: { lessonTitle: string; completions: number }[];
-  } | null>(null);
-  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
-  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
-  const [students, setStudents] = useState<CourseStudent[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-
-  // Detailed Analytics state
+  const [overview, setOverview] = useState<TeacherOverview | null>(null);
   const [lessonCompletions, setLessonCompletions] = useState<LessonCompletionResponse | null>(null);
   const [weeklyActive, setWeeklyActive] = useState<WeeklyActiveResponse | null>(null);
   const [quizPerformance, setQuizPerformance] = useState<QuizPerformanceResponse | null>(null);
-  const [loadingDetailedAnalytics, setLoadingDetailedAnalytics] = useState(false);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
         setError(null);
-        const [lessonsData, coursesData, articlesData, aggAnalytics] = await Promise.all([
+        const [lessonsData, articlesData, overviewData] = await Promise.all([
           getTeacherLessons(user.id),
-          getTeacherCourses(),
-          user?.id ? getTeacherArticles(user.id).catch(() => []) : Promise.resolve([]),
-          api.get('/analytics/lessons').catch(() => null)
+          getTeacherArticles(user.id).catch(() => []),
+          getTeacherOverview().catch(() => null)
         ]);
         setLessons(lessonsData || []);
-        setCourses(coursesData || []);
         setArticles(articlesData || []);
-        
-        if (aggAnalytics) {
-          const lessons = ((aggAnalytics as any).lessons || []).map((l: any) => ({
-            lessonTitle: l.lessonTitle || l.title || 'Untitled',
-            completions: l.completionCount || l.completions || 0
-          }));
-          const totalCompletions = lessons.reduce((sum: number, l: any) => sum + l.completions, 0);
-          setAggregateAnalytics({
-            totalStudents: coursesData?.reduce((sum: number, c: any) => sum + (c._count?.enrollments || 0), 0) || 0,
-            totalCompletions,
-            completionRate: coursesData?.length > 0
-              ? Math.round(
-                  (totalCompletions /
-                    (coursesData.reduce((sum: number, c: any) => sum + (c._count?.lessons || 0), 0) *
-                      (coursesData.reduce((sum: number, c: any) => sum + (c._count?.enrollments || 0), 0) || 1))
-                  ) * 100
-                )
-              : 0,
-            lessons
-          });
-        }
+        setOverview(overviewData);
       } catch (err) {
         console.error('Failed to fetch data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch data. Please check if the backend is running.');
-        setLessons([]);
-        setCourses([]);
-        setArticles([]);
+        setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
       } finally {
         setLoading(false);
       }
     }
     fetchData();
-  }, []);
+  }, [user.id]);
 
-  async function handleCourseSubmit() {
-    if (!courseBuilderData.title.trim()) return;
-    
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      fetchDetailedAnalytics();
+    }
+  }, [activeTab]);
+
+  async function fetchDetailedAnalytics() {
     try {
-      setCourseSaving(true);
-      setError(null);
-      const newCourse = await createCourse({
-        title: courseBuilderData.title,
-        description: courseBuilderData.description || undefined,
-        imageUrl: courseBuilderData.imageUrl || undefined
-      });
-      
-      const [lessonsData, coursesData] = await Promise.all([
-        getTeacherLessons(user.id),
-        getTeacherCourses()
+      setLoadingAnalytics(true);
+      const [completions, active, quizzes] = await Promise.all([
+        getLessonCompletionRates(1, 10),
+        getWeeklyActiveStudents(8),
+        getQuizPerformance(1, 10)
       ]);
-      setLessons(lessonsData || []);
-      setCourses(coursesData || []);
-      
-      setCourseBuilderStep(1);
-      setCourseBuilderData({ title: '', description: '', imageUrl: '', lessons: [] });
-      setActiveTab('courses');
-      setSuccess('Course created successfully!');
-      setTimeout(() => setSuccess(null), 3000);
+      setLessonCompletions(completions);
+      setWeeklyActive(active);
+      setQuizPerformance(quizzes);
     } catch (err) {
-      console.error('Failed to create course:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create course');
+      console.error('Failed to fetch analytics:', err);
+      setError('Failed to load detailed analytics');
     } finally {
-      setCourseSaving(false);
-    }
-  }
-
-  async function handleDeleteCourse(id: string) {
-    if (!confirm('Are you sure you want to delete this course?')) return;
-
-    try {
-      setError(null);
-      await deleteCourse(id);
-      const data = await getTeacherCourses();
-      setCourses(data || []);
-      setSuccess('Course deleted successfully!');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete course');
-    }
-  }
-
-  async function handleTogglePublish(course: Course) {
-    try {
-      setError(null);
-      const newPublishedState = !course.published;
-      await updateCourse(course.id, { 
-        published: newPublishedState,
-        status: newPublishedState ? 'PUBLISHED' : 'DRAFT'
-      });
-      const data = await getTeacherCourses();
-      setCourses(data || []);
-      setSuccess(newPublishedState ? 'Course published!' : 'Course unpublished');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update course');
+      setLoadingAnalytics(false);
     }
   }
 
@@ -263,8 +163,7 @@ export default function TeacherDashboard() {
 
     try {
       await deleteLesson(id);
-      const data = await getTeacherLessons(user.id);
-      setLessons(data || []);
+      setLessons(lessons.filter(l => l.id !== id));
       setSuccess('Lesson deleted successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -272,18 +171,17 @@ export default function TeacherDashboard() {
     }
   }
 
-  function openLessonForm(lesson?: Lesson) {
+  function openLessonForm(lesson?: TeacherLesson) {
     if (lesson) {
       setEditingLesson(lesson);
       setLessonFormData({
         title: lesson.title,
         description: lesson.description || '',
-        content: lesson.content,
-        courseId: lesson.courseId || ''
+        content: '' // Content is not returned in the list view
       });
     } else {
       setEditingLesson(null);
-      setLessonFormData({ title: '', description: '', content: '', courseId: '' });
+      setLessonFormData({ title: '', description: '', content: '' });
     }
     setLessonFormOpen(true);
   }
@@ -295,16 +193,6 @@ export default function TeacherDashboard() {
 
     if (containsXssPatterns(sanitizedTitle) || containsXssPatterns(sanitizedContent)) {
       setError('Input contains invalid characters');
-      return;
-    }
-
-    const validationErr = getFirstError(lessonSchema, {
-      title: sanitizedTitle,
-      description: sanitizedDescription || undefined,
-      content: sanitizedContent,
-    });
-    if (validationErr) {
-      setError(validationErr);
       return;
     }
 
@@ -322,53 +210,19 @@ export default function TeacherDashboard() {
         await createLesson({ 
           title: sanitizedTitle, 
           description: sanitizedDescription, 
-          content: sanitizedContent,
-          courseId: lessonFormData.courseId || undefined
+          content: sanitizedContent
         });
         setSuccess('Lesson created successfully!');
       }
       
-      const [lessonsData, coursesData] = await Promise.all([
-        getTeacherLessons(user.id),
-        getTeacherCourses()
-      ]);
-      setLessons(lessonsData || []);
-      setCourses(coursesData || []);
-      
+      const updatedLessons = await getTeacherLessons(user.id);
+      setLessons(updatedLessons);
       setLessonFormOpen(false);
-      setEditingLesson(null);
-      setLessonFormData({ title: '', description: '', content: '', courseId: '' });
-      
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save lesson');
     } finally {
       setLessonSaving(false);
-    }
-  }
-
-  const myLessons = lessons.filter(l => l.teacherId === user?.id);
-  const publishedCourses = courses.filter(c => c.published);
-  const draftCourses = courses.filter(c => !c.published);
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>, type: 'article' | 'lesson') {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setFileError(null);
-
-    if (type === 'article') {
-      if (!file.name.endsWith('.docx')) {
-        setFileError('Articles must be uploaded as .docx files only');
-        setArticleFormData(prev => ({ ...prev, file: null }));
-        return;
-      }
-      setArticleFormData(prev => ({ ...prev, file }));
-    } else {
-      if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
-        setFileError('Lesson materials must be uploaded as .md (Markdown) files only');
-        return;
-      }
     }
   }
 
@@ -398,12 +252,9 @@ export default function TeacherDashboard() {
         category: articleFormData.category
       });
 
-      const articlesData = user?.id ? await getTeacherArticles(user.id).catch(() => []) : [];
-      setArticles(articlesData || []);
-
+      const updatedArticles = await getTeacherArticles(user.id);
+      setArticles(updatedArticles);
       setArticleFormOpen(false);
-      setArticleFormData({ title: '', content: '', excerpt: '', category: 'GENERAL', file: null });
-      setFileError(null);
       setSuccess('Article published successfully!');
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -427,82 +278,24 @@ export default function TeacherDashboard() {
     }
   }
 
-  async function fetchCourseAnalytics(courseId: string) {
-    if (!courseId) return;
-    
-    try {
-      setLoadingAnalytics(true);
-      const data = await getCourseAnalytics(courseId);
-      setAnalytics(data);
-      setSelectedCourseId(courseId);
-    } catch (err) {
-      console.error('Failed to fetch analytics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch analytics');
-    } finally {
-      setLoadingAnalytics(false);
-    }
-  }
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>, type: 'article' | 'lesson') {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  async function fetchCourseStudents(courseId: string) {
-    if (!courseId) return;
-    
-    try {
-      setLoadingStudents(true);
-      const data = await getCourseStudents(courseId);
-      setStudents(data);
-    } catch (err) {
-      console.error('Failed to fetch students:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch students');
-    } finally {
-      setLoadingStudents(false);
-    }
-  }
-
-  async function handleCourseSelect(courseId: string) {
-    await Promise.all([
-      fetchCourseAnalytics(courseId),
-      fetchCourseStudents(courseId)
-    ]);
-  }
-
-  async function fetchDetailedAnalytics() {
-    try {
-      setLoadingDetailedAnalytics(true);
-      const [lessonsData, activeData, quizData] = await Promise.all([
-        getLessonCompletionRates(1, 10),
-        getWeeklyActiveStudents(8),
-        getQuizPerformance(1, 10)
-      ]);
-      setLessonCompletions(lessonsData);
-      setWeeklyActive(activeData);
-      setQuizPerformance(quizData);
-    } catch (err) {
-      console.error('Failed to fetch detailed analytics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch detailed analytics');
-    } finally {
-      setLoadingDetailedAnalytics(false);
-    }
-  }
-
-  useEffect(() => {
-    if (activeTab === 'detailed-analytics') {
-      fetchDetailedAnalytics();
-    }
-  }, [activeTab]);
-
-  function openArticleForm() {
-    setArticleFormData({ title: '', content: '', excerpt: '', category: 'GENERAL', file: null });
     setFileError(null);
-    setArticleFormOpen(true);
+    if (type === 'article') {
+      if (!file.name.endsWith('.docx')) {
+        setFileError('Articles must be uploaded as .docx files only');
+        return;
+      }
+      setArticleFormData(prev => ({ ...prev, file }));
+    }
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading Teacher Dashboard...</p>
-        </div>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -515,49 +308,36 @@ export default function TeacherDashboard() {
         <div className="absolute bottom-20 left-10 w-96 h-96 bg-sky-400/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Header */}
       <header className="border-b aero-panel relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 backdrop-blur-sm border border-primary/20">
+              <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
                 <GraduationCap className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-                  Teacher Dashboard
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {user?.email} ({user?.role})
-                </p>
+                <h1 className="text-xl font-bold">Teacher Dashboard</h1>
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Link to="/">
-                <Button variant="ghost" size="sm" className="hover:bg-primary/10">Home</Button>
+                <Button variant="ghost" size="sm">Home</Button>
               </Link>
-              {user?.id && (
-                <Link to={`/teachers/${user.id}`}>
-                  <Button variant="ghost" size="sm" className="hover:bg-primary/10">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    My Public Profile
-                  </Button>
-                </Link>
-              )}
               <NotificationBell />
               <Link to="/profile">
                 <Button variant="outline" size="sm" className="aero-button">
                   <User className="h-4 w-4 mr-2" />
-                  Profil
+                  Profile
                 </Button>
               </Link>
               <Link to="/settings">
                 <Button variant="outline" size="sm" className="aero-button">
                   <Settings className="h-4 w-4 mr-2" />
-                  Setări
+                  Settings
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={logout} className="hover:bg-destructive/10 hover:text-destructive">
+              <Button variant="outline" size="sm" onClick={logout} className="hover:bg-destructive/10">
                 Logout
               </Button>
             </div>
@@ -566,966 +346,283 @@ export default function TeacherDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        {/* Aggregate Analytics Stats */}
-        {aggregateAnalytics && (
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-primary/10">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Students</p>
-                    <p className="text-2xl font-bold">{aggregateAnalytics.totalStudents}</p>
-                  </div>
+        {/* Stats Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="aero-glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Lessons</p>
+                  <p className="text-2xl font-bold">{lessons.length}</p>
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-green-500/10">
-                    <CheckCircle2 className="h-6 w-6 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Completions</p>
-                    <p className="text-2xl font-bold">{aggregateAnalytics.totalCompletions}</p>
-                  </div>
+                <FileText className="h-8 w-8 text-primary/50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="aero-glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Articles</p>
+                  <p className="text-2xl font-bold">{articles.length}</p>
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-blue-500/10">
-                    <TrendingUp className="h-6 w-6 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Completion Rate</p>
-                    <p className="text-2xl font-bold">{aggregateAnalytics.completionRate}%</p>
-                  </div>
+                <BookOpen className="h-8 w-8 text-blue-500/50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="aero-glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Avg. Completion</p>
+                  <p className="text-2xl font-bold">{overview?.completionRate || 0}%</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                <TrendingUp className="h-8 w-8 text-green-500/50" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="aero-glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Students</p>
+                  <p className="text-2xl font-bold">{overview?.students || 0}</p>
+                </div>
+                <Users className="h-8 w-8 text-purple-500/50" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Error Alert */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span className="flex-1">{error}</span>
-            <Button variant="ghost" size="sm" onClick={() => setError(null)}>
-              Dismiss
-            </Button>
-          </div>
-        )}
-
-        {/* Success Alert */}
-        {success && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>{success}</span>
+            <span>{error}</span>
           </div>
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-7 aero-glass p-1">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-primary/20">Overview</TabsTrigger>
-            <TabsTrigger value="courses" className="data-[state=active]:bg-primary/20">Courses</TabsTrigger>
-            <TabsTrigger value="lessons" className="data-[state=active]:bg-primary/20">Lessons</TabsTrigger>
-            <TabsTrigger value="articles" className="data-[state=active]:bg-primary/20">Articles</TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary/20">Analytics</TabsTrigger>
-            <TabsTrigger value="detailed-analytics" className="data-[state=active]:bg-primary/20">Details</TabsTrigger>
-            <TabsTrigger value="builder" className="data-[state=active]:bg-primary/20">Builder</TabsTrigger>
+          <TabsList className="aero-glass p-1">
+            <TabsTrigger value="overview">My Lessons</TabsTrigger>
+            <TabsTrigger value="articles">My Articles</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Courses</p>
-                      <p className="text-3xl font-bold">{courses.length}</p>
-                    </div>
-                    <BookOpen className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Published</p>
-                      <p className="text-3xl font-bold">{publishedCourses.length}</p>
-                    </div>
-                    <Eye className="h-8 w-8 text-green-500" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Drafts</p>
-                      <p className="text-3xl font-bold">{draftCourses.length}</p>
-                    </div>
-                    <Edit className="h-8 w-8 text-amber-500" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Lessons</p>
-                      <p className="text-3xl font-bold">{myLessons.length}</p>
-                    </div>
-                    <FileText className="h-8 w-8 text-purple-500" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Articles</p>
-                      <p className="text-3xl font-bold">{articles.length}</p>
-                    </div>
-                    <FileText className="h-8 w-8 text-blue-500" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Courses</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {courses.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No courses yet</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {courses.slice(0, 5).map(course => (
-                        <div key={course.id} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                          <span className="font-medium truncate">{course.title}</span>
-                          <Badge variant={course.published ? "default" : "secondary"}>
-                            {course.published ? "Published" : "Draft"}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Lessons</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {myLessons.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No lessons yet</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {myLessons.slice(0, 5).map(lesson => (
-                        <div key={lesson.id} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                          <span className="font-medium truncate">{lesson.title}</span>
-                          <Button size="sm" variant="ghost" onClick={() => openLessonForm(lesson)}>
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Courses Tab */}
-          <TabsContent value="courses" className="space-y-6">
+          <TabsContent value="overview" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">My Courses</h2>
-              <Button onClick={() => setActiveTab('builder')}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Course
-              </Button>
+              <h2 className="text-xl font-semibold">Lessons</h2>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => window.open('/lessons/new', '_blank')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Lesson
+                </Button>
+                <Dialog open={lessonFormOpen} onOpenChange={setLessonFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => openLessonForm()}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Quick Create
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                      <DialogTitle>{editingLesson ? 'Edit Lesson' : 'Create Quick Lesson'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="title">Title</Label>
+                        <Input 
+                          id="title" 
+                          value={lessonFormData.title}
+                          onChange={e => setLessonFormData({...lessonFormData, title: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="desc">Description</Label>
+                        <Input 
+                          id="desc" 
+                          value={lessonFormData.description}
+                          onChange={e => setLessonFormData({...lessonFormData, description: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="content">Content (Markdown)</Label>
+                        <Textarea 
+                          id="content" 
+                          className="h-64"
+                          value={lessonFormData.content}
+                          onChange={e => setLessonFormData({...lessonFormData, content: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleLessonSubmit} disabled={lessonSaving}>
+                        {lessonSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        Save Lesson
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
-            {courses.length === 0 ? (
-              <Card className="p-12 text-center">
-                <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No courses yet</h3>
-                <p className="text-muted-foreground mb-4">Create your first course to get started.</p>
-                <Button onClick={() => setActiveTab('builder')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Course
-                </Button>
-              </Card>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {courses.map(course => (
-                  <Card key={course.id} className="overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
-                      {course.description && (
-                        <CardDescription className="line-clamp-2">{course.description}</CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <FileText className="h-4 w-4" />
-                          {course._count?.lessons || 0}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          {course._count?.enrollments || 0}
-                        </span>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="gap-2">
-                      <Button 
-                        size="sm" 
-                        variant={course.published ? "default" : "outline"}
-                        onClick={() => handleTogglePublish(course)}
-                        className="flex-1"
-                      >
-                        {course.published ? "Published" : "Publish"}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {lessons.map(lesson => (
+                <Card key={lesson.id} className="aero-glass hover:shadow-lg transition-all">
+                  <CardHeader>
+                    <CardTitle className="text-lg line-clamp-1">{lesson.title}</CardTitle>
+                    <CardDescription className="line-clamp-2">{lesson.description}</CardDescription>
+                  </CardHeader>
+                  <CardFooter className="flex justify-between">
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="ghost" asChild>
+                        <Link to={`/lessons/${lesson.id}/edit`}>
+                          <Edit className="h-4 w-4" />
+                        </Link>
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDeleteCourse(course.id)}>
+                      <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDeleteLesson(lesson.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
+                    </div>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`/lessons/${lesson.id}`}>
+                        View
+                        <ExternalLink className="h-3 w-3 ml-2" />
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
           </TabsContent>
 
-          {/* Lessons Tab */}
-          <TabsContent value="lessons" className="space-y-6">
+          <TabsContent value="articles" className="space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">My Lessons</h2>
-              <Button onClick={() => openLessonForm()}>
+              <h2 className="text-xl font-semibold">Articles</h2>
+              <Button onClick={() => openArticleForm()}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Lesson
+                Create Article
               </Button>
             </div>
 
-            {myLessons.length === 0 ? (
-              <Card className="p-12 text-center">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No lessons yet</h3>
-                <p className="text-muted-foreground mb-4">Create your first lesson to get started.</p>
-                <Button onClick={() => openLessonForm()}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Lesson
-                </Button>
-              </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {myLessons.map(lesson => (
-                  <Card key={lesson.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium">{lesson.title}</h3>
-                          {lesson.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                              {lesson.description}
-                            </p>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {new Date(lesson.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => openLessonForm(lesson)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleDeleteLesson(lesson.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Articles Tab */}
-          <TabsContent value="articles" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold">My Articles</h2>
-              <Button onClick={openArticleForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                Publish Article
-              </Button>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {articles.map(article => (
+                <Card key={article.id} className="aero-glass">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <Badge variant="outline">{article.category}</Badge>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeleteArticle(article.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <CardTitle className="text-lg mt-2 line-clamp-1">{article.title}</CardTitle>
+                    <CardDescription className="line-clamp-2">{article.excerpt}</CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link to={`/articles/${article.id}`}>View Article</Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
 
-            {articles.length === 0 ? (
-              <Card className="p-12 text-center">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No articles published yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Publish your first article. Articles require a .docx file upload.
-                </p>
-                <Button onClick={openArticleForm}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Publish Article
-                </Button>
-              </Card>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {articles.map(article => (
-                  <Card key={article.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium">{article.title}</h3>
-                          {article.excerpt && (
-                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                              {article.excerpt}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge variant="outline" className="text-xs">
-                              {categoryLabels[article.category] || article.category}
-                            </Badge>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(article.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleDeleteArticle(article.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+            <Dialog open={articleFormOpen} onOpenChange={setArticleFormOpen}>
+              <DialogContent className="sm:max-w-[700px]">
+                <DialogHeader>
+                  <DialogTitle>New Article</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label>Article Source</Label>
+                    <div className="flex gap-4 p-4 border rounded-lg bg-muted/50">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium mb-1">Manual Entry</p>
+                        <p className="text-xs text-muted-foreground">Type or paste content directly</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+                      <div className="flex-1 border-l pl-4">
+                        <p className="text-sm font-medium mb-1">Import DOCX</p>
+                        <p className="text-xs text-muted-foreground">Automated content extraction</p>
+                        <Input 
+                          type="file" 
+                          accept=".docx" 
+                          onChange={e => handleFileChange(e, 'article')}
+                          className="mt-2 text-xs" 
+                        />
+                        {fileError && <p className="text-[10px] text-destructive mt-1">{fileError}</p>}
+                      </div>
+                    </div>
+                  </div>
+                  {!articleFormData.file && (
+                    <>
+                      <div className="grid gap-2">
+                        <Label htmlFor="art-title">Title</Label>
+                        <Input 
+                          id="art-title"
+                          value={articleFormData.title}
+                          onChange={e => setArticleFormData({...articleFormData, title: e.target.value})}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="art-content">Content (HTML/Rich Text)</Label>
+                        <Textarea 
+                          id="art-content" 
+                          className="h-64"
+                          value={articleFormData.content}
+                          onChange={e => setArticleFormData({...articleFormData, content: e.target.value})}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleArticleSubmit} disabled={articleSaving}>
+                    {articleSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Publish Article
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
-          {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Course Analytics</h2>
-              <p className="text-muted-foreground">View student progress and course performance</p>
-            </div>
-
-            {/* Course Selector */}
-            <Card className="aero-glass">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Select Course
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <select
-                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
-                  value={selectedCourseId}
-                  onChange={(e) => handleCourseSelect(e.target.value)}
-                >
-                  <option value="">Select a course...</option>
-                  {publishedCourses.map(course => (
-                    <option key={course.id} value={course.id}>
-                      {course.title} ({course._count?.enrollments || 0} students)
-                    </option>
-                  ))}
-                </select>
-              </CardContent>
-            </Card>
-
-            {loadingAnalytics || loadingStudents ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : analytics ? (
-              <>
-                {/* Analytics Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <Card className="aero-glass">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Students</p>
-                          <p className="text-3xl font-bold">{analytics.enrollment.total}</p>
-                        </div>
-                        <Users className="h-8 w-8 text-primary" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="aero-glass">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Completed</p>
-                          <p className="text-3xl font-bold">{analytics.enrollment.completed}</p>
-                        </div>
-                        <CheckCircle2 className="h-8 w-8 text-green-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="aero-glass">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Avg. Progress</p>
-                          <p className="text-3xl font-bold">{analytics.enrollment.averageProgress}%</p>
-                        </div>
-                        <TrendingUp className="h-8 w-8 text-blue-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card className="aero-glass">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Completion Rate</p>
-                          <p className="text-3xl font-bold">{(analytics.enrollment as any).completionRate ?? 0}%</p>
-                        </div>
-                        <Target className="h-8 w-8 text-purple-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Student List */}
-                <Card className="aero-glass">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Enrolled Students ({students.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {students.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-4">No students enrolled yet</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {students.map(student => (
-                          <div key={student.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                                {student.avatarUrl ? (
-                                  <img src={student.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
-                                ) : (
-                                  <User className="h-5 w-5 text-primary" />
-                                )}
-                              </div>
-                              <div>
-                                <p className="font-medium">{student.email}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Enrolled {new Date(student.enrolledAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-medium">{Math.round(student.progress)}%</p>
-                              {student.completedAt && (
-                                <p className="text-xs text-green-500">Completed</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <Card className="p-12 text-center">
-                <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Select a course</h3>
-                <p className="text-muted-foreground">
-                  Choose a course above to view student analytics
-                </p>
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="aero-glass">
+                <CardHeader>
+                  <CardTitle>Completion Trends</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={weeklyActive?.weeklyActive || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="weekStart" tick={{fontSize: 12}} />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="activeStudents" stroke="#22c55e" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
               </Card>
-            )}
-          </TabsContent>
 
-          {/* Detailed Analytics Tab */}
-          <TabsContent value="detailed-analytics" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">Detailed Analytics</h2>
-              <p className="text-muted-foreground">Lesson completions, student activity, and quiz performance</p>
+              <Card className="aero-glass">
+                <CardHeader>
+                  <CardTitle>Lesson Completions</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={lessonCompletions?.lessons || []}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="title" hide />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="completions" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
             </div>
-
-            {loadingDetailedAnalytics ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                {/* Weekly Active Students Chart */}
-                <Card className="aero-glass">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      Weekly Active Students
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {weeklyActive && weeklyActive.weeklyActive.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={weeklyActive.weeklyActive}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            dataKey="weekStart" 
-                            tick={{ fontSize: 12 }}
-                            tickFormatter={(value) => new Date(value).toLocaleDateString('ro-RO', { month: 'short', day: 'numeric' })}
-                          />
-                          <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-                            labelFormatter={(value) => `Week of ${new Date(value).toLocaleDateString('ro-RO')}`}
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="activeStudents" 
-                            stroke="#8b5cf6" 
-                            strokeWidth={2}
-                            dot={{ fill: '#8b5cf6' }}
-                            name="Active Students"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-8">No activity data available yet</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Lesson Completion Rates */}
-                <Card className="aero-glass">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5" />
-                      Lesson Completion Rates
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {lessonCompletions && lessonCompletions.lessons.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={lessonCompletions.lessons} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
-                          <YAxis 
-                            type="category" 
-                            dataKey="title" 
-                            width={150} 
-                            tick={{ fontSize: 11 }}
-                            tickFormatter={(value) => value.length > 20 ? `${value.substring(0, 20)}...` : value}
-                          />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-                          />
-                          <Bar dataKey="completions" fill="#22c55e" name="Completions" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-8">No lesson completion data available</p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Quiz Performance */}
-                <Card className="aero-glass">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="h-5 w-5" />
-                      Quiz Performance
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {quizPerformance && quizPerformance.quizzes.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={quizPerformance.quizzes.filter(q => q.hasAttempts)}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            dataKey="title" 
-                            tick={{ fontSize: 11 }}
-                            tickFormatter={(value) => value.length > 15 ? `${value.substring(0, 15)}...` : value}
-                          />
-                          <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-                            formatter={(value: number) => [`${value}%`, 'Average Score']}
-                          />
-                          <Bar dataKey="averageScore" fill="#06b6d4" name="Average Score" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <p className="text-muted-foreground text-center py-8">No quiz data available</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </TabsContent>
-
-          {/* Builder Tab */}
-          <TabsContent value="builder" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Builder</CardTitle>
-                <CardDescription>Create a new course in 3 steps</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {/* Progress Steps */}
-                <div className="flex items-center justify-center mb-8">
-                  <div className="flex items-center gap-2">
-                    {[
-                      { step: 1, label: 'Basic Info' },
-                      { step: 2, label: 'Add Lessons' },
-                      { step: 3, label: 'Preview' }
-                    ].map((s, i) => (
-                      <div key={s.step} className="flex items-center">
-                        <div className={`
-                          w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all
-                          ${courseBuilderStep >= s.step 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-muted text-muted-foreground'}
-                        `}>
-                          {courseBuilderStep > s.step ? <CheckCircle2 className="h-5 w-5" /> : s.step}
-                        </div>
-                        <span className={`ml-2 text-sm ${courseBuilderStep >= s.step ? 'text-foreground' : 'text-muted-foreground'}`}>
-                          {s.label}
-                        </span>
-                        {i < 2 && (
-                          <ChevronRight className="h-4 w-4 mx-2 text-muted-foreground" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Step 1: Basic Info */}
-                {courseBuilderStep === 1 && (
-                  <div className="space-y-6 max-w-2xl mx-auto">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Course Title *</label>
-                        <Input
-                          value={courseBuilderData.title}
-                          onChange={(e) => setCourseBuilderData(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="e.g., Introduction to Web Development"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Description</label>
-                        <Textarea
-                          value={courseBuilderData.description}
-                          onChange={(e) => setCourseBuilderData(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Describe what students will learn..."
-                          rows={4}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Cover Image URL</label>
-                        <Input
-                          value={courseBuilderData.imageUrl}
-                          onChange={(e) => setCourseBuilderData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                          placeholder="https://example.com/image.jpg"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <Button 
-                        onClick={() => setCourseBuilderStep(2)} 
-                        disabled={!courseBuilderData.title.trim()}
-                      >
-                        Next: Preview
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 2: Preview */}
-                {courseBuilderStep === 2 && (
-                  <div className="space-y-6 max-w-2xl mx-auto">
-                    <Card className="bg-muted/50">
-                      <CardContent className="pt-6">
-                        <div className="space-y-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Title</p>
-                            <p className="font-medium text-lg">{courseBuilderData.title || 'Untitled Course'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Description</p>
-                            <p>{courseBuilderData.description || 'No description'}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <div className="flex justify-between gap-4">
-                      <Button variant="outline" onClick={() => setCourseBuilderStep(1)}>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back
-                      </Button>
-                      <div className="flex gap-2">
-                        <Button 
-                          onClick={async () => {
-                            await handleCourseSubmit();
-                          }}
-                          disabled={courseSaving}
-                        >
-                          {courseSaving ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Creating...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 mr-2" />
-                              Create Course
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </main>
-
-      {/* Lesson Form Dialog */}
-      <Dialog open={lessonFormOpen} onOpenChange={setLessonFormOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingLesson ? 'Edit Lesson' : 'Create New Lesson'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingLesson 
-                ? 'Update the lesson content below.' 
-                : 'Fill in the details for your new lesson.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Lesson Title *</label>
-              <Input
-                value={lessonFormData.title}
-                onChange={(e) => setLessonFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="e.g., Getting Started with HTML"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Description</label>
-              <Input
-                value={lessonFormData.description}
-                onChange={(e) => setLessonFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Brief description"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Course (Optional)</label>
-              <select
-                className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
-                value={lessonFormData.courseId}
-                onChange={(e) => setLessonFormData(prev => ({ ...prev, courseId: e.target.value }))}
-              >
-                <option value="">Standalone Lesson</option>
-                {courses.map(course => (
-                  <option key={course.id} value={course.id}>{course.title}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="lesson-file" className="block text-sm font-medium mb-2">
-                Upload .md File (Optional)
-              </Label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center">
-                <input
-                  id="lesson-file"
-                  type="file"
-                  accept=".md,.markdown"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
-                        setError('Only .md (Markdown) files are accepted');
-                        return;
-                      }
-                      setLessonFile(file);
-                      setLessonFormData(prev => ({ ...prev, content: `[Uploaded: ${file.name}]` }));
-                    }
-                  }}
-                />
-                <label htmlFor="lesson-file" className="cursor-pointer">
-                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                  <p className="text-xs text-muted-foreground">
-                    {lessonFile ? lessonFile.name : 'Click to upload .md file'}
-                  </p>
-                </label>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Content *</label>
-              <Textarea
-                value={lessonFormData.content}
-                onChange={(e) => setLessonFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Lesson content... (or upload .md file above)"
-                rows={10}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setLessonFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleLessonSubmit} 
-              disabled={lessonSaving || !lessonFormData.title.trim() || !lessonFormData.content.trim()}
-            >
-              {lessonSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : editingLesson ? (
-                'Update Lesson'
-              ) : (
-                'Create Lesson'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Article Form Dialog */}
-      <Dialog open={articleFormOpen} onOpenChange={setArticleFormOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Publish New Article</DialogTitle>
-            <DialogDescription>
-              Upload a .docx file to create an article, or enter content manually.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="article-file" className="block text-sm font-medium mb-2">
-                Upload .docx File *
-              </Label>
-              <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                <input
-                  id="article-file"
-                  type="file"
-                  accept=".docx"
-                  className="hidden"
-                  onChange={(e) => handleFileChange(e, 'article')}
-                />
-                <label htmlFor="article-file" className="cursor-pointer">
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {articleFormData.file ? articleFormData.file.name : 'Click to upload .docx file'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Only .docx files are accepted
-                  </p>
-                </label>
-              </div>
-              {fileError && (
-                <p className="text-sm text-destructive mt-2">{fileError}</p>
-              )}
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or enter manually</span>
-              </div>
-            </div>
-
-            <div>
-              <Label className="block text-sm font-medium mb-2">Article Title</Label>
-              <Input
-                value={articleFormData.title}
-                onChange={(e) => setArticleFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Article title"
-                disabled={!!articleFormData.file}
-              />
-            </div>
-
-            <div>
-              <Label className="block text-sm font-medium mb-2">Category</Label>
-              <select
-                className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
-                value={articleFormData.category}
-                onChange={(e) => setArticleFormData(prev => ({ ...prev, category: e.target.value as ArticleCategory }))}
-              >
-                {Object.entries(categoryLabels).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <Label className="block text-sm font-medium mb-2">Content</Label>
-              <Textarea
-                value={articleFormData.content}
-                onChange={(e) => setArticleFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Article content... (leave empty if uploading file)"
-                rows={8}
-                disabled={!!articleFormData.file}
-              />
-            </div>
-
-            <div>
-              <Label className="block text-sm font-medium mb-2">Excerpt</Label>
-              <Textarea
-                value={articleFormData.excerpt}
-                onChange={(e) => setArticleFormData(prev => ({ ...prev, excerpt: e.target.value }))}
-                placeholder="Brief excerpt for the article preview..."
-                rows={2}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setArticleFormOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleArticleSubmit} 
-              disabled={articleSaving || (!articleFormData.file && !articleFormData.content.trim())}
-            >
-              {articleSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Publishing...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Publish Article
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

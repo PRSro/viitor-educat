@@ -1,11 +1,6 @@
-/**
- * Quiz Routes
- * Full quiz functionality including questions and attempts
- */
-
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware.js';
-import { teacherOnly, anyRole, adminOnly, requireRole } from '../../core/middleware/permissionMiddleware.js';
+import { teacherOnly, anyRole, requireRole } from '../../core/middleware/permissionMiddleware.js';
 import { z } from 'zod';
 import { prisma } from '../../models/prisma.js';
 
@@ -17,7 +12,6 @@ const createQuizSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   description: z.string().optional(),
   lessonId: z.string().optional(),
-  courseId: z.string().optional(),
   status: z.enum(['DRAFT', 'PUBLISHED', 'PRIVATE']).optional(),
   timeLimit: z.number().int().positive().optional(),
   passingScore: z.number().int().min(0).max(100).optional(),
@@ -35,18 +29,8 @@ const createQuestionSchema = z.object({
   points: z.number().int().positive().optional(),
 });
 
-const submitAnswerSchema = z.record(z.string(), z.string());
-
 interface QuizParams {
   id: string;
-}
-
-interface CourseParams {
-  courseId: string;
-}
-
-interface LessonParams {
-  lessonId: string;
 }
 
 interface QuizQuestionParams {
@@ -65,8 +49,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const user = getCurrentUser(request);
-      const { courseId, lessonId, published } = request.query as {
-        courseId?: string;
+      const { lessonId, published } = request.query as {
         lessonId?: string;
         published?: string
       };
@@ -77,7 +60,6 @@ export async function quizRoutes(fastify: FastifyInstance) {
         where.status = 'PUBLISHED';
       }
 
-      if (courseId) where.courseId = courseId;
       if (lessonId) where.lessonId = lessonId;
       if (published) where.status = published === 'true' ? 'PUBLISHED' : undefined;
 
@@ -85,7 +67,6 @@ export async function quizRoutes(fastify: FastifyInstance) {
         where,
         include: {
           teacher: { select: { id: true, email: true } },
-          course: { select: { id: true, title: true, slug: true } },
           _count: { select: { questions: true, attempts: true } }
         },
         orderBy: { createdAt: 'desc' }
@@ -111,7 +92,6 @@ export async function quizRoutes(fastify: FastifyInstance) {
       const quizzes = await prisma.quiz.findMany({
         where: { teacherId },
         include: {
-          course: { select: { id: true, title: true, slug: true } },
           _count: { select: { questions: true, attempts: true } }
         },
         orderBy: { createdAt: 'desc' }
@@ -126,7 +106,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /quizzes/:id
-   * Get quiz details (with questions if teacher/owner, without if student)
+   * Get quiz details
    */
   fastify.get<{ Params: QuizParams }>('/:id', {
     preHandler: [authMiddleware, anyRole]
@@ -138,8 +118,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       const quiz = await prisma.quiz.findUnique({
         where: { id },
         include: {
-          teacher: { select: { id: true, email: true } },
-          course: { select: { id: true, title: true, slug: true } }
+          teacher: { select: { id: true, email: true } }
         }
       });
 
@@ -147,18 +126,15 @@ export async function quizRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Quiz not found' });
       }
 
-      // Fetch questions separately
       const questions = await prisma.question.findMany({
         where: { quiz: { id } },
         orderBy: { order: 'asc' }
       });
 
-      // Students can only see published quizzes
       if (user.role === 'STUDENT' && quiz.status !== 'PUBLISHED') {
         return reply.status(404).send({ error: 'Quiz not found' });
       }
 
-      // Hide correct answers for students
       const safeQuestions = questions.map((q: any) => ({
         ...q,
         correctAnswer: user.role === 'STUDENT' ? '' : q.correctAnswer,
@@ -183,33 +159,12 @@ export async function quizRoutes(fastify: FastifyInstance) {
       const validated = createQuizSchema.parse(request.body);
       const teacherId = getCurrentUser(request).id;
 
-      // Verify course ownership if provided
-      if (validated.courseId) {
-        const course = await prisma.course.findUnique({
-          where: { id: validated.courseId }
-        });
-        if (!course || course.teacherId !== teacherId) {
-          return reply.status(403).send({
-            error: 'Forbidden',
-            message: 'You can only create quizzes for your own courses'
-          });
-        }
-      }
-
-      if (!validated.courseId) {
-        return reply.status(400).send({
-          error: 'Bad Request',
-          message: 'courseId is required'
-        });
-      }
-
       const quiz = await prisma.quiz.create({
         data: {
           title: validated.title,
           description: validated.description,
           teacherId,
-          courseId: validated.courseId,
-          status: validated.status,
+          status: validated.status || 'DRAFT',
           timeLimit: validated.timeLimit,
           lessonId: validated.lessonId
         },
@@ -464,25 +419,6 @@ export async function quizRoutes(fastify: FastifyInstance) {
         return reply.status(404).send({ error: 'Quiz not found' });
       }
 
-      // Verify student is enrolled in the course if quiz is tied to a course
-      if (quiz.courseId) {
-        const enrollment = await prisma.enrollment.findUnique({
-          where: {
-            studentId_courseId: {
-              studentId,
-              courseId: quiz.courseId
-            }
-          }
-        });
-
-        if (!enrollment) {
-          return reply.status(403).send({
-            error: 'Forbidden',
-            message: 'You must be enrolled in this course to take the quiz'
-          });
-        }
-      }
-
       // Calculate score
       let correctCount = 0;
       let totalPoints = 0;
@@ -531,7 +467,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /quizzes/:id/attempts
-   * Get quiz attempts for current user or all attempts (teacher)
+   * Get quiz attempts
    */
   fastify.get<{ Params: QuizParams }>('/:id/attempts', {
     preHandler: [authMiddleware, anyRole]
@@ -548,11 +484,9 @@ export async function quizRoutes(fastify: FastifyInstance) {
 
       const where: any = { quizId: id };
 
-      // Students can only see their own attempts
       if (user.role === 'STUDENT') {
-        where.studentId = user.id;
+        where.userId = user.id;
       }
-      // Teachers can only see attempts for their quizzes
       else if (user.role === 'TEACHER' && quiz.teacherId !== user.id) {
         return reply.status(403).send({
           error: 'Forbidden',
@@ -562,7 +496,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
 
       const attempts = await prisma.quizAttempt.findMany({
         where,
-        orderBy: { completedAt: 'desc' }
+        orderBy: { startedAt: 'desc' }
       });
 
       return { attempts };
@@ -586,10 +520,10 @@ export async function quizRoutes(fastify: FastifyInstance) {
         where: { userId: studentId },
         include: {
           quiz: {
-            select: { id: true, title: true, courseId: true, course: { select: { title: true } } }
+            select: { id: true, title: true }
           }
         },
-        orderBy: { completedAt: 'desc' }
+        orderBy: { startedAt: 'desc' }
       });
 
       return { attempts };

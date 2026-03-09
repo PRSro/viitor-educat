@@ -35,21 +35,11 @@ export interface ArticleFilters {
 }
 
 export class ArticleService extends BaseService {
-  private generateSlug(title: string): string {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
-      .slice(0, 100) + '-' + Date.now().toString(36);
-  }
-
   async create(data: CreateArticleData, userRole: string): Promise<ServiceResponse> {
     try {
       if (userRole === 'STUDENT') {
         throw AppError.Forbidden('Students cannot create articles');
       }
-
-      const slug = this.generateSlug(data.title);
 
       const article = await prisma.article.create({
         data: {
@@ -59,7 +49,6 @@ export class ArticleService extends BaseService {
           category: data.category || ArticleCategory.GENERAL,
           tags: data.tags || [],
           sourceUrl: data.sourceUrl,
-          slug,
           authorId: data.authorId,
           status: Status.DRAFT,
         },
@@ -91,8 +80,7 @@ export class ArticleService extends BaseService {
       const article = await prisma.article.update({
         where: { id },
         data: {
-          ...data,
-          ...(data.title && { slug: this.generateSlug(data.title) })
+          ...data
         },
         include: {
           author: { select: { id: true, email: true } }
@@ -144,22 +132,6 @@ export class ArticleService extends BaseService {
     }
   }
 
-  async findBySlug(slug: string): Promise<ServiceResponse> {
-    try {
-      const article = await prisma.article.findUnique({
-        where: { slug },
-        include: {
-          author: { select: { id: true, email: true } }
-        }
-      });
-
-      if (!article) throw AppError.NotFound('Article not found');
-      return this.success(article);
-    } catch (err) {
-      return this.error(err);
-    }
-  }
-
   async findAll(filters: ArticleFilters, pagination: { page: number; limit: number }): Promise<ServiceResponse> {
     try {
       const where: Prisma.ArticleWhereInput = {};
@@ -185,7 +157,6 @@ export class ArticleService extends BaseService {
           select: {
             id: true,
             title: true,
-            slug: true,
             excerpt: true,
             category: true,
             tags: true,
@@ -222,14 +193,42 @@ export class ArticleService extends BaseService {
     return article?.authorId === userId;
   }
 
+  async import(url: string, authorId: string, userRole: string): Promise<ServiceResponse> {
+    try {
+      if (userRole === 'STUDENT') {
+        throw AppError.Forbidden('Students cannot import articles');
+      }
+
+      // Basic import logic (similar to route)
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch URL');
+      const html = await response.text();
+      
+      const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || 'Imported Article';
+      const content = html; // Simplified for now, real implementation would sanitize
+
+      const article = await prisma.article.create({
+        data: {
+          title,
+          content,
+          excerpt: 'Imported from ' + url,
+          sourceUrl: url,
+          category: ArticleCategory.GENERAL,
+          authorId,
+          status: Status.PUBLISHED,
+          published: true
+        }
+      });
+
+      return this.success(article);
+    } catch (err) {
+      return this.error(err);
+    }
+  }
+
   // Aliases for route compatibility
   async getArticleById(id: string) {
     const res = await this.findById(id);
-    return res.data;
-  }
-
-  async getArticleBySlug(slug: string) {
-    const res = await this.findBySlug(slug);
     return res.data;
   }
 }

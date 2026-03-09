@@ -11,7 +11,8 @@ const navLinks = [
   { name: "Viața Școlară", href: "#viata" },
   { name: "Noutăți", href: "#noutati" },
   { name: "Contact", href: "#contact" },
-  { name: "Cursuri", href: "/courses", isRoute: true },
+  { name: "Lecții", href: "/lessons", isRoute: true }, // Changed Cursuri to Lecții and /courses to /lessons
+  { name: "Articole", href: "/articles", isRoute: true }, // Added Articole
   { name: "Profesori", href: "/profesori", isRoute: true },
   { name: "Forum", href: "/forum", isRoute: true },
 ];
@@ -48,7 +49,7 @@ export const Header = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
-        ? "bg-background/80 dark:bg-background/90 backdrop-blur-xl py-3 border-b border-border/50 shadow-sm"
+        ? "bg-white/70 dark:bg-black/40 backdrop-blur-md py-3 border-b border-white/20 shadow-sm"
         : "bg-transparent py-5"
         }`}
     >

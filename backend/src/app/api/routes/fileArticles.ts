@@ -6,8 +6,6 @@ import { formatZodError } from '../../schemas/validation/schemas.js';
 import { fileArticleService } from '../../articles/articleService.js';
 import {
   validateArticleInput,
-  sanitizeSlug,
-  isValidSlug,
   checkRateLimit
 } from '../../articles/security.js';
 import { auditLogger, logArticleAction } from '../../articles/auditLogger.js';
@@ -41,16 +39,11 @@ const listQuerySchema = z.object({
 });
 
 interface ArticleParams {
-  slug: string;
+  id: string;
 }
 
 interface VersionParams extends ArticleParams {
   version: string;
-}
-
-function generateSlug(title: string): string {
-  const baseSlug = sanitizeSlug(title);
-  return `${baseSlug}-${Date.now().toString(36)}`;
 }
 
 function sendResponse(reply: FastifyReply, result: any): FastifyReply {
@@ -92,7 +85,6 @@ export async function fileArticleRoutes(server: FastifyInstance) {
 
       const filters: any = {};
 
-      // STUDENT: can only see published
       if (user.role === 'STUDENT') {
         filters.published = true;
       }
@@ -122,22 +114,16 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   });
 
   /**
-   * GET /file-articles/:slug
-   * Get article by slug
+   * GET /file-articles/:id
+   * Get article by id
    */
-  server.get<{ Params: ArticleParams }>('/:slug', {
+  server.get<{ Params: ArticleParams }>('/:id', {
     preHandler: [authMiddleware, anyRole]
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
-    const { slug } = request.params;
+    const { id } = request.params;
     const user = getCurrentUser(request);
 
-    // Validate slug to prevent path traversal
-    if (!isValidSlug(slug)) {
-      auditLogger.warn('INVALID_SLUG', `Invalid slug attempted: ${slug}`, { userId: user.id });
-      return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug format' });
-    }
-
-    const result = await fileArticleService.findBySlug(slug);
+    const result = await fileArticleService.findById(id);
 
     if (!result) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
@@ -162,7 +148,6 @@ export async function fileArticleRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      // Rate limiting for write operations
       const user = getCurrentUser(request);
       const rateLimit = await checkRateLimit(`write_${user.id}`, 10, 60000);
 
@@ -177,7 +162,6 @@ export async function fileArticleRoutes(server: FastifyInstance) {
 
       const validated = createFileArticleSchema.parse(request.body);
 
-      // Validate using security helper
       const validation = validateArticleInput({
         title: validated.title,
         content: validated.content,
@@ -195,17 +179,11 @@ export async function fileArticleRoutes(server: FastifyInstance) {
         });
       }
 
-      const slug = generateSlug(validation.sanitized.title);
-
-      const exists = await fileArticleService.exists(slug);
-      if (exists) {
-        return reply.status(409).send({ success: false, errorCode: 'CONFLICT', message: 'Article with this title already exists' });
-      }
+      const id = validation.sanitized.id;
 
       const saveResult = await fileArticleService.save({
-        id: `article_${Date.now()}`,
+        id,
         title: validation.sanitized.title,
-        slug,
         content: validation.sanitized.content,
         excerpt: validation.sanitized.excerpt,
         category: validated.category,
@@ -218,15 +196,12 @@ export async function fileArticleRoutes(server: FastifyInstance) {
       });
 
       if (saveResult.success) {
-        logArticleAction('CREATE', user.id, slug, {
+        logArticleAction('CREATE', user.id, id, {
           title: validation.sanitized.title,
           published: validated.published
         });
 
-        // Sync to database in background
-        if (saveResult.data) {
-          jobs.syncDatabase().catch(console.error);
-        }
+        jobs.syncDatabase().catch(console.error);
       }
 
       return sendResponse(reply, saveResult);
@@ -244,44 +219,37 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   });
 
   /**
-   * PUT /file-articles/:slug
+   * PUT /file-articles/:id
    * Update a file-based article
    */
-  server.put<{ Params: ArticleParams }>('/:slug', {
+  server.put<{ Params: ArticleParams }>('/:id', {
     preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
     try {
-      const { slug } = request.params;
+      const { id } = request.params;
       const user = getCurrentUser(request);
 
-      // Rate limiting
       const rateLimit = await checkRateLimit(`write_${user.id}`, 10, 60000);
       if (!rateLimit.allowed) {
         return reply.status(429).send({ success: false, errorCode: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' });
       }
 
-      // Validate slug
-      if (!isValidSlug(slug)) {
-        return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
-      }
-
       const validated = updateFileArticleSchema.parse(request.body);
 
-      const existing = await fileArticleService.findBySlug(slug);
+      const existing = await fileArticleService.findById(id);
       if (!existing) {
         return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
       }
 
-      // RBAC check
       if (existing.authorId !== user.id && user.role !== 'ADMIN') {
-        logArticleAction('PERMISSION_DENIED', user.id, slug, { action: 'UPDATE', reason: 'not_owner' });
+        logArticleAction('PERMISSION_DENIED', user.id, id, { action: 'UPDATE', reason: 'not_owner' });
         return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'You can only update your own articles' });
       }
 
-      // Validate content if provided
       let validation;
       if (validated.content) {
         validation = validateArticleInput({
+          id,
           title: validated.title || existing.title,
           content: validated.content,
           authorId: user.id
@@ -304,10 +272,10 @@ export async function fileArticleRoutes(server: FastifyInstance) {
         }
       }
 
-      const result = await fileArticleService.update(slug, data);
+      const result = await fileArticleService.update(id, data);
 
       if (result.success) {
-        logArticleAction('UPDATE', user.id, slug, {
+        logArticleAction('UPDATE', user.id, id, {
           oldVersion: existing.metadata?.version,
           newVersion: result.data?.metadata?.version
         });
@@ -324,59 +292,50 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   });
 
   /**
-   * DELETE /file-articles/:slug
+   * DELETE /file-articles/:id
    * Delete a file-based article
    */
-  server.delete<{ Params: ArticleParams }>('/:slug', {
+  server.delete<{ Params: ArticleParams }>('/:id', {
     preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
-    const { slug } = request.params;
+    const { id } = request.params;
     const user = getCurrentUser(request);
 
-    // Rate limiting
     const rateLimit = await checkRateLimit(`write_${user.id}`, 10, 60000);
     if (!rateLimit.allowed) {
       return reply.status(429).send({ success: false, errorCode: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' });
     }
 
-    if (!isValidSlug(slug)) {
-      return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
-    }
-
-    const existing = await fileArticleService.findBySlug(slug);
+    const existing = await fileArticleService.findById(id);
     if (!existing) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
 
     if (existing.authorId !== user.id && user.role !== 'ADMIN') {
-      logArticleAction('PERMISSION_DENIED', user.id, slug, { action: 'DELETE' });
+      logArticleAction('PERMISSION_DENIED', user.id, id, { action: 'DELETE' });
       return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'You can only delete your own articles' });
     }
 
-    const result = await fileArticleService.delete(slug);
+    const result = await fileArticleService.delete(id);
 
     if (result.success) {
-      logArticleAction('DELETE', user.id, slug, { title: existing.title });
+      logArticleAction('DELETE', user.id, id, { title: existing.title });
     }
 
     return sendResponse(reply, result);
   });
 
   /**
-   * GET /file-articles/:slug/paths
+   * GET /file-articles/:id/paths
    * Get article paths
    */
-  server.get<{ Params: ArticleParams }>('/:slug/paths', {
+  server.get<{ Params: ArticleParams }>('/:id/paths', {
     preHandler: [authMiddleware, anyRole]
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
-    const { slug } = request.params;
+    const { id } = request.params;
     const user = getCurrentUser(request);
 
-    if (!isValidSlug(slug)) {
-      return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
-    }
-
-    const article = await fileArticleService.findBySlug(slug);
+    const article = await fileArticleService.findById(id);
 
     if (!article) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
@@ -393,20 +352,16 @@ export async function fileArticleRoutes(server: FastifyInstance) {
   });
 
   /**
-   * GET /file-articles/:slug/history
+   * GET /file-articles/:id/history
    * Get article version history
    */
-  server.get<{ Params: ArticleParams }>('/:slug/history', {
+  server.get<{ Params: ArticleParams }>('/:id/history', {
     preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
-    const { slug } = request.params;
+    const { id } = request.params;
     const user = getCurrentUser(request);
 
-    if (!isValidSlug(slug)) {
-      return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
-    }
-
-    const existing = await fileArticleService.findBySlug(slug);
+    const existing = await fileArticleService.findById(id);
     if (!existing) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
@@ -415,25 +370,21 @@ export async function fileArticleRoutes(server: FastifyInstance) {
       return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'Access denied' });
     }
 
-    const result = await fileArticleService.getHistory(slug);
+    const result = await fileArticleService.getHistory(id);
     return sendResponse(reply, result);
   });
 
   /**
-   * POST /file-articles/:slug/restore/:version
+   * POST /file-articles/:id/restore/:version
    * Restore article to a previous version
    */
-  server.post<{ Params: VersionParams }>('/:slug/restore/:version', {
+  server.post<{ Params: VersionParams }>('/:id/restore/:version', {
     preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest<{ Params: VersionParams }>, reply: FastifyReply) => {
-    const { slug, version } = request.params;
+    const { id, version } = request.params;
     const user = getCurrentUser(request);
 
-    if (!isValidSlug(slug)) {
-      return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
-    }
-
-    const existing = await fileArticleService.findBySlug(slug);
+    const existing = await fileArticleService.findById(id);
     if (!existing) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
@@ -447,30 +398,26 @@ export async function fileArticleRoutes(server: FastifyInstance) {
       return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid version number' });
     }
 
-    const result = await fileArticleService.restoreVersion(slug, versionNum);
+    const result = await fileArticleService.restoreVersion(id, versionNum);
 
     if (result.success) {
-      logArticleAction('RESTORE', user.id, slug, { version: versionNum });
+      logArticleAction('RESTORE', user.id, id, { version: versionNum });
     }
 
     return sendResponse(reply, result);
   });
 
   /**
-   * GET /file-articles/:slug/audit
+   * GET /file-articles/:id/audit
    * Get article audit log
    */
-  server.get<{ Params: ArticleParams }>('/:slug/audit', {
+  server.get<{ Params: ArticleParams }>('/:id/audit', {
     preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest<{ Params: ArticleParams }>, reply: FastifyReply) => {
-    const { slug } = request.params;
+    const { id } = request.params;
     const user = getCurrentUser(request);
 
-    if (!isValidSlug(slug)) {
-      return reply.status(400).send({ success: false, errorCode: 'VALIDATION_ERROR', message: 'Invalid slug' });
-    }
-
-    const existing = await fileArticleService.findBySlug(slug);
+    const existing = await fileArticleService.findById(id);
     if (!existing) {
       return reply.status(404).send({ success: false, errorCode: 'NOT_FOUND', message: 'Article not found' });
     }
@@ -479,8 +426,7 @@ export async function fileArticleRoutes(server: FastifyInstance) {
       return reply.status(403).send({ success: false, errorCode: 'FORBIDDEN', message: 'Access denied' });
     }
 
-    // Get audit logs for this article
-    const logs = auditLogger.getLogs({ action: slug });
+    const logs = auditLogger.getLogs({ action: id });
 
     return { success: true, data: logs };
   });

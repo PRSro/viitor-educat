@@ -25,8 +25,6 @@ export interface AuthError {
 
 /**
  * Register a new user
- * Note: ADMIN role cannot be self-registered for security reasons.
- * Admin users must be created directly in the database.
  */
 export async function register(
   email: string,
@@ -130,29 +128,18 @@ export async function getProfile(): Promise<ProfileResponse> {
 /**
  * Get teacher profile by ID (public for students)
  */
-export interface TeacherCourses {
+export interface TeacherLesson {
   id: string;
   title: string;
-  slug: string;
-  description?: string;
-  imageUrl?: string;
-  level?: string;
-  status?: string;
+  description: string | null;
+  order: number;
   createdAt: string;
-  lessons?: {
-    id: string;
-    title: string;
-    description?: string | null;
-    order: number;
-    status: string;
-  }[];
-  _count?: {
-    lessons: number;
-    enrollments: number;
-  };
 }
 
-export async function getTeacherProfile(teacherId: string): Promise<{ teacher: User; profile: TeacherProfile | null; courses: TeacherCourses[] }> {
+export async function getTeacherProfile(teacherId: string): Promise<{ 
+  teacher: User; 
+  profile: TeacherProfile | null; 
+}> {
   return api.get(`/profile/${teacherId}`);
 }
 
@@ -185,21 +172,14 @@ export interface TeacherWithProfile {
   email: string;
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
   teacherProfile: TeacherProfile | null;
-  courses?: {
-    id: string;
-    title: string;
-    slug: string;
-    description?: string;
-    imageUrl?: string;
-    _count?: {
-      lessons: number;
-      enrollments: number;
-    };
-  }[];
+  _count?: {
+    articles: number;
+    lessons: number;
+  };
 }
 
 /**
- * Get all teachers with their profiles (for student discovery)
+ * Get all teachers with their profiles
  */
 export async function getAllTeachers(): Promise<TeacherWithProfile[]> {
   const data = await api.get<{ teachers: TeacherWithProfile[] }>('/profile/teachers');
@@ -207,7 +187,7 @@ export async function getAllTeachers(): Promise<TeacherWithProfile[]> {
 }
 
 /**
- * Get teacher's published articles (for public profile)
+ * Get teacher's published articles
  */
 export async function getTeacherArticles(teacherId: string): Promise<ArticleListItem[]> {
   const data = await api.get<{ articles: ArticleListItem[] }>(`/profile/${teacherId}/articles`);
@@ -215,23 +195,8 @@ export async function getTeacherArticles(teacherId: string): Promise<ArticleList
 }
 
 /**
- * Get teacher's published lessons (for public profile)
+ * Get teacher's published lessons
  */
-export interface TeacherLesson {
-  id: string;
-  slug: string;
-  title: string;
-  description: string | null;
-  courseId: string | null;
-  course?: {
-    id: string;
-    title: string;
-    slug: string;
-  } | null;
-  order: number;
-  createdAt: string;
-}
-
 export async function getTeacherLessons(teacherId: string): Promise<TeacherLesson[]> {
   const data = await api.get<{ lessons: TeacherLesson[] }>(`/profile/${teacherId}/lessons`);
   return data.lessons;

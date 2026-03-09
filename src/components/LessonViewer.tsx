@@ -36,11 +36,6 @@ interface LessonViewerProps {
         pictureUrl: string | null;
       } | null;
     };
-    course: {
-      id: string;
-      title: string;
-      slug: string;
-    } | null;
     externalResources: {
       id: string;
       type: string;
@@ -66,8 +61,8 @@ interface LessonViewerProps {
   completedLessonsCount: number;
   totalLessons: number;
   navigation: {
-    nextLesson: { id: string; title: string; order: number; slug: string } | null;
-    previousLesson: { id: string; title: string; order: number; slug: string } | null;
+    nextLesson: { id: string; title: string; order: number } | null;
+    previousLesson: { id: string; title: string; order: number } | null;
   };
   onMarkComplete: () => Promise<void>;
   isCompleting: boolean;
@@ -157,13 +152,13 @@ export function LessonViewer({
 
   const handleNextLesson = () => {
     if (navigation.nextLesson) {
-      navigate(`/lessons/${navigation.nextLesson.slug}`);
+      navigate(`/lessons/${navigation.nextLesson.id}`);
     }
   };
 
   const handlePreviousLesson = () => {
     if (navigation.previousLesson) {
-      navigate(`/lessons/${navigation.previousLesson.slug}`);
+      navigate(`/lessons/${navigation.previousLesson.id}`);
     }
   };
 
@@ -192,15 +187,6 @@ export function LessonViewer({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          {lesson.course && (
-            <Link 
-              to={`/courses/${lesson.course.slug}`}
-              className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1 mb-1"
-            >
-              <BookOpen className="h-3 w-3" />
-              {lesson.course.title}
-            </Link>
-          )}
           <h1 className="text-2xl font-bold">{lesson.title}</h1>
           {lesson.description && (
             <p className="text-muted-foreground mt-1">{lesson.description}</p>
@@ -233,7 +219,7 @@ export function LessonViewer({
       <Card>
         <CardContent className="py-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Course Progress</span>
+            <span className="text-sm text-muted-foreground">Learning Progress</span>
             <span className="text-sm font-medium">
               {completedLessonsCount} / {totalLessons} lessons ({Math.round(progress)}%)
             </span>
@@ -365,17 +351,10 @@ export function LessonViewer({
           <div />
         )}
         
-        {navigation.nextLesson ? (
+        {navigation.nextLesson && (
           <Button onClick={handleNextLesson}>
             Next: {navigation.nextLesson.title}
             <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        ) : (
-          <Button asChild>
-            <Link to={`/courses/${lesson.course?.slug}`}>
-              Back to Course
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Link>
           </Button>
         )}
       </div>

@@ -6,13 +6,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle, ArrowLeft, BookOpen, LogIn, CheckCircle } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft, CheckCircle, LogIn } from 'lucide-react';
 import { LessonViewer } from '@/components/LessonViewer';
-import { viewLesson, completeLesson, LessonViewResponse, LessonCompleteResponse } from '@/modules/lessons/services/lessonService';
+import { viewLesson, completeLesson, LessonViewResponse } from '@/modules/lessons/services/lessonService';
 
 export default function LessonViewerPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -41,11 +41,10 @@ export default function LessonViewerPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to load lesson';
       setError(msg);
-      // viewLesson throws with the error message from backend
-      if (msg.includes('Enrollment required') || msg.includes('403')) {
-        setErrorCode(403);
-      } else {
+      if (msg.includes('Not found') || msg.includes('404')) {
         setErrorCode(404);
+      } else {
+        setErrorCode(403);
       }
     } finally {
       setLoading(false);
@@ -58,7 +57,7 @@ export default function LessonViewerPage() {
 
     try {
       setCompleting(true);
-      await completeLesson(lessonId, lessonData.lesson.courseId || undefined);
+      await completeLesson(lessonId);
       // Refresh lesson data to get updated progress
       if (lessonId) {
         await fetchLesson(lessonId);
@@ -86,17 +85,12 @@ export default function LessonViewerPage() {
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
             <h2 className="text-xl font-semibold mb-2">
-              {errorCode === 403 ? 'Enrollment Required' : 'Lesson Not Found'}
+              {errorCode === 403 ? 'Access Denied' : 'Lesson Not Found'}
             </h2>
             <p className="text-muted-foreground mb-4">
-              {errorCode === 403
-                ? 'You need to enroll in this course before viewing lessons.'
-                : error || "This lesson doesn't exist or you don't have access."}
+              {error || "This lesson doesn't exist or you don't have access."}
             </p>
             <div className="flex gap-2 justify-center">
-              <Button onClick={() => navigate('/courses')}>
-                Browse Courses
-              </Button>
               <Button variant="outline" onClick={() => navigate('/student')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Dashboard
@@ -120,14 +114,7 @@ export default function LessonViewerPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="flex-1">
-              <Link
-                to={`/courses/${lesson.course?.slug}`}
-                className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
-              >
-                <BookOpen className="h-3 w-3" />
-                {lesson.course?.title || 'Course'}
-              </Link>
-              <h1 className="font-semibold truncate">Lesson {lesson.order}: {lesson.title}</h1>
+              <h1 className="font-semibold truncate">{lesson.title}</h1>
             </div>
           </div>
         </div>
@@ -167,7 +154,7 @@ export default function LessonViewerPage() {
           isCompleting={completing}
         />
 
-        {/* Manual completion button as requested in Prompt 7 */}
+        {/* Manual completion button */}
         <div className="mt-8 pt-8 border-t flex justify-center">
           {!lessonData?.isCompleted && (
             <Button

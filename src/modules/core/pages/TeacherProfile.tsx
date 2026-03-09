@@ -28,14 +28,12 @@ import {
   AlertCircle,
   Newspaper
 } from 'lucide-react';
-import { getTeacherProfile, TeacherProfile as TeacherProfileType, User as UserType, TeacherCourses, getTeacherArticles, getTeacherLessons, TeacherLesson, TeacherLesson as TeacherLessonType } from '@/modules/core/services/authService';
+import { getTeacherProfile, TeacherProfile as TeacherProfileType, User as UserType, getTeacherArticles, getTeacherLessons, TeacherLesson as TeacherLessonType } from '@/modules/core/services/authService';
 import { ArticleListItem, categoryLabels, categoryColors } from '@/modules/articles/services/articleService';
-import { CourseCard } from '@/modules/courses/components/CourseCard';
 
 interface TeacherData {
   teacher: UserType;
   profile: TeacherProfileType | null;
-  courses: TeacherCourses[];
   articles?: ArticleListItem[];
   lessons?: TeacherLessonType[];
 }
@@ -78,7 +76,7 @@ export default function TeacherProfilePage() {
           console.warn('No lessons found for teacher');
         }
 
-        setTeacherData({ ...data as TeacherData, articles, lessons });
+        setTeacherData({ ...data as any, articles, lessons });
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch teacher profile');
@@ -129,9 +127,7 @@ export default function TeacherProfilePage() {
     );
   }
 
-  const { teacher, profile, courses, articles = [], lessons = [] } = teacherData;
-  const totalLessons = courses.reduce((acc, c) => acc + (c._count?.lessons || 0), 0);
-  const totalStudents = courses.reduce((acc, c) => acc + (c._count?.enrollments || 0), 0);
+  const { teacher, profile, articles = [], lessons = [] } = teacherData;
 
   const displayName = teacher?.email?.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? 'Teacher';
 
@@ -218,14 +214,10 @@ export default function TeacherProfilePage() {
                   </div>
                 )}
 
-                <div className="mt-6 grid grid-cols-3 gap-2 text-center">
-                  <div className="p-3 rounded-lg bg-muted">
-                    <p className="text-2xl font-bold">{courses.length}</p>
-                    <p className="text-xs text-muted-foreground">Courses</p>
-                  </div>
+                <div className="mt-6 grid grid-cols-2 gap-2 text-center">
                   <div className="p-3 rounded-lg bg-muted">
                     <p className="text-2xl font-bold">{articles.length}</p>
-                    <p className="text-xs text-muted-foreground">Newspapers</p>
+                    <p className="text-xs text-muted-foreground">Articles</p>
                   </div>
                   <div className="p-3 rounded-lg bg-muted">
                     <p className="text-2xl font-bold">{lessons.length}</p>
@@ -303,15 +295,11 @@ export default function TeacherProfilePage() {
           </div>
 
           <div className="lg:col-span-2">
-            <Tabs defaultValue="courses" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="courses" className="gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Courses ({courses.length})
-                </TabsTrigger>
+            <Tabs defaultValue="articles" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="articles" className="gap-2">
                   <Newspaper className="h-4 w-4" />
-                  Newspapers ({articles.length})
+                  Articles ({articles.length})
                 </TabsTrigger>
                 <TabsTrigger value="lessons" className="gap-2">
                   <FileText className="h-4 w-4" />
@@ -319,39 +307,8 @@ export default function TeacherProfilePage() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="courses" className="space-y-4">
-                <h2 className="text-2xl font-bold">Published Courses</h2>
-
-                {courses.length === 0 ? (
-                  <Card className="p-12 text-center">
-                    <div className="max-w-sm mx-auto">
-                      <div className="p-4 rounded-full bg-muted mx-auto w-fit mb-4">
-                        <BookOpen className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                      <h3 className="text-lg font-medium mb-2">No courses published yet</h3>
-                      <p className="text-muted-foreground">
-                        This teacher hasn't published any courses yet.
-                      </p>
-                    </div>
-                  </Card>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {courses.map(course => (
-                      <CourseCard 
-                        key={course.id} 
-                        course={{
-                          ...course,
-                          teacherId: teacher.id,
-                          teacherName: displayName
-                        }} 
-                      />
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-
               <TabsContent value="articles" className="space-y-4">
-                <h2 className="text-2xl font-bold">Published Newspapers</h2>
+                <h2 className="text-2xl font-bold">Published Articles</h2>
 
                 {articles.length === 0 ? (
                   <Card className="p-12 text-center">
@@ -368,7 +325,7 @@ export default function TeacherProfilePage() {
                 ) : (
                   <div className="grid gap-4">
                     {articles.map(article => (
-                      <NewspaperCard key={article.id} article={article} />
+                      <ArticleCardListItem key={article.id} article={article} />
                     ))}
                   </div>
                 )}
@@ -392,7 +349,7 @@ export default function TeacherProfilePage() {
                 ) : (
                   <div className="grid gap-4">
                     {lessons.map(lesson => (
-                      <LessonCard key={lesson.id} lesson={lesson} />
+                      <LessonCardListItem key={lesson.id} lesson={lesson} />
                     ))}
                   </div>
                 )}
@@ -406,11 +363,11 @@ export default function TeacherProfilePage() {
 }
 
 
-interface NewspaperCardProps {
+interface ArticleCardListItemProps {
   article: ArticleListItem;
 }
 
-function NewspaperCard({ article }: NewspaperCardProps) {
+function ArticleCardListItem({ article }: ArticleCardListItemProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
       <CardHeader className="pb-2">
@@ -434,19 +391,13 @@ function NewspaperCard({ article }: NewspaperCardProps) {
             <Calendar className="h-4 w-4" />
             {new Date(article.createdAt).toLocaleDateString()}
           </span>
-          {article.author && (
-            <span className="flex items-center gap-1">
-              <User className="h-4 w-4" />
-              {article.author?.email?.split('@')[0] ?? 'Author'}
-            </span>
-          )}
         </div>
       </CardContent>
       <CardFooter className="pt-2">
         <Button className="w-full" asChild>
-          <Link to={`/articles/${article.slug}`}>
+          <Link to={`/articles/${article.id}`}>
             <Eye className="h-4 w-4 mr-2" />
-            Read Newspaper
+            Read Article
           </Link>
         </Button>
       </CardFooter>
@@ -454,11 +405,11 @@ function NewspaperCard({ article }: NewspaperCardProps) {
   );
 }
 
-interface LessonCardProps {
+interface LessonCardListItemProps {
   lesson: TeacherLessonType;
 }
 
-function LessonCard({ lesson }: LessonCardProps) {
+function LessonCardListItem({ lesson }: LessonCardListItemProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
       <CardHeader className="pb-2">
@@ -466,12 +417,6 @@ function LessonCard({ lesson }: LessonCardProps) {
           <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
             {lesson.title}
           </CardTitle>
-          {lesson.course && (
-            <Badge variant="outline">
-              <BookOpen className="h-3 w-3 mr-1" />
-              {lesson.course.title}
-            </Badge>
-          )}
         </div>
         {lesson.description && (
           <CardDescription className="line-clamp-2">
@@ -488,27 +433,18 @@ function LessonCard({ lesson }: LessonCardProps) {
           {lesson.order > 0 && (
             <span className="flex items-center gap-1">
               <FileStack className="h-4 w-4" />
-              Lesson {lesson.order}
+              Order: {lesson.order}
             </span>
           )}
         </div>
       </CardContent>
       <CardFooter className="pt-2">
-        {lesson.course ? (
-          <Button className="w-full" asChild>
-            <Link to={`/courses/${lesson.course.slug}`}>
-              <Eye className="h-4 w-4 mr-2" />
-              View in Course
-            </Link>
-          </Button>
-        ) : (
-          <Button className="w-full" asChild>
-            <Link to={`/lessons/${lesson.slug}`}>
-              <Eye className="h-4 w-4 mr-2" />
-              View Lesson
-            </Link>
-          </Button>
-        )}
+        <Button className="w-full" asChild>
+          <Link to={`/lessons/${lesson.id}`}>
+            <Eye className="h-4 w-4 mr-2" />
+            View Lesson
+          </Link>
+        </Button>
       </CardFooter>
     </Card>
   );

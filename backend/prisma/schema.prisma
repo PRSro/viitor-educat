@@ -10,7 +10,6 @@ datasource db {
 model School {
   id          String           @id @default(cuid())
   name        String
-  slug        String           @unique
   address     String?
   phone       String?
   email       String?
@@ -22,8 +21,6 @@ model School {
   principals  Principal[]
   students    StudentProfile[]
   teachers    TeacherProfile[]
-
-  @@index([slug])
 }
 
 model Principal {
@@ -51,8 +48,6 @@ model User {
   auditLogs         AuditLog[]
   bookmarks         Bookmark[]
   comments          Comment[]
-  courses           Course[]             @relation("TeacherCourses")
-  enrollments       Enrollment[]
   externalResources ExternalResource[]
   uploads           File[]
   flashcards        Flashcard[]
@@ -75,12 +70,10 @@ model User {
 
 model Lesson {
   id                String             @id @default(cuid())
-  slug              String             @unique
   title             String
   description       String?
   content           String
   teacherId         String
-  courseId          String?
   order             Int                @default(0)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -88,7 +81,6 @@ model Lesson {
   status            Status             @default(PRIVATE)
   comments          Comment[]
   flashcards        Flashcard[]
-  course            Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher           User               @relation("TeacherLessons", fields: [teacherId], references: [id], onDelete: Cascade)
   completions       LessonCompletion[]
   quizzes           Quiz[]
@@ -97,38 +89,9 @@ model Lesson {
   externalResources ExternalResource[] @relation("ExternalResourceToLesson")
 
   @@index([teacherId])
-  @@index([courseId])
   @@index([status])
 }
 
-model Course {
-  id                String             @id @default(cuid())
-  title             String
-  slug              String             @unique
-  description       String?
-  imageUrl          String?
-  teacherId         String
-  published         Boolean            @default(false)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  enrollmentLimit   Int?
-  level             CourseLevel        @default(BEGINNER)
-  waitlistEnabled   Boolean            @default(false)
-  category          String?            @default("GENERAL")
-  tags              String[]           @default([])
-  status            Status             @default(DRAFT)
-  teacher           User               @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
-  enrollments       Enrollment[]
-  flashcards        Flashcard[]
-  lessons           Lesson[]
-  quizzes           Quiz[]
-  externalResources ExternalResource[] @relation("CourseToExternalResource")
-
-  @@index([teacherId])
-  @@index([status])
-  @@index([slug])
-  @@index([category])
-}
 
 model LessonCompletion {
   id          String   @id @default(cuid())
@@ -146,7 +109,6 @@ model Quiz {
   title            String
   description      String?
   lessonId         String?
-  courseId         String
   teacherId        String
   timeLimit        Int?          @default(30)
   createdAt        DateTime      @default(now())
@@ -156,12 +118,10 @@ model Quiz {
   shuffleQuestions Boolean       @default(false)
   status           Status        @default(DRAFT)
   questions        Question[]
-  course           Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lesson           Lesson?       @relation(fields: [lessonId], references: [id])
   teacher          User          @relation(fields: [teacherId], references: [id])
   attempts         QuizAttempt[]
 
-  @@index([courseId])
   @@index([lessonId])
   @@index([teacherId])
 }
@@ -222,49 +182,28 @@ model TeacherProfile {
 }
 
 model StudentProfile {
-  id             String      @id @default(cuid())
-  userId         String      @unique
+  id             String   @id @default(cuid())
+  userId         String   @unique
   avatarUrl      String?
   bio            String?
   learningGoals  String[]
   interests      String[]
-  preferredLevel CourseLevel @default(BEGINNER)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  preferredLevel String   @default("BEGINNER")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   grade          Int?
   schoolId       String
   section        String?
-  school         School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
 }
 
-model Enrollment {
-  id                    String           @id @default(cuid())
-  studentId             String
-  courseId              String
-  progress              Float            @default(0)
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  completedAt           DateTime?
-  completedLessonsCount Int              @default(0)
-  lastAccessedLessonId  String?
-  enrolledAt            DateTime         @default(now())
-  status                EnrollmentStatus @default(ACTIVE)
-  course                Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  student               User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@unique([studentId, courseId])
-  @@index([studentId])
-  @@index([courseId])
-  @@index([studentId, status])
-}
 
 model Article {
   id                String             @id @default(cuid())
   title             String
-  slug              String             @unique
   content           String
   excerpt           String?
   sourceUrl         String?
@@ -297,7 +236,6 @@ model ExternalResource {
   updatedAt   DateTime     @updatedAt
   teacher     User         @relation(fields: [teacherId], references: [id])
   articles    Article[]    @relation("ArticleToExternalResource")
-  courses     Course[]     @relation("CourseToExternalResource")
   lessons     Lesson[]     @relation("ExternalResourceToLesson")
 }
 
@@ -309,13 +247,10 @@ model Flashcard {
   answer    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  courseId  String?
   status    Status   @default(PUBLIC)
-  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lesson    Lesson?  @relation(fields: [lessonId], references: [id])
   teacher   User     @relation(fields: [teacherId], references: [id])
 
-  @@index([courseId])
   @@index([lessonId])
 }
 
@@ -381,8 +316,8 @@ model UserSettings {
   userId               String   @unique
   theme                String   @default("system")
   language             String   @default("en")
-  defaultDashboardView String   @default("courses")
-  contentPriority      String   @default("courses")
+  defaultDashboardView String   @default("articles")
+  contentPriority      String   @default("articles")
   showArticles         Boolean  @default(true)
   showFlashcards       Boolean  @default(true)
   showResources        Boolean  @default(true)
@@ -391,7 +326,6 @@ model UserSettings {
   studyReminderEnabled Boolean  @default(false)
   studyReminderTime    String?
   emailNotifications   Boolean  @default(true)
-  courseUpdates        Boolean  @default(true)
   newArticles          Boolean  @default(true)
   newResources         Boolean  @default(true)
   flashcardReminders   Boolean  @default(false)
@@ -524,13 +458,6 @@ enum ArticleCategory {
   GENERAL
 }
 
-enum CourseLevel {
-  BEGINNER
-  INTERMEDIATE
-  ADVANCED
-  EXPERT
-}
-
 enum QuestionType {
   MULTIPLE_CHOICE
   TRUE_FALSE
@@ -542,12 +469,6 @@ enum ResourceType {
   LINK
   PDF
   DOCUMENT
-}
-
-enum EnrollmentStatus {
-  ACTIVE
-  DROPPED
-  COMPLETED
 }
 
 model ForumThread {

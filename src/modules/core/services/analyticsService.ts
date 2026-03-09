@@ -12,43 +12,21 @@ export interface OverviewAnalytics {
     teachers: number;
     admins: number;
   };
-  courses: {
-    total: number;
-    published: number;
-    drafts: number;
-    totalEnrollments: number;
-    completionRate: number;
-  };
   content: {
     lessons: number;
     articles: number;
     flashcards: number;
   };
   recentActivity: {
-    enrollmentsLast90Days: number;
-    coursesCreatedLast90Days: number;
+    lessonsCreatedLast90Days: number;
+    articlesCreatedLast90Days: number;
   };
 }
 
 export interface TrendData {
   date: string;
-  enrollments: number;
   lessonsCompleted: number;
   usersCreated: number;
-}
-
-export interface CourseAnalytics {
-  id: string;
-  title: string;
-  published: boolean;
-  teacher: {
-    id: string;
-    email: string;
-  };
-  totalEnrollments: number;
-  totalLessons: number;
-  averageProgress: number;
-  completionRate: number;
 }
 
 export interface TeacherAnalytics {
@@ -59,9 +37,7 @@ export interface TeacherAnalytics {
     bio: string | null;
     pictureUrl: string | null;
   } | null;
-  totalCourses: number;
   totalLessons: number;
-  totalEnrollments: number;
 }
 
 export interface StudentAnalytics {
@@ -72,23 +48,14 @@ export interface StudentAnalytics {
     bio: string | null;
     avatarUrl: string | null;
   } | null;
-  enrolledCourses: number;
-  averageProgress: number;
-  completedCourses: number;
   quizAttempts: number;
   bookmarks: number;
   joinedAt: string;
 }
 
 export interface TeacherOverview {
-  courses: {
-    total: number;
-    published: number;
-    drafts: number;
-  };
   lessons: number;
   students: number;
-  averageProgress: number;
   completionRate: number;
 }
 
@@ -101,43 +68,12 @@ export async function getOverviewAnalytics(period?: 'week' | 'month' | 'quarter'
 }
 
 /**
- * Get enrollment and activity trends (Admin only)
+ * Get activity trends (Admin only)
  */
 export async function getAnalyticsTrends(days?: number): Promise<TrendData[]> {
   const params = days ? `?days=${days}` : '';
   const data = await api.get<{ trends: TrendData[] }>(`/analytics/trends${params}`);
   return data.trends;
-}
-
-/**
- * Get course analytics (Admin/Teacher)
- */
-export async function getCourseAnalytics(limit?: number): Promise<CourseAnalytics[]> {
-  const params = limit ? `?limit=${limit}` : '';
-  const data = await api.get<{ courses: CourseAnalytics[] }>(`/analytics/courses${params}`);
-  return data.courses;
-}
-
-/**
- * Get most popular courses (Admin only)
- */
-export interface PopularCourse {
-  id: string;
-  title: string;
-  teacher: {
-    id: string;
-    email: string;
-  };
-  _count: {
-    enrollments: number;
-    lessons: number;
-  };
-}
-
-export async function getPopularCourses(limit?: number): Promise<PopularCourse[]> {
-  const params = limit ? `?limit=${limit}` : '';
-  const data = await api.get<{ courses: PopularCourse[] }>(`/analytics/popular-courses${params}`);
-  return data.courses;
 }
 
 /**
@@ -172,10 +108,6 @@ export interface ContentAnalytics {
   flashcards: number;
   resources: number;
   quizzes: number;
-  lessonsByCourse: Array<{
-    courseId: string;
-    _count: { id: number };
-  }>;
   articlesByCategory: Array<{
     category: string;
     count: number;
@@ -194,7 +126,7 @@ export async function getContentAnalytics(): Promise<ContentAnalytics> {
 }
 
 /**
- * Get analytics for current teacher's courses (Teacher only)
+ * Get analytics for current teacher (Teacher only)
  */
 export async function getTeacherOverview(): Promise<TeacherOverview> {
   return api.get('/analytics/teacher/overview');
@@ -203,9 +135,7 @@ export async function getTeacherOverview(): Promise<TeacherOverview> {
 export interface LessonCompletionData {
   lessonId: string;
   title: string;
-  courseTitle: string;
   completions: number;
-  enrolledStudents: number;
 }
 
 export interface LessonCompletionResponse {
@@ -257,7 +187,6 @@ export async function getWeeklyActiveStudents(weeks: number = 8): Promise<Weekly
 export interface QuizPerformanceData {
   quizId: string;
   title: string;
-  courseTitle: string;
   totalAttempts: number;
   averageScore: number;
   hasAttempts: boolean;

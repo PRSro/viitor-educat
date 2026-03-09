@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ResourceType } from '@prisma/client';
 import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware.js';
-import { teacherOnly, anyRole, requireRole } from '../../core/middleware/permissionMiddleware.js';
+import { anyRole, requireRole } from '../../core/middleware/permissionMiddleware.js';
 import { z } from 'zod';
 import { formatZodError } from '../../schemas/validation/schemas.js';
 import { prisma } from '../../models/prisma.js';
@@ -17,14 +17,12 @@ const createResourceSchema = z.object({
   url: z.string().url('Invalid URL format'),
   title: z.string().min(1, 'Title is required').max(200),
   description: z.string().max(500).optional(),
-  courseIds: z.array(z.string()).optional(),
 });
 
 const updateResourceSchema = createResourceSchema.partial();
 
 const resourceQuerySchema = z.object({
   type: resourceTypeEnum.optional(),
-  courseId: z.string().optional(),
   teacherId: z.string().optional(),
   page: z.coerce.number().min(1).optional().default(1),
   limit: z.coerce.number().min(1).max(50).optional().default(20),
@@ -65,16 +63,12 @@ export async function resourceRoutes(server: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const query = resourceQuerySchema.parse(request.query);
-      const { type, courseId, teacherId, page, limit } = query;
+      const { type, teacherId, page, limit } = query;
 
       const where: any = {};
 
       if (type) {
         where.type = type;
-      }
-
-      if (courseId) {
-        where.courses = { some: { id: courseId } };
       }
 
       if (teacherId) {
@@ -92,7 +86,6 @@ export async function resourceRoutes(server: FastifyInstance) {
             description: true,
             teacherId: true,
             createdAt: true,
-            courses: { select: { id: true, title: true, slug: true } },
             teacher: { select: { id: true, email: true } }
           },
           orderBy: { createdAt: 'desc' },
@@ -123,33 +116,6 @@ export async function resourceRoutes(server: FastifyInstance) {
   });
 
   /**
-   * GET /resources/course/:courseId
-   * Get all resources for a specific course
-   */
-  server.get<{ Params: { courseId: string } }>('/course/:courseId', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request, reply) => {
-    const { courseId } = request.params;
-
-    const resources = await prisma.externalResource.findMany({
-      where: { courses: { some: { id: courseId } } },
-      select: {
-        id: true,
-        type: true,
-        url: true,
-        title: true,
-        description: true,
-        teacherId: true,
-        createdAt: true,
-        teacher: { select: { id: true, email: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return { resources };
-  });
-
-  /**
    * GET /resources/teacher/:teacherId
    * Get all resources created by a specific teacher
    */
@@ -168,7 +134,6 @@ export async function resourceRoutes(server: FastifyInstance) {
         description: true,
         teacherId: true,
         createdAt: true,
-        courses: { select: { id: true, title: true, slug: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -188,7 +153,6 @@ export async function resourceRoutes(server: FastifyInstance) {
     const resource = await prisma.externalResource.findUnique({
       where: { id },
       include: {
-        courses: { select: { id: true, title: true, slug: true } },
         teacher: { select: { id: true, email: true } }
       }
     });
@@ -211,17 +175,12 @@ export async function resourceRoutes(server: FastifyInstance) {
       const validated = createResourceSchema.parse(request.body);
       const teacherId = getCurrentUser(request).id;
 
-      const { courseIds, ...resourceData } = validated;
       const resource = await prisma.externalResource.create({
         data: {
-          ...resourceData,
+          ...validated,
           teacherId,
-          ...(courseIds && courseIds.length > 0 ? {
-            courses: { connect: courseIds.map(id => ({ id })) }
-          } : {})
         },
         include: {
-          courses: { select: { id: true, title: true, slug: true } },
           teacher: { select: { id: true, email: true } }
         }
       });
@@ -271,7 +230,6 @@ export async function resourceRoutes(server: FastifyInstance) {
         where: { id },
         data: validated,
         include: {
-          courses: { select: { id: true, title: true, slug: true } },
           teacher: { select: { id: true, email: true } }
         }
       });

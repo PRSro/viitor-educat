@@ -15,14 +15,12 @@ import { api } from '@/lib/apiClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Slider } from '@/components/ui/slider';
 import { 
   Bell, 
   BookOpen, 
   FileText, 
   Link as LinkIcon, 
   Layers, 
-  UserPlus, 
   Check,
   CheckCheck,
   X,
@@ -31,7 +29,6 @@ import {
   Play,
   Pause,
   Volume2,
-  Settings,
   RotateCcw,
   Plus,
   Minus,
@@ -55,7 +52,6 @@ const TIMER_PRESETS = [
 ];
 
 export function NotificationBell() {
-  const { settings } = useSettings();
   const { openPlayer } = useMusicPlayer();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -73,9 +69,8 @@ export function NotificationBell() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Shared audio player
-  const { isPlaying, currentTrack, volume: audioVolume, play, stop, setVolume } = useAudioPlayer();
+  const { isPlaying, currentTrack, volume: audioVolume, play, stop } = useAudioPlayer();
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [loadingTracks, setLoadingTracks] = useState(true);
 
   useEffect(() => {
     if (open && !prevOpenRef.current) {
@@ -102,8 +97,6 @@ export function NotificationBell() {
         setTracks(response.tracks);
       } catch (err) {
         console.error('Failed to fetch tracks:', err);
-      } finally {
-        setLoadingTracks(false);
       }
     }
     fetchTracks();
@@ -144,20 +137,6 @@ export function NotificationBell() {
     osc.start();
     osc.stop(ctx.currentTime + 0.8);
   };
-
-  const togglePlay = useCallback(() => {
-    if (isPlaying) {
-      stop();
-    } else if (currentTrack) {
-      play(currentTrack, audioVolume);
-    } else if (tracks.length > 0) {
-      play(tracks[0], 0.3);
-    }
-  }, [isPlaying, currentTrack, tracks, audioVolume, play, stop]);
-
-  const handleTrackSelect = useCallback((track: Track) => {
-    play(track, audioVolume);
-  }, [play, audioVolume]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -234,17 +213,13 @@ export function NotificationBell() {
 
   function getNotificationIcon(type: Notification['type']) {
     switch (type) {
-      case 'COURSE_UPDATE': return <BookOpen className="h-4 w-4" />;
+      case 'LESSON_UPDATE': return <BookOpen className="h-4 w-4" />;
       case 'NEW_ARTICLE': return <FileText className="h-4 w-4" />;
       case 'NEW_RESOURCE': return <LinkIcon className="h-4 w-4" />;
       case 'FLASHCARD_REMINDER': return <Layers className="h-4 w-4" />;
-      case 'ENROLLMENT': return <UserPlus className="h-4 w-4" />;
       default: return <Bell className="h-4 w-4" />;
     }
   }
-
-  // Always show the bell for now - can be refined later based on user preferences
-  // The notification/timer/music features should be available to all users
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -497,15 +472,13 @@ export function NotificationBell() {
               )}
             </ScrollArea>
             
-            {notifications.length > 0 && (
-              <div className="p-2 border-t">
-                <Button variant="ghost" className="w-full text-xs" asChild>
-                  <Link to="/settings" onClick={() => setOpen(false)}>
-                    Setări Notificări
-                  </Link>
-                </Button>
-              </div>
-            )}
+            <div className="p-2 border-t">
+              <Button variant="ghost" className="w-full text-xs" asChild>
+                <Link to="/settings" onClick={() => setOpen(false)}>
+                  Setări Notificări
+                </Link>
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       </PopoverContent>

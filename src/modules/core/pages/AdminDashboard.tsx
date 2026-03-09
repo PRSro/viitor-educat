@@ -4,7 +4,7 @@
  * Admin-only access. Features:
  * - View list of users (without sensitive data)
  * - View analytics and platform statistics
- * - Manage courses, users, and settings
+ * - Manage users and settings
  * - View platform-wide progress
  */
 
@@ -21,11 +21,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Users, Server, Settings, Activity, Shield, BookOpen, FileText, GraduationCap, TrendingUp, BarChart3 } from 'lucide-react';
+import { RefreshCw, Users, Server, Settings, Activity, Shield, BookOpen, FileText, GraduationCap } from 'lucide-react';
 import { api, checkApiHealth, ApiError } from '@/lib/apiClient';
 import { ErrorDisplay, ErrorType } from '@/components/ErrorDisplay';
-import { getOverviewAnalytics, getAnalyticsTrends, getPopularCourses, PopularCourse } from '@/modules/core/services/analyticsService';
+import { getOverviewAnalytics } from '@/modules/core/services/analyticsService';
 
 interface AdminUser {
   id: string;
@@ -47,21 +46,10 @@ interface OverviewData {
     teachers: number;
     admins: number;
   };
-  courses: {
-    total: number;
-    published: number;
-    drafts: number;
-    totalEnrollments: number;
-    completionRate: number;
-  };
   content: {
     lessons: number;
     articles: number;
     flashcards: number;
-  };
-  recentActivity: {
-    enrollmentsLast90Days: number;
-    coursesCreatedLast90Days: number;
   };
 }
 
@@ -77,9 +65,7 @@ export default function AdminDashboard() {
   });
   const [checkingHealth, setCheckingHealth] = useState(false);
   const [analytics, setAnalytics] = useState<OverviewData | null>(null);
-  const [popularCourses, setPopularCourses] = useState<PopularCourse[]>([]);
 
-  // Fetch data on mount
   useEffect(() => {
     fetchAdminData();
   }, []);
@@ -89,7 +75,6 @@ export default function AdminDashboard() {
       setLoading(true);
       setError(null);
 
-      // Fetch users and check health in parallel
       const [usersResponse, healthOk] = await Promise.all([
         api.get<{ users: AdminUser[] }>('/admin/users'),
         checkApiHealth(),
@@ -102,13 +87,9 @@ export default function AdminDashboard() {
         userCount: usersResponse.users.length,
       });
 
-      // Fetch analytics data
       try {
         const analyticsData = await getOverviewAnalytics('month');
         setAnalytics(analyticsData);
-
-        const courses = await getPopularCourses(5);
-        setPopularCourses(courses);
       } catch (analyticsErr) {
         console.warn('Failed to fetch analytics:', analyticsErr);
       }
@@ -138,7 +119,6 @@ export default function AdminDashboard() {
     setCheckingHealth(false);
   }
 
-  // Show full-page error for critical failures
   if (error && !loading) {
     return (
       <ErrorDisplay
@@ -152,7 +132,6 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
@@ -170,8 +149,7 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* System Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -223,28 +201,13 @@ export default function AdminDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
-                Total Courses
+                Lessons
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <span className="text-3xl font-bold">{analytics?.courses.total || 0}</span>
+              <span className="text-3xl font-bold">{analytics?.content.lessons || 0}</span>
               <p className="text-xs text-muted-foreground mt-1">
-                {analytics?.courses.published || 0} published, {analytics?.courses.drafts || 0} drafts
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <GraduationCap className="w-4 h-4" />
-                Enrollments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <span className="text-3xl font-bold">{analytics?.courses.totalEnrollments || 0}</span>
-              <p className="text-xs text-muted-foreground mt-1">
-                {analytics?.courses.completionRate || 0}% completion rate
+                Total lessons
               </p>
             </CardContent>
           </Card>
@@ -265,7 +228,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Users List */}
         <Card className="mb-8">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -322,50 +284,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Popular Courses */}
-        <Card className="mb-8">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Popular Courses
-                </CardTitle>
-                <CardDescription>
-                  Most enrolled courses
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {popularCourses.length === 0 ? (
-              <p className="text-muted-foreground">No courses yet.</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Course</TableHead>
-                    <TableHead>Teacher</TableHead>
-                    <TableHead>Enrollments</TableHead>
-                    <TableHead>Lessons</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {popularCourses.map((course) => (
-                    <TableRow key={course.id}>
-                      <TableCell className="font-medium">{course.title}</TableCell>
-                      <TableCell>{course.teacher?.email}</TableCell>
-                      <TableCell>{course._count?.enrollments || 0}</TableCell>
-                      <TableCell>{course._count?.lessons || 0}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Placeholder Sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className="border-dashed">
             <CardHeader>

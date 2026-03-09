@@ -12,8 +12,8 @@ function getCurrentUser(request: FastifyRequest): JwtPayload {
 const defaultSettings = {
   theme: 'system',
   language: 'en',
-  defaultDashboardView: 'courses',
-  contentPriority: 'courses',
+  defaultDashboardView: 'articles',
+  contentPriority: 'teacher_profiles',
   showArticles: true,
   showFlashcards: true,
   showResources: true,
@@ -22,7 +22,6 @@ const defaultSettings = {
   studyReminderEnabled: false,
   studyReminderTime: null,
   emailNotifications: true,
-  courseUpdates: true,
   newArticles: true,
   newResources: true,
   flashcardReminders: false,
@@ -38,8 +37,8 @@ const defaultSettings = {
 const updateSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   language: z.string().max(10).optional(),
-  defaultDashboardView: z.enum(['courses', 'articles', 'resources', 'flashcards']).optional(),
-  contentPriority: z.enum(['courses', 'teacher_profiles']).optional(),
+  defaultDashboardView: z.enum(['articles', 'resources', 'flashcards']).optional(),
+  contentPriority: z.enum(['teacher_profiles']).optional(),
   showArticles: z.boolean().optional(),
   showFlashcards: z.boolean().optional(),
   showResources: z.boolean().optional(),
@@ -48,7 +47,6 @@ const updateSettingsSchema = z.object({
   studyReminderEnabled: z.boolean().optional(),
   studyReminderTime: z.string().optional().nullable(),
   emailNotifications: z.boolean().optional(),
-  courseUpdates: z.boolean().optional(),
   newArticles: z.boolean().optional(),
   newResources: z.boolean().optional(),
   flashcardReminders: z.boolean().optional(),
@@ -194,7 +192,6 @@ export async function settingsRoutes(server: FastifyInstance) {
   server.get('/categories', {
     preHandler: [authMiddleware]
   }, async () => {
-    const { PrismaClient } = await import('@prisma/client');
     return { 
       categories: ['MATH', 'SCIENCE', 'LITERATURE', 'HISTORY', 'COMPUTER_SCIENCE', 'ARTS', 'LANGUAGES', 'GENERAL']
     };

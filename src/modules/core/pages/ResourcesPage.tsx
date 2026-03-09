@@ -20,7 +20,6 @@ import {
 import { ResourceCard, ResourceCardSkeleton, ResourceEmptyState } from '@/components/ResourceCard';
 import { 
   getResources, 
-  getResourcesByCourse,
   ResourceListItem, 
   ResourceType,
   ResourceFilters,
@@ -57,7 +56,7 @@ export default function ResourcesPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [typeFilter, setTypeFilter] = useState<ResourceType | 'ALL'>('ALL');
-  const [groupBy, setGroupBy] = useState<'none' | 'type' | 'course'>('type');
+  const [groupBy, setGroupBy] = useState<'none' | 'type'>('type');
 
   useEffect(() => {
     fetchResources();
@@ -97,18 +96,6 @@ export default function ResourcesPage() {
       
       resources.forEach(r => {
         grouped[r.type].push(r);
-      });
-      
-      return grouped;
-    }
-    
-    if (groupBy === 'course') {
-      const grouped: Record<string, ResourceListItem[]> = {};
-      
-      resources.forEach(r => {
-        const key = r.course?.title || 'Unassigned';
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(r);
       });
       
       return grouped;
@@ -177,7 +164,6 @@ export default function ResourcesPage() {
                 <SelectContent>
                   <SelectItem value="none">No grouping</SelectItem>
                   <SelectItem value="type">Group by type</SelectItem>
-                  <SelectItem value="course">Group by course</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -221,7 +207,6 @@ export default function ResourcesPage() {
                       <ResourceCard 
                         key={resource.id} 
                         resource={resource}
-                        showCourse={groupBy !== 'course'}
                       />
                     ))}
                   </div>

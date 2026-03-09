@@ -38,9 +38,6 @@
  *         title:
  *           type: string
  *           example: "Introduction to React"
- *         slug:
- *           type: string
- *           example: "introduction-to-react-abc123"
  *         content:
  *           type: string
  *           example: "<h1>React Basics</h1><p>React is a JavaScript library...</p>"
@@ -242,12 +239,12 @@ export const openApiDocs = {
         }
       }
     },
-    '/file-articles/{slug}': {
+    '/file-articles/{id}': {
       get: {
-        summary: 'Get article by slug',
+        summary: 'Get article by id',
         security: [{ bearerAuth: [] }],
         parameters: [
-          { name: 'slug', in: 'path', required: true, schema: { type: 'string' } }
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
         ],
         responses: {
           '200': { description: 'Successful response' },
@@ -259,7 +256,7 @@ export const openApiDocs = {
         description: 'Update an existing article. Only the author or ADMIN can update.',
         security: [{ bearerAuth: [] }],
         parameters: [
-          { name: 'slug', in: 'path', required: true, schema: { type: 'string' } }
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
         ],
         responses: {
           '200': { description: 'Article updated' },
@@ -272,7 +269,7 @@ export const openApiDocs = {
         description: 'Delete an article. Only the author or ADMIN can delete.',
         security: [{ bearerAuth: [] }],
         parameters: [
-          { name: 'slug', in: 'path', required: true, schema: { type: 'string' } }
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
         ],
         responses: {
           '200': { description: 'Article deleted' },
@@ -281,13 +278,13 @@ export const openApiDocs = {
         }
       }
     },
-    '/file-articles/{slug}/history': {
+    '/file-articles/{id}/history': {
       get: {
         summary: 'Get article version history',
         description: 'Get all versions of an article. Requires TEACHER or ADMIN role.',
         security: [{ bearerAuth: [] }],
         parameters: [
-          { name: 'slug', in: 'path', required: true, schema: { type: 'string' } }
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
         ],
         responses: {
           '200': { description: 'Version history' },
@@ -295,13 +292,13 @@ export const openApiDocs = {
         }
       }
     },
-    '/file-articles/{slug}/restore/{version}': {
+    '/file-articles/{id}/restore/{version}': {
       post: {
         summary: 'Restore article to version',
         description: 'Restore an article to a previous version.',
         security: [{ bearerAuth: [] }],
         parameters: [
-          { name: 'slug', in: 'path', required: true, schema: { type: 'string' } },
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } },
           { name: 'version', in: 'path', required: true, schema: { type: 'integer' } }
         ],
         responses: {
@@ -310,13 +307,13 @@ export const openApiDocs = {
         }
       }
     },
-    '/file-articles/{slug}/audit': {
+    '/file-articles/{id}/audit': {
       get: {
         summary: 'Get article audit log',
         description: 'Get audit trail for an article.',
         security: [{ bearerAuth: [] }],
         parameters: [
-          { name: 'slug', in: 'path', required: true, schema: { type: 'string' } }
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
         ],
         responses: {
           '200': { description: 'Audit log' }

@@ -29,8 +29,8 @@ export const Footer = () => {
   return (
     <footer id="contact" className="relative overflow-hidden">
       {/* Aero Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-accent via-teal-600 to-emerald-700" />
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-emerald-600/20 to-emerald-900/40 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-white/5 dark:bg-black/5" />
 
       {/* Floating Bubbles */}
       <div className="absolute top-20 right-[15%] w-32 h-32 rounded-full bg-white/8">

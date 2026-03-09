@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware.js';
-import { teacherOnly, anyRole, adminOnly } from '../../core/middleware/permissionMiddleware.js';
+import { teacherOnly, anyRole } from '../../core/middleware/permissionMiddleware.js';
 import { z } from 'zod';
 import { prisma } from '../../models/prisma.js';
 
@@ -37,7 +37,7 @@ export async function profileRoutes(server: FastifyInstance) {
 
   /**
    * GET /profile
-   * Get current user's profile including teacher profile if exists
+   * Get current user's profile
    */
   server.get('/', {
     preHandler: [authMiddleware]
@@ -77,7 +77,6 @@ export async function profileRoutes(server: FastifyInstance) {
       const validated = updateProfileSchema.parse(request.body);
       const userId = getCurrentUser(request).id;
 
-      // Get existing profile to get schoolId
       const existingProfile = await prisma.teacherProfile.findUnique({
         where: { userId }
       });
@@ -107,7 +106,7 @@ export async function profileRoutes(server: FastifyInstance) {
 
   /**
    * GET /profile/teachers
-   * Get all teachers with their profiles (for student discovery)
+   * Get all teachers with their profiles
    */
   server.get('/teachers', {
     preHandler: [authMiddleware, anyRole]
@@ -119,16 +118,14 @@ export async function profileRoutes(server: FastifyInstance) {
           id: true,
           email: true,
           teacherProfile: true,
-          courses: {
-            where: { published: true },
+          lessons: {
+            where: { status: 'PUBLIC' },
             select: {
               id: true,
               title: true,
-              slug: true,
-              description: true,
-              imageUrl: true,
-              _count: { select: { lessons: true, enrollments: true } }
-            }
+              description: true
+            },
+            take: 5
           }
         }
       });
@@ -142,7 +139,7 @@ export async function profileRoutes(server: FastifyInstance) {
 
   /**
    * GET /profile/:teacherId
-   * Get teacher profile by teacher ID (public for students)
+   * Get teacher profile by teacher ID
    */
   server.get<{ Params: { teacherId: string } }>('/:teacherId', {
     preHandler: [authMiddleware, anyRole]
@@ -161,32 +158,32 @@ export async function profileRoutes(server: FastifyInstance) {
         return reply.status(404).send({ error: 'Teacher not found' });
       }
 
-      // Get published courses for this teacher
-      const courses = await prisma.course.findMany({
+      const lessons = await prisma.lesson.findMany({
         where: {
           teacherId,
+          status: 'PUBLIC'
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          order: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      const articles = await prisma.article.findMany({
+        where: {
+          authorId: teacherId,
           published: true
         },
         select: {
           id: true,
           title: true,
-          slug: true,
-          description: true,
-          imageUrl: true,
-          level: true,
-          status: true,
-          createdAt: true,
-          lessons: {
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              order: true,
-              status: true
-            },
-            orderBy: { order: 'asc' }
-          },
-          _count: { select: { lessons: true, enrollments: true } }
+          excerpt: true,
+          category: true,
+          createdAt: true
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -198,92 +195,11 @@ export async function profileRoutes(server: FastifyInstance) {
           role: user.role
         },
         profile: user.teacherProfile,
-        courses
+        lessons,
+        articles
       };
     } catch (error) {
       server.log.error(error, 'Error fetching teacher profile');
-      throw error;
-    }
-  });
-
-  /**
-   * GET /profile/:teacherId/articles
-   * Get published articles for a specific teacher
-   */
-  server.get<{ Params: { teacherId: string } }>('/:teacherId/articles', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request: FastifyRequest<{ Params: { teacherId: string } }>, reply: FastifyReply) => {
-    try {
-      const { teacherId } = request.params;
-
-      const articles = await prisma.article.findMany({
-        where: {
-          authorId: teacherId,
-          published: true
-        },
-        select: {
-          id: true,
-          title: true,
-          slug: true,
-          excerpt: true,
-          category: true,
-          sourceUrl: true,
-          createdAt: true,
-          author: {
-            select: {
-              id: true,
-              email: true
-            }
-          }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      return { articles };
-    } catch (error) {
-      server.log.error(error, 'Error fetching teacher articles');
-      throw error;
-    }
-  });
-
-  /**
-   * GET /profile/:teacherId/lessons
-   * Get published lessons for a specific teacher
-   */
-  server.get<{ Params: { teacherId: string } }>('/:teacherId/lessons', {
-    preHandler: [authMiddleware, anyRole]
-  }, async (request: FastifyRequest<{ Params: { teacherId: string } }>, reply: FastifyReply) => {
-    try {
-      const { teacherId } = request.params;
-
-      const lessons = await prisma.lesson.findMany({
-        where: {
-          course: {
-            teacherId,
-            published: true
-          }
-        },
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          description: true,
-          order: true,
-          createdAt: true,
-          course: {
-            select: {
-              id: true,
-              title: true,
-              slug: true
-            }
-          }
-        },
-        orderBy: { order: 'asc' }
-      });
-
-      return { lessons };
-    } catch (error) {
-      server.log.error(error, 'Error fetching teacher lessons');
       throw error;
     }
   });

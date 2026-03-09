@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   GraduationCap,
   Search,
@@ -16,32 +15,19 @@ import {
   ExternalLink,
   Loader2,
   Mail,
-  Globe,
-  Linkedin,
-  Twitter,
-  Clock,
-  Users,
   ChevronRight,
-  ArrowLeft,
-  ArrowRight,
-  Calendar,
-  Eye
+  ChevronLeft,
 } from 'lucide-react';
 import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
-import { getCourses, Course, CoursePreview } from '@/modules/courses/services/courseService';
-import { CourseCard } from '@/modules/courses/components/CourseCard';
 
 export default function TeachersPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [teachers, setTeachers] = useState<TeacherWithProfile[]>([]);
-  const [courses, setCourses] = useState<CoursePreview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingCourses, setLoadingCourses] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDark, setIsDark] = useState(false);
-  const [activeTab, setActiveTab] = useState('courses');
 
   useEffect(() => {
     const isDarkMode = document.documentElement.classList.contains('dark');
@@ -52,12 +38,8 @@ export default function TeachersPage() {
     async function fetchData() {
       try {
         setLoading(true);
-        const [teachersData, coursesData] = await Promise.all([
-          getAllTeachers(),
-          getCourses()
-        ]);
+        const teachersData = await getAllTeachers();
         setTeachers(teachersData);
-        setCourses(coursesData);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch data');
@@ -85,24 +67,11 @@ export default function TeachersPage() {
     const profile = teacher.teacherProfile;
     const matchesBio = profile?.bio?.toLowerCase().includes(searchLower);
     const matchesEmail = teacher?.email?.toLowerCase().includes(searchLower) || false;
-    const matchesCourse = teacher.courses?.some(c => 
-      c.title.toLowerCase().includes(searchLower)
-    );
-    return matchesBio || matchesEmail || matchesCourse;
+    return matchesBio || matchesEmail;
   });
-
-  const filteredCourses = courses.filter(course => {
-    const searchLower = searchQuery.toLowerCase();
-    const matchesTitle = course.title.toLowerCase().includes(searchLower);
-    const matchesDesc = (course.shortDescription || '').toLowerCase().includes(searchLower);
-    const matchesTeacher = course.teacher?.email?.toLowerCase().includes(searchLower) || false;
-    return matchesTitle || matchesDesc || matchesTeacher;
-  });
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -115,7 +84,7 @@ export default function TeachersPage() {
                   Browse
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Discover courses and educators
+                  Discover educators and content
                 </p>
               </div>
             </div>
@@ -150,12 +119,11 @@ export default function TeachersPage() {
           </div>
         )}
 
-        {/* Search */}
         <div className="mb-8">
           <div className="relative max-w-xl">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search courses and teachers..."
+              placeholder="Search teachers..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -163,97 +131,41 @@ export default function TeachersPage() {
           </div>
         </div>
 
-        {/* Tabs - Courses first */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="courses" className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              Courses ({filteredCourses.length})
-            </TabsTrigger>
-            <TabsTrigger value="teachers" className="gap-2">
-              <User className="h-4 w-4" />
-              Teachers ({filteredTeachers.length})
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Courses Tab */}
-          <TabsContent value="courses" className="space-y-4">
-            <h2 className="text-2xl font-bold">Available Courses</h2>
-            
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <h2 className="text-2xl font-bold mb-6">Our Educators</h2>
+        
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredTeachers.length === 0 ? (
+          <Card className="p-12 text-center">
+            <div className="max-w-sm mx-auto">
+              <div className="p-4 rounded-full bg-muted mx-auto w-fit mb-4">
+                <User className="h-8 w-8 text-muted-foreground" />
               </div>
-            ) : filteredCourses.length === 0 ? (
-              <Card className="p-12 text-center">
-                <div className="max-w-sm mx-auto">
-                  <div className="p-4 rounded-full bg-muted mx-auto w-fit mb-4">
-                    <BookOpen className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">
-                    {searchQuery ? 'No courses found' : 'No courses available yet'}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {searchQuery ? 'Try adjusting your search query' : 'Check back later for new courses'}
-                  </p>
-                </div>
-              </Card>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredCourses.map(course => (
-                  <CourseCard 
-                    key={course.id} 
-                    course={course} 
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Teachers Tab */}
-          <TabsContent value="teachers" className="space-y-4">
-            <h2 className="text-2xl font-bold">Our Educators</h2>
-            
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredTeachers.length === 0 ? (
-              <Card className="p-12 text-center">
-                <div className="max-w-sm mx-auto">
-                  <div className="p-4 rounded-full bg-muted mx-auto w-fit mb-4">
-                    <User className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">
-                    {searchQuery ? 'No teachers found' : 'No teachers yet'}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {searchQuery ? 'Try adjusting your search query' : 'Check back later for new educators'}
-                  </p>
-                </div>
-              </Card>
-            ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredTeachers.map(teacher => (
-                  <TeacherCard 
-                    key={teacher.id} 
-                    teacher={teacher} 
-                    onViewProfile={() => navigate(`/teachers/${teacher.id}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+              <h3 className="text-lg font-medium mb-2">
+                {searchQuery ? 'No teachers found' : 'No teachers yet'}
+              </h3>
+              <p className="text-muted-foreground">
+                {searchQuery ? 'Try adjusting your search query' : 'Check back later for new educators'}
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredTeachers.map(teacher => (
+              <TeacherCard 
+                key={teacher.id} 
+                teacher={teacher} 
+                onViewProfile={() => navigate(`/teachers/${teacher.id}`)}
+              />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
 }
-
-
-const getInitials = (email: string) => {
-  return email.substring(0, 2).toUpperCase();
-};
 
 const getTeacherDisplayName = (teacher: TeacherWithProfile) => {
   if (teacher.teacherProfile?.bio) {
@@ -262,7 +174,6 @@ const getTeacherDisplayName = (teacher: TeacherWithProfile) => {
   return teacher?.email?.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? 'Teacher';
 };
 
-// Teacher Card Component
 interface TeacherCardProps {
   teacher: TeacherWithProfile;
   onViewProfile: () => void;
@@ -270,9 +181,6 @@ interface TeacherCardProps {
 
 function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
   const profile = teacher.teacherProfile;
-  const courseCount = teacher.courses?.length || 0;
-  const totalLessons = teacher.courses?.reduce((acc, c) => acc + (c._count?.lessons || 0), 0) || 0;
-  const totalStudents = teacher.courses?.reduce((acc, c) => acc + (c._count?.enrollments || 0), 0) || 0;
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
@@ -301,17 +209,6 @@ function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
             {profile.bio}
           </p>
         )}
-        
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <BookOpen className="h-4 w-4" />
-            {courseCount} courses
-          </span>
-          <span className="flex items-center gap-1">
-            <FileText className="h-4 w-4" />
-            {totalLessons} lessons
-          </span>
-        </div>
       </CardContent>
       <CardFooter className="pt-0">
         <Button 

@@ -7,19 +7,11 @@ import { api } from '@/lib/apiClient';
 
 export interface Lesson {
   id: string;
-  slug: string;
   title: string;
   description?: string;
   content: string;
   status: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
   order?: number;
-  courseId?: string | null;
-  course?: {
-    id: string;
-    title: string;
-    slug: string;
-    published: boolean;
-  } | null;
   teacherId: string;
   teacher: {
     id: string;
@@ -52,7 +44,6 @@ export interface CreateLessonData {
   title: string;
   description?: string;
   content: string;
-  courseId?: string;
   order?: number;
   status?: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
   attachmentUrl?: string;
@@ -67,7 +58,7 @@ export interface UpdateLessonData {
 }
 
 /**
- * Get public lessons (part of published courses)
+ * Get public lessons
  */
 export async function getLessons(): Promise<Lesson[]> {
   const data = await api.get<{ lessons: Lesson[] }>('/lessons');
@@ -98,7 +89,7 @@ export async function getLesson(id: string): Promise<{ lesson: Lesson; isTeacher
 }
 
 /**
- * Create a new standalone lesson (private by default)
+ * Create a new standalone lesson
  */
 export async function createLesson(lessonData: CreateLessonData): Promise<Lesson> {
   const data = await api.post<{ lesson: Lesson }>('/lessons', lessonData);
@@ -120,57 +111,33 @@ export async function deleteLesson(id: string): Promise<void> {
   await api.delete(`/lessons/${id}`);
 }
 
-/**
- * Get courses containing a lesson
- */
-export async function getLessonCourses(lessonId: string): Promise<unknown[]> {
-  const data = await api.get<{ courses: unknown[] }>(`/lessons/${lessonId}/courses`);
-  return data.courses;
-}
-
 export interface LessonProgress {
   lessonId: string;
   lessonTitle: string;
-  courseId: string;
-  courseSlug: string;
-  courseTitle: string;
   progress: number;
-  completedLessonsCount: number;
   completedAt: string | null;
   isCompleted: boolean;
 }
 
 export interface LessonCompleteResponse {
   lessonId: string;
-  lessonSlug: string;
   completed: boolean;
-  nextLesson: { id: string; slug: string; title: string; order: number } | null;
+  nextLesson: { id: string; title: string; order: number } | null;
 }
 
 export interface LessonViewResponse {
-  lesson: Lesson & {
-    course: {
-      id: string;
-      title: string;
-      slug: string;
-      published: boolean;
-      teacherId: string;
-    } | null;
-  };
+  lesson: Lesson;
   isCompleted: boolean;
   completedAt: string | null;
   isAuthenticated: boolean;
   navigation: {
-    nextLesson: { id: string; slug: string; title: string; order: number } | null;
-    previousLesson: { id: string; slug: string; title: string; order: number } | null;
+    nextLesson: { id: string; title: string; order: number } | null;
+    previousLesson: { id: string; title: string; order: number } | null;
   };
 }
 
-export async function completeLesson(lessonId: string, courseId?: string): Promise<LessonCompleteResponse> {
-  const url = courseId 
-    ? `/courses/${courseId}/lessons/${lessonId}/complete`
-    : `/lessons/${lessonId}/complete`;
-  return api.post(url, {});
+export async function completeLesson(lessonId: string): Promise<LessonCompleteResponse> {
+  return api.post(`/lessons/${lessonId}/complete`, {});
 }
 
 export async function getLessonProgress(lessonId: string): Promise<LessonProgress> {

@@ -6,8 +6,8 @@
 import { api } from '@/lib/apiClient';
 
 export type Theme = 'light' | 'dark' | 'system';
-export type DashboardView = 'courses' | 'articles' | 'resources' | 'flashcards';
-export type ContentPriority = 'courses' | 'teacher_profiles';
+export type DashboardView = 'lessons' | 'articles' | 'resources' | 'flashcards'; // Changed courses to lessons
+export type ContentPriority = 'lessons' | 'teacher_profiles'; // Changed courses to lessons
 export type ResourceType = 'YOUTUBE' | 'LINK' | 'PDF' | 'DOCUMENT';
 
 export interface UserSettings {
@@ -33,7 +33,7 @@ export interface UserSettings {
 
   // Notification preferences
   emailNotifications: boolean;
-  courseUpdates: boolean;
+  lessonUpdates: boolean; // Changed courseUpdates to lessonUpdates
   newArticles: boolean;
   newResources: boolean;
   flashcardReminders: boolean;
@@ -68,7 +68,7 @@ export interface UpdateSettingsData {
   studyReminderEnabled?: boolean;
   studyReminderTime?: string | null;
   emailNotifications?: boolean;
-  courseUpdates?: boolean;
+  lessonUpdates?: boolean; // Changed courseUpdates to lessonUpdates
   newArticles?: boolean;
   newResources?: boolean;
   flashcardReminders?: boolean;
@@ -119,8 +119,8 @@ export const defaultSettings: UserSettings = {
   userId: '',
   theme: 'system',
   language: 'en',
-  defaultDashboardView: 'courses',
-  contentPriority: 'courses',
+  defaultDashboardView: 'lessons', // Changed courses to lessons
+  contentPriority: 'lessons', // Changed courses to lessons
   showArticles: true,
   showFlashcards: true,
   showResources: true,
@@ -129,7 +129,7 @@ export const defaultSettings: UserSettings = {
   studyReminderEnabled: false,
   studyReminderTime: null,
   emailNotifications: true,
-  courseUpdates: true,
+  lessonUpdates: true, // Changed courseUpdates to lessonUpdates
   newArticles: true,
   newResources: true,
   flashcardReminders: false,
@@ -159,7 +159,7 @@ export const themeIcons: Record<Theme, string> = {
 
 // Dashboard view helpers
 export const dashboardViewLabels: Record<DashboardView, string> = {
-  courses: 'Courses',
+  lessons: 'Lessons', // Changed courses to lessons
   articles: 'Articles',
   resources: 'Resources',
   flashcards: 'Flashcards',

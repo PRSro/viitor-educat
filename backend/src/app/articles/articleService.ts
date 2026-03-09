@@ -13,7 +13,6 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 export interface FileArticle {
   id: string;
   title: string;
-  slug: string;
   content: string;
   excerpt?: string;
   sourceUrl?: string;
@@ -78,8 +77,8 @@ export interface SearchFilters {
 // File locking utilities
 const fileLocks = new Map<string, Promise<void>>();
 
-async function acquireLock(slug: string): Promise<() => Promise<void>> {
-  const lockKey = `${slug}.lock`;
+async function acquireLock(id: string): Promise<() => Promise<void>> {
+  const lockKey = `${id}.lock`;
 
   while (fileLocks.has(lockKey)) {
     await fileLocks.get(lockKey);
@@ -181,11 +180,10 @@ function calculateReadingTime(wordCount: number): number {
 // Schema validation
 function validateArticle(data: any): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  const requiredFields = ['id', 'title', 'slug', 'content', 'authorId', 'createdAt'];
+  const requiredFields = ['id', 'title', 'content', 'authorId', 'createdAt'];
   const requiredTypes: Record<string, string> = {
     id: 'string',
     title: 'string',
-    slug: 'string',
     content: 'string',
     authorId: 'string',
     createdAt: 'string'
@@ -211,10 +209,6 @@ function validateArticle(data: any): { valid: boolean; errors: string[] } {
     errors.push(`Content exceeds maximum size of ${MAX_FILE_SIZE} bytes`);
   }
 
-  if (data.slug && !/^[a-z0-9-]+$/.test(data.slug)) {
-    errors.push('Slug must contain only lowercase letters, numbers, and hyphens');
-  }
-
   if (data.authorId && !/^[^/]+$/.test(data.authorId)) {
     errors.push('Invalid authorId format');
   }
@@ -229,23 +223,23 @@ class ArticleCache {
   }
 
   async setIndex(data: FileArticle[]): Promise<void> {
-    await redisService.set('article:index', data, CACHE_TTL / 1000); // converting ms to seconds
+    await redisService.set('article:index', data, CACHE_TTL / 1000);
   }
 
   async invalidateIndex(): Promise<void> {
     await redisService.del('article:index');
   }
 
-  async getSlug(slug: string): Promise<FileArticle | null> {
-    return redisService.get<FileArticle>(`article:${slug}`);
+  async getById(id: string): Promise<FileArticle | null> {
+    return redisService.get<FileArticle>(`article:${id}`);
   }
 
-  async setSlug(slug: string, data: FileArticle): Promise<void> {
-    await redisService.set(`article:${slug}`, data, CACHE_TTL / 1000);
+  async setById(id: string, data: FileArticle): Promise<void> {
+    await redisService.set(`article:${id}`, data, CACHE_TTL / 1000);
   }
 
-  async invalidateSlug(slug: string): Promise<void> {
-    await redisService.del(`article:${slug}`);
+  async invalidateById(id: string): Promise<void> {
+    await redisService.del(`article:${id}`);
   }
 
   async clear(): Promise<void> {
@@ -258,10 +252,9 @@ class ArticleCache {
 
 const articleCache = new ArticleCache();
 
-
 // History management
-async function saveVersion(slug: string, article: FileArticle): Promise<void> {
-  const versionDir = join(HISTORY_DIR, slug);
+async function saveVersion(id: string, article: FileArticle): Promise<void> {
+  const versionDir = join(HISTORY_DIR, id);
   await ensureDir(versionDir);
 
   const versionFile = join(versionDir, `v${article.metadata?.version || 1}.json`);
@@ -275,9 +268,9 @@ async function saveVersion(slug: string, article: FileArticle): Promise<void> {
   await atomicWrite(versionFile, JSON.stringify(versionData, null, 2));
 }
 
-async function getVersions(slug: string): Promise<ArticleVersion[]> {
+async function getVersions(id: string): Promise<ArticleVersion[]> {
   try {
-    const versionDir = join(HISTORY_DIR, slug);
+    const versionDir = join(HISTORY_DIR, id);
     await ensureDir(versionDir);
     const files = await readdir(versionDir);
 
@@ -295,9 +288,9 @@ async function getVersions(slug: string): Promise<ArticleVersion[]> {
   }
 }
 
-async function getVersion(slug: string, version: number): Promise<ArticleVersion | null> {
+async function getVersion(id: string, version: number): Promise<ArticleVersion | null> {
   try {
-    const versionFile = join(HISTORY_DIR, slug, `v${version}.json`);
+    const versionFile = join(HISTORY_DIR, id, `v${version}.json`);
     const content = await readFile(versionFile, 'utf-8');
     return JSON.parse(content);
   } catch {
@@ -312,7 +305,7 @@ export const fileArticleService = {
   },
 
   async save(article: Omit<FileArticle, 'paths' | 'metadata' | 'updatedAt'>): Promise<ApiResponse<FileArticle>> {
-    const releaseLock = await acquireLock(article.slug);
+    const releaseLock = await acquireLock(article.id);
 
     try {
       const paths = extractPaths(article.content);
@@ -336,13 +329,13 @@ export const fileArticleService = {
         return { success: false, errorCode: 'VALIDATION_ERROR', message: validation.errors.join('; ') };
       }
 
-      await saveVersion(article.slug, fileArticle);
+      await saveVersion(article.id, fileArticle);
 
-      const filePath = join(ARTICLES_DIR, `${article.slug}.json`);
+      const filePath = join(ARTICLES_DIR, `${article.id}.json`);
       await atomicWrite(filePath, JSON.stringify(fileArticle, null, 2));
 
       await articleCache.invalidateIndex();
-      await articleCache.setSlug(article.slug, fileArticle);
+      await articleCache.setById(article.id, fileArticle);
 
       return { success: true, data: fileArticle };
     } catch (error: any) {
@@ -352,11 +345,11 @@ export const fileArticleService = {
     }
   },
 
-  async update(slug: string, data: Partial<FileArticle>): Promise<ApiResponse<FileArticle>> {
-    const releaseLock = await acquireLock(slug);
+  async update(id: string, data: Partial<FileArticle>): Promise<ApiResponse<FileArticle>> {
+    const releaseLock = await acquireLock(id);
 
     try {
-      const existing = await this.findBySlug(slug);
+      const existing = await this.findById(id);
       if (!existing) {
         return { success: false, errorCode: 'NOT_FOUND', message: 'Article not found' };
       }
@@ -384,13 +377,13 @@ export const fileArticleService = {
         return { success: false, errorCode: 'VALIDATION_ERROR', message: validation.errors.join('; ') };
       }
 
-      await saveVersion(slug, updated);
+      await saveVersion(id, updated);
 
-      const filePath = join(ARTICLES_DIR, `${slug}.json`);
+      const filePath = join(ARTICLES_DIR, `${id}.json`);
       await atomicWrite(filePath, JSON.stringify(updated, null, 2));
 
       await articleCache.invalidateIndex();
-      await articleCache.setSlug(slug, updated);
+      await articleCache.setById(id, updated);
 
       return { success: true, data: updated };
     } catch (error: any) {
@@ -400,24 +393,19 @@ export const fileArticleService = {
     }
   },
 
-  async findBySlug(slug: string): Promise<FileArticle | null> {
-    const cached = await articleCache.getSlug(slug);
+  async findById(id: string): Promise<FileArticle | null> {
+    const cached = await articleCache.getById(id);
     if (cached) return cached;
 
     try {
-      const filePath = join(ARTICLES_DIR, `${slug}.json`);
+      const filePath = join(ARTICLES_DIR, `${id}.json`);
       const content = await readFile(filePath, 'utf-8');
       const article = JSON.parse(content) as FileArticle;
-      await articleCache.setSlug(slug, article);
+      await articleCache.setById(id, article);
       return article;
     } catch {
       return null;
     }
-  },
-
-  async findById(id: string): Promise<FileArticle | null> {
-    const articles = await this.findAll();
-    return articles.data.find(a => a.id === id) || null;
   },
 
   async findAll(filters?: SearchFilters, pagination?: { page: number; limit: number }): Promise<PaginatedResponse<FileArticle>> {
@@ -495,25 +483,20 @@ export const fileArticleService = {
     }
   },
 
-  async findByAuthor(authorId: string): Promise<FileArticle[]> {
-    const result = await this.findAll({ authorId });
-    return result.data;
-  },
-
-  async delete(slug: string): Promise<ApiResponse<null>> {
-    const releaseLock = await acquireLock(slug);
+  async delete(id: string): Promise<ApiResponse<null>> {
+    const releaseLock = await acquireLock(id);
 
     try {
-      const existing = await this.findBySlug(slug);
+      const existing = await this.findById(id);
       if (!existing) {
         return { success: false, errorCode: 'NOT_FOUND', message: 'Article not found' };
       }
 
-      const filePath = join(ARTICLES_DIR, `${slug}.json`);
+      const filePath = join(ARTICLES_DIR, `${id}.json`);
       await unlink(filePath);
 
       try {
-        const historyDir = join(HISTORY_DIR, slug);
+        const historyDir = join(HISTORY_DIR, id);
         const historyFiles = await readdir(historyDir);
         for (const file of historyFiles) {
           await unlink(join(historyDir, file));
@@ -523,7 +506,7 @@ export const fileArticleService = {
       }
 
       await articleCache.invalidateIndex();
-      await articleCache.invalidateSlug(slug);
+      await articleCache.invalidateById(id);
 
       return { success: true, data: null };
     } catch (error: any) {
@@ -533,9 +516,9 @@ export const fileArticleService = {
     }
   },
 
-  async exists(slug: string): Promise<boolean> {
+  async exists(id: string): Promise<boolean> {
     try {
-      const filePath = join(ARTICLES_DIR, `${slug}.json`);
+      const filePath = join(ARTICLES_DIR, `${id}.json`);
       await access(filePath);
       return true;
     } catch {
@@ -543,18 +526,18 @@ export const fileArticleService = {
     }
   },
 
-  async getHistory(slug: string): Promise<ApiResponse<ArticleVersion[]>> {
-    const versions = await getVersions(slug);
+  async getHistory(id: string): Promise<ApiResponse<ArticleVersion[]>> {
+    const versions = await getVersions(id);
     return { success: true, data: versions };
   },
 
-  async restoreVersion(slug: string, version: number): Promise<ApiResponse<FileArticle>> {
-    const versionData = await getVersion(slug, version);
+  async restoreVersion(id: string, version: number): Promise<ApiResponse<FileArticle>> {
+    const versionData = await getVersion(id, version);
     if (!versionData) {
       return { success: false, errorCode: 'NOT_FOUND', message: 'Version not found' };
     }
 
-    return this.update(slug, {
+    return this.update(id, {
       content: versionData.content,
       title: versionData.title
     });
