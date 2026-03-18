@@ -9,10 +9,7 @@ const navLinks = [
   { name: "Programe", href: "#programe" },
   { name: "Admitere", href: "#admitere" },
   { name: "Viața Școlară", href: "#viata" },
-  { name: "Noutăți", href: "#noutati" },
   { name: "Contact", href: "#contact" },
-  { name: "Lecții", href: "/lessons", isRoute: true }, // Changed Cursuri to Lecții and /courses to /lessons
-  { name: "Articole", href: "/articles", isRoute: true }, // Added Articole
   { name: "Profesori", href: "/profesori", isRoute: true },
   { name: "Forum", href: "/forum", isRoute: true },
 ];

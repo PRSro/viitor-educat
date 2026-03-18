@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SafeHtml } from '@/components/SafeHtml';
+import { PageBackground } from '@/components/PageBackground';
 import { 
   ArrowLeft, 
   ExternalLink, 
@@ -63,31 +64,35 @@ export default function ArticleDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <PageBackground>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageBackground>
     );
   }
 
   if (error || !article) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="pt-6 text-center">
-            <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Article Not Found</h2>
-            <p className="text-muted-foreground mb-4">
-              {error || "The article you're looking for doesn't exist."}
-            </p>
-            <Link to="/student">
-              <Button>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <PageBackground>
+        <div className="min-h-screen flex items-center justify-center">
+          <Card className="aero-glass max-w-md w-full mx-4">
+            <CardContent className="pt-6 text-center">
+              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Article Not Found</h2>
+              <p className="text-muted-foreground mb-4">
+                {error || "The article you're looking for doesn't exist."}
+              </p>
+              <Link to="/student">
+                <Button className="aero-button-accent">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </PageBackground>
     );
   }
 
@@ -109,9 +114,9 @@ export default function ArticleDetail() {
         <link rel="canonical" href={window.location.href} />
       </Helmet>
 
-      <div className="min-h-screen bg-background">
+      <PageBackground>
         {/* Header */}
-        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <Link to="/student" className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors">
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -154,7 +159,7 @@ export default function ArticleDetail() {
                 </p>
               )}
 
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground border-y py-4">
+              <div className="aero-glass rounded-2xl p-4 flex flex-wrap items-center gap-4">
                 {article.author && (
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4" />
@@ -175,8 +180,10 @@ export default function ArticleDetail() {
             </header>
 
             {/* Article Content */}
-            <div className="prose prose-lg dark:prose-invert max-w-none">
-              <SafeHtml content={article.content} />
+            <div className="aero-panel p-8">
+              <div className="prose prose-lg dark:prose-invert max-w-none">
+                <SafeHtml content={article.content} />
+              </div>
             </div>
           </article>
 
@@ -184,7 +191,7 @@ export default function ArticleDetail() {
           <footer className="mt-12 pt-8 border-t">
             <div className="flex justify-between items-center">
               <Link to="/student">
-                <Button variant="outline">
+                <Button className="aero-button">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Articles
                 </Button>
@@ -195,7 +202,7 @@ export default function ArticleDetail() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Button variant="outline">
+                  <Button className="aero-button">
                     View Original Source
                     <ExternalLink className="h-4 w-4 ml-2" />
                   </Button>
@@ -204,7 +211,7 @@ export default function ArticleDetail() {
             </div>
           </footer>
         </main>
-      </div>
+      </PageBackground>
     </>
   );
 }

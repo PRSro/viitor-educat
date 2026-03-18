@@ -27,11 +27,14 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, allowedRoles, redirectTo }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
 
-  // Show nothing while checking auth state
+  // Show styled spinner while checking auth state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-950 to-slate-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-emerald-400/30 border-t-emerald-400 animate-spin" />
+          <p className="text-emerald-200/60 text-sm font-medium">Verifying session...</p>
+        </div>
       </div>
     );
   }

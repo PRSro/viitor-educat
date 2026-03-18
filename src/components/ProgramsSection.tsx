@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight, Code2, Cpu, Database, Brain, Rocket, Shield, Globe, Users, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -93,6 +93,12 @@ const clubs = [
 
 export const ProgramsSection = () => {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenDialog = () => setOpen(true);
+    window.addEventListener('openProgramsDialog', handleOpenDialog);
+    return () => window.removeEventListener('openProgramsDialog', handleOpenDialog);
+  }, []);
 
   return (
     <>

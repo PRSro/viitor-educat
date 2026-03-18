@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArticleEditor } from '@/components/ArticleEditor';
+import { PageBackground } from '@/components/PageBackground';
 import { getArticle, createArticle, updateArticle, deleteArticle, CreateArticleData } from '@/modules/articles/services/articleService';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -45,21 +46,25 @@ export default function ArticleEditorPage() {
 
   if (id && isLoading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-64 bg-muted rounded"></div>
+      <PageBackground>
+        <div className="container mx-auto py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-muted rounded w-1/4"></div>
+            <div className="h-64 bg-muted rounded"></div>
+          </div>
         </div>
-      </div>
+      </PageBackground>
     );
   }
 
   return (
-    <ArticleEditor
-      article={article}
-      onSave={async (data) => { await saveMutation.mutateAsync(data); }}
-      onDelete={article ? async () => { await deleteMutation.mutateAsync(); } : undefined}
-      isLoading={saveMutation.isPending || deleteMutation.isPending}
-    />
+    <PageBackground>
+      <ArticleEditor
+        article={article}
+        onSave={async (data) => { await saveMutation.mutateAsync(data); }}
+        onDelete={article ? async () => { await deleteMutation.mutateAsync(); } : undefined}
+        isLoading={saveMutation.isPending || deleteMutation.isPending}
+      />
+    </PageBackground>
   );
 }

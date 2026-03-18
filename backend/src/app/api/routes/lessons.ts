@@ -29,7 +29,7 @@ export async function lessonRoutes(server: FastifyInstance) {
     return { lessons };
   });
 
-  server.get('/', (request: FastifyRequest, reply: FastifyReply) => lessonController.getAll(request, reply));
+  server.get('/', { preHandler: [authMiddleware, anyRole] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.getAll(request, reply));
   server.get('/:id', (request: FastifyRequest, reply: FastifyReply) => lessonController.getById(request as any, reply));
   server.get('/teacher/:teacherId', { preHandler: [authMiddleware, anyRole] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.getTeacherLessons(request as any, reply));
   server.get('/:id/view', { preHandler: [authMiddleware, anyRole] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.view(request as any, reply));

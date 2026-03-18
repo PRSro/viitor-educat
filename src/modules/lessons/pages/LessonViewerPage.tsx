@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, ArrowLeft, CheckCircle, LogIn } from 'lucide-react';
 import { LessonViewer } from '@/components/LessonViewer';
+import { PageBackground } from '@/components/PageBackground';
 import { viewLesson, completeLesson, LessonViewResponse } from '@/modules/lessons/services/lessonService';
 
 export default function LessonViewerPage() {
@@ -105,9 +106,9 @@ export default function LessonViewerPage() {
   const { lesson, isCompleted, completedAt, isAuthenticated: isLessonAuthenticated, navigation } = lessonData;
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageBackground>
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -146,7 +147,7 @@ export default function LessonViewerPage() {
           } as any}
           isCompleted={isCompleted}
           completedAt={completedAt}
-          progress={0}
+          progress={isCompleted ? 100 : 0}
           completedLessonsCount={0}
           totalLessons={0}
           navigation={navigation}
@@ -179,6 +180,6 @@ export default function LessonViewerPage() {
           )}
         </div>
       </main>
-    </div>
+    </PageBackground>
   );
 }

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageBackground } from '@/components/PageBackground';
 import {
   GraduationCap,
   User,
@@ -132,8 +133,8 @@ export default function TeacherProfilePage() {
   const displayName = teacher?.email?.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) ?? 'Teacher';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50">
+    <PageBackground>
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -358,7 +359,7 @@ export default function TeacherProfilePage() {
           </div>
         </div>
       </main>
-    </div>
+    </PageBackground>
   );
 }
 

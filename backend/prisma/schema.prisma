@@ -66,6 +66,10 @@ model User {
   forumThreads      ForumThread[]        @relation("AuthorThreads")
   forumPosts        ForumPost[]          @relation("AuthorPosts")
   lessonResponses   LessonResponse[]
+  points            UserPoints?
+  pointEvents       PointEvent[]
+  classroomsOwned   Classroom[]          @relation("ClassroomTeacher")
+  classroomsJoined  ClassroomStudent[]
 }
 
 model Lesson {
@@ -87,6 +91,7 @@ model Lesson {
   questions         LessonQuestion[]
   responses         LessonResponse[]
   externalResources ExternalResource[] @relation("ExternalResourceToLesson")
+  classroomLessons  ClassroomLesson[]
 
   @@index([teacherId])
   @@index([status])
@@ -111,6 +116,7 @@ model Quiz {
   lessonId         String?
   teacherId        String
   timeLimit        Int?          @default(30)
+  passingScore     Int?          @default(70)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   maxAttempts      Int?          @default(3)
@@ -516,6 +522,8 @@ model LessonQuestion {
   lessonId     String
   prompt       String
   questionType String           @default("SHORT_ANSWER")
+  correctAnswer String?         // Added
+  hint         String?          // Added
   order        Int              @default(0)
   createdAt    DateTime         @default(now())
   lesson       Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
@@ -536,7 +544,79 @@ model LessonResponse {
   lesson     Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   question   LessonQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, questionId])
   @@index([userId])
   @@index([lessonId])
   @@index([questionId])
+}
+
+model UserPoints {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  total      Int       @default(0)
+  weekly     Int       @default(0)
+  monthly    Int       @default(0)
+  streak     Int       @default(0)
+  lastActive DateTime?
+  updatedAt  DateTime  @updatedAt
+
+  @@index([total])
+  @@index([weekly])
+}
+
+model PointEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  points    Int
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Classroom {
+  id          String             @id @default(cuid())
+  name        String
+  description String?
+  joinCode    String             @unique
+  teacherId   String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  teacher     User               @relation("ClassroomTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  students    ClassroomStudent[]
+  classroomLessons ClassroomLesson[]
+
+  @@index([teacherId])
+  @@index([joinCode])
+}
+
+model ClassroomStudent {
+  id          String    @id @default(cuid())
+  classroomId String
+  studentId   String
+  joinedAt    DateTime  @default(now())
+
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  student     User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classroomId, studentId])
+  @@index([studentId])
+}
+
+model ClassroomLesson {
+  id          String    @id @default(cuid())
+  classroomId String
+  lessonId    String
+  order       Int       @default(0)
+  assignedAt  DateTime  @default(now())
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([classroomId, lessonId])
+  @@index([classroomId])
 }

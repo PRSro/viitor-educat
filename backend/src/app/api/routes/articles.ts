@@ -12,10 +12,11 @@ function getCurrentUser(request: FastifyRequest): JwtPayload {
   return (request as any).user as JwtPayload;
 }
 
+import { redisService } from '../../core/services/redisService.js';
+
 // Rate limiting for import endpoint
-const importRateLimits = new Map<string, { count: number; resetAt: number }>();
 const IMPORT_RATE_LIMIT = 5; // 5 imports per minute
-const IMPORT_RATE_WINDOW = 60 * 1000;
+const IMPORT_RATE_WINDOW = 60; // seconds
 
 // Validation schemas
 const articleCategoryEnum = z.enum([
@@ -172,7 +173,7 @@ export async function articleRoutes(server: FastifyInstance) {
       const query = articleQuerySchema.parse(request.query);
       const { category, teacherId, tags, search, page, limit } = query;
 
-      const where: any = { published: true };
+      const where: any = { status: 'PUBLISHED' };
 
       if (category) {
         where.category = category;
@@ -335,7 +336,7 @@ export async function articleRoutes(server: FastifyInstance) {
       }
     });
 
-    if (!article || !article.published) {
+    if (!article || article.status !== 'PUBLISHED') {
       return reply.status(404).send({ error: 'Article not found' });
     }
 
@@ -391,25 +392,19 @@ export async function articleRoutes(server: FastifyInstance) {
     try {
       const userId = getCurrentUser(request).id;
 
-      // Rate limiting
-      const now = Date.now();
-      const userLimit = importRateLimits.get(userId);
+      // Rate limiting via Redis
+      const rateKey = `import:ratelimit:${userId}`;
+      const currentCountStr = await redisService.get<string>(rateKey);
+      const currentCount = currentCountStr ? parseInt(currentCountStr) : 0;
 
-      if (userLimit) {
-        if (now < userLimit.resetAt) {
-          if (userLimit.count >= IMPORT_RATE_LIMIT) {
-            return reply.status(429).send({
-              error: 'Rate limit exceeded',
-              message: `Maximum ${IMPORT_RATE_LIMIT} imports per minute. Try again later.`
-            });
-          }
-          userLimit.count++;
-        } else {
-          importRateLimits.set(userId, { count: 1, resetAt: now + IMPORT_RATE_WINDOW });
-        }
-      } else {
-        importRateLimits.set(userId, { count: 1, resetAt: now + IMPORT_RATE_WINDOW });
+      if (currentCount >= IMPORT_RATE_LIMIT) {
+        return reply.status(429).send({
+          error: 'Rate limit exceeded',
+          message: `Maximum ${IMPORT_RATE_LIMIT} imports per minute. Try again later.`
+        });
       }
+      
+      await redisService.set(rateKey, (currentCount + 1).toString(), IMPORT_RATE_WINDOW);
 
       const validated = importArticleSchema.parse(request.body);
       const { url } = validated;

@@ -9,173 +9,90 @@ export interface Track {
   benefit: string;
   duration: number;
   order: number;
-  url?: string | null;
+  url?: string; // YouTube video ID
 }
 
 export interface UseAudioPlayerReturn {
   isPlaying: boolean;
-  currentFrequency: number | null;
   currentTrack: Track | null;
+  currentFrequency: number | null;
   volume: number;
   elapsedTime: number;
-  analyserNode: AnalyserNode | null;
+  analyserNode: AnalyserNode | null; // always null with YT — kept for API compat
   play: (track: Track, volume?: number) => void;
   stop: () => void;
-  setVolume: (volume: number) => void;
+  setVolume: (vol: number) => void;
+}
+
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+let ytApiLoaded = false;
+let ytApiCallbacks: (() => void)[] = [];
+
+function loadYTApi(callback: () => void) {
+  if (ytApiLoaded && window.YT?.Player) {
+    callback();
+    return;
+  }
+  ytApiCallbacks.push(callback);
+  if (document.getElementById('yt-iframe-api')) return;
+  const script = document.createElement('script');
+  script.id = 'yt-iframe-api';
+  script.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(script);
+  window.onYouTubeIframeAPIReady = () => {
+    ytApiLoaded = true;
+    ytApiCallbacks.forEach(cb => cb());
+    ytApiCallbacks = [];
+  };
 }
 
 export function useAudioPlayer(): UseAudioPlayerReturn {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorsRef = useRef<OscillatorNode[]>([]);
-  const oscillatorRef = useRef<OscillatorNode | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const playerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  const pendingTrackRef = useRef<{ track: Track; volume: number } | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentFrequency, setCurrentFrequency] = useState<number | null>(null);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [volume, setVolumeState] = useState(0.2);
+  const [currentFrequency, setCurrentFrequency] = useState<number | null>(null);
+  const [volume, setVolumeState] = useState(0.25);
   const [elapsedTime, setElapsedTime] = useState(0);
 
+  // Create hidden container for YT iframe once on mount
+  useEffect(() => {
+    if (containerRef.current) return;
+    const div = document.createElement('div');
+    div.id = 'yt-player-container';
+    div.style.cssText = 'position:fixed;bottom:-1000px;left:-1000px;width:1px;height:1px;opacity:0;pointer-events:none;';
+    document.body.appendChild(div);
+    containerRef.current = div;
+    return () => { div.remove(); };
+  }, []);
+
   const stop = useCallback(() => {
-    console.log('[AudioPlayer] Stopping playback');
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    // Stop oscillators if running
-    oscillatorsRef.current.forEach(osc => { try { osc.stop(); } catch (e) { console.debug('[AudioPlayer] Oscillator stop error:', e); } });
-    oscillatorsRef.current = [];
-    oscillatorRef.current = null;
-
-    // Stop audio element if running
-    if (audioElementRef.current) {
-      audioElementRef.current.pause();
-      audioElementRef.current.src = '';
-      audioElementRef.current = null;
-    }
-
-    if (sourceNodeRef.current) {
-      sourceNodeRef.current.disconnect();
-      sourceNodeRef.current = null;
-    }
-
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close().catch(e => console.error('[AudioPlayer] Context close error:', e));
-      audioContextRef.current = null;
-    }
-
-    analyserRef.current = null;
-    gainRef.current = null;
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    try { playerRef.current?.stopVideo(); } catch {}
     setIsPlaying(false);
-    setCurrentFrequency(null);
     setCurrentTrack(null);
+    setCurrentFrequency(null);
     setElapsedTime(0);
   }, []);
 
-  const setVolume = useCallback((newVolume: number) => {
-    const v = Math.max(0, Math.min(1, newVolume));
-    setVolumeState(v);
-
-    if (gainRef.current && audioContextRef.current) {
-      gainRef.current.gain.setTargetAtTime(v, audioContextRef.current.currentTime, 0.1);
-    }
+  const setVolume = useCallback((vol: number) => {
+    const clamped = Math.max(0, Math.min(1, vol));
+    setVolumeState(clamped);
+    try { playerRef.current?.setVolume(clamped * 100); } catch {}
   }, []);
 
-  const play = useCallback(async (track: Track, initialVolume: number = 0.5) => {
-    stop();
-
-    setCurrentFrequency(track.frequencyHz);
-    setCurrentTrack(track);
-    setIsPlaying(true);
+  const startTimer = useCallback(() => {
     startTimeRef.current = Date.now();
-
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      audioContextRef.current = ctx;
-
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(initialVolume, ctx.currentTime);
-      gainRef.current = gain;
-
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      analyserRef.current = analyser;
-
-      // Final output chain: source -> gain -> analyser -> destination
-      gain.connect(analyser);
-      analyser.connect(ctx.destination);
-
-      if (track.url) {
-        console.log(`[AudioPlayer] Attempting MP3 playback: ${track.url}`);
-        const audio = new Audio();
-        audio.src = track.url;
-        audio.loop = true;
-        audio.crossOrigin = 'anonymous';
-
-        // This connects the HTML5 Audio element to the Web Audio graph
-        const source = ctx.createMediaElementSource(audio);
-        source.connect(gain);
-        sourceNodeRef.current = source;
-        audioElementRef.current = audio;
-
-        // Only update src if it changed — prevents 499 cancellation loop
-        if (audio.src !== track.url) {
-          audio.src = track.url || '';
-        }
-        
-        await audio.play();
-        console.log('[AudioPlayer] MP3 playback started successfully');
-      } else {
-        console.log(`[AudioPlayer] Playing Oscillator: ${track.frequencyHz}Hz`);
-        const oscillator = ctx.createOscillator();
-        const oscillator2 = ctx.createOscillator();
-        const oscillator3 = ctx.createOscillator();
-        const filter = ctx.createBiquadFilter();
-
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(800, ctx.currentTime);
-
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(track.frequencyHz, ctx.currentTime);
-        oscillator2.type = 'sine';
-        oscillator2.frequency.setValueAtTime(track.frequencyHz + 0.5, ctx.currentTime);
-        oscillator3.type = 'sine';
-        oscillator3.frequency.setValueAtTime(track.frequencyHz * 2, ctx.currentTime);
-
-        const g1 = ctx.createGain(); g1.gain.value = 1.0;
-        const g2 = ctx.createGain(); g2.gain.value = 0.3;
-        const g3 = ctx.createGain(); g3.gain.value = 0.15;
-
-        oscillator.connect(g1); g1.connect(filter);
-        oscillator2.connect(g2); g2.connect(filter);
-        oscillator3.connect(g3); g3.connect(filter);
-        filter.connect(gain);
-
-        oscillator.start();
-        oscillator2.start();
-        oscillator3.start();
-
-        oscillatorRef.current = oscillator;
-        oscillatorsRef.current = [oscillator, oscillator2, oscillator3];
-      }
-
-      // Resume context if suspended (common in browsers until user gesture)
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
-      }
-
-    } catch (err) {
-      console.error('[AudioPlayer] Playback error:', err);
-      setIsPlaying(false);
-      stop();
-    }
-
     timerRef.current = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current;
       setElapsedTime(elapsed);
@@ -183,19 +100,63 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     }, 1000);
   }, [stop]);
 
-  useEffect(() => {
-    return () => {
-      stop();
-    };
-  }, [stop]);
+  const createPlayerAndPlay = useCallback((track: Track, vol: number) => {
+    if (!containerRef.current) return;
+    // Destroy existing player
+    try { playerRef.current?.destroy(); } catch {}
+    playerRef.current = null;
+
+    const playerId = 'yt-player-' + Date.now();
+    const playerDiv = document.createElement('div');
+    playerDiv.id = playerId;
+    containerRef.current.innerHTML = '';
+    containerRef.current.appendChild(playerDiv);
+
+    playerRef.current = new window.YT.Player(playerId, {
+      videoId: track.url,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        loop: 1,
+        playlist: track.url,
+        modestbranding: 1,
+        origin: window.location.origin,
+      },
+      events: {
+        onReady: (e: any) => {
+          e.target.setVolume(vol * 100);
+          e.target.playVideo();
+          setIsPlaying(true);
+          setCurrentTrack(track);
+          setCurrentFrequency(track.frequencyHz);
+          setVolumeState(vol);
+          startTimer();
+        },
+        onError: (e: any) => {
+          console.warn('YT player error', e.data);
+          stop();
+        },
+      },
+    });
+  }, [startTimer, stop]);
+
+  const play = useCallback((track: Track, initialVolume: number = 0.25) => {
+    stop();
+    if (!track.url) { console.warn('No YouTube ID for track', track.name); return; }
+    loadYTApi(() => createPlayerAndPlay(track, initialVolume));
+  }, [stop, createPlayerAndPlay]);
+
+  useEffect(() => () => stop(), [stop]);
 
   return {
     isPlaying,
-    currentFrequency,
     currentTrack,
+    currentFrequency,
     volume,
     elapsedTime,
-    analyserNode: analyserRef.current,
+    analyserNode: null, // no Web Audio with YT — canvas visualizer will be idle
     play,
     stop,
     setVolume,

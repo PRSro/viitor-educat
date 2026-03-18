@@ -3,6 +3,7 @@ import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware
 import { teacherOnly, anyRole, requireRole } from '../../core/middleware/permissionMiddleware.js';
 import { z } from 'zod';
 import { prisma } from '../../models/prisma.js';
+import { awardPoints } from '../../services/pointsService.js';
 
 function getCurrentUser(request: FastifyRequest): JwtPayload {
   return (request as any).user as JwtPayload;
@@ -166,6 +167,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
           teacherId,
           status: validated.status || 'DRAFT',
           timeLimit: validated.timeLimit,
+          passingScore: validated.passingScore,
           lessonId: validated.lessonId
         },
         include: {
@@ -434,7 +436,7 @@ export async function quizRoutes(fastify: FastifyInstance) {
       });
 
       const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
-      const passed = score >= 70;
+      const passed = score >= (quiz.passingScore ?? 70);
 
       const attempt = await prisma.quizAttempt.create({
         data: {
@@ -447,6 +449,8 @@ export async function quizRoutes(fastify: FastifyInstance) {
           timeSpent: timeSpent || 0
         }
       });
+
+      await awardPoints(studentId, passed ? 'QUIZ_PASS' : 'QUIZ_FAIL', { quizId: id });
 
       return {
         message: passed ? 'Quiz passed!' : 'Quiz completed',

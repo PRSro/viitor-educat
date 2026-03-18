@@ -3,27 +3,12 @@ import { lessonService } from '../../services/lessonService.js';
 import { prisma } from '../../models/prisma.js';
 import { JwtPayload } from '../../core/middleware/authMiddleware.js';
 import { z } from 'zod';
-import { formatZodError } from '../../schemas/validation/schemas.js';
+import { formatZodError, createLessonSchema, updateLessonSchema } from '../../schemas/validation/schemas.js';
+import { awardPoints } from '../../services/pointsService.js';
 
 function getCurrentUser(request: FastifyRequest): JwtPayload {
   return (request as any).user as JwtPayload;
 }
-
-const createLessonSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required').max(200),
-  description: z.string().trim().max(500).optional(),
-  content: z.string().trim().min(1, 'Content is required').max(50000),
-  order: z.number().optional(),
-  status: z.enum(['DRAFT', 'PRIVATE', 'PUBLIC']).optional()
-});
-
-const updateLessonSchema = z.object({
-  title: z.string().trim().min(1).max(200).optional(),
-  description: z.string().trim().max(500).optional(),
-  content: z.string().trim().min(1).max(50000).optional(),
-  order: z.number().optional(),
-  status: z.enum(['DRAFT', 'PRIVATE', 'PUBLIC']).optional()
-});
 
 const lessonIdSchema = z.object({
   id: z.string().min(1, 'Lesson ID is required'),
@@ -31,26 +16,36 @@ const lessonIdSchema = z.object({
 
 export const lessonController = {
   async getAll(request: FastifyRequest, reply: FastifyReply) {
-    const lessons = await prisma.lesson.findMany({
-      where: {
-        status: 'PUBLIC'
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        content: true,
-        status: true,
-        order: true,
-        teacherId: true,
-        createdAt: true,
-        updatedAt: true,
-        teacher: { select: { id: true, email: true } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20
-    });
-    return { lessons };
+    const query = request.query as { page?: string; limit?: string };
+    const page = Math.max(1, parseInt(query.page || '1'));
+    const limit = Math.min(50, Math.max(1, parseInt(query.limit || '20')));
+    const skip = (page - 1) * limit;
+
+    const [lessons, total] = await Promise.all([
+      prisma.lesson.findMany({
+        where: { status: 'PUBLIC' },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          order: true,
+          teacherId: true,
+          createdAt: true,
+          updatedAt: true,
+          teacher: { select: { id: true, email: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.lesson.count({ where: { status: 'PUBLIC' } })
+    ]);
+
+    return {
+      lessons,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    };
   },
 
   async getById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
@@ -122,14 +117,36 @@ export const lessonController = {
       where: { lessonId_studentId: { lessonId: lesson.id, studentId: user.id } }
     });
 
+    // FIX 7: Query adjacent PUBLIC lessons by same teacher for navigation
+    const [previousLesson, nextLesson] = await Promise.all([
+      prisma.lesson.findFirst({
+        where: {
+          teacherId: lesson.teacherId,
+          status: 'PUBLIC',
+          order: { lt: lesson.order }
+        },
+        select: { id: true, title: true, order: true },
+        orderBy: { order: 'desc' }
+      }),
+      prisma.lesson.findFirst({
+        where: {
+          teacherId: lesson.teacherId,
+          status: 'PUBLIC',
+          order: { gt: lesson.order }
+        },
+        select: { id: true, title: true, order: true },
+        orderBy: { order: 'asc' }
+      })
+    ]);
+
     return {
       lesson,
       isCompleted: !!progress?.completedAt,
       completedAt: progress?.completedAt ?? null,
       enrollmentProgress: null,
       navigation: {
-        previousLesson: null,
-        nextLesson: null,
+        previousLesson,
+        nextLesson,
       }
     };
   },
@@ -149,6 +166,8 @@ export const lessonController = {
       create: { lessonId: lesson.id, studentId: user.id, completedAt: new Date() }
     });
 
+    await awardPoints(user.id, 'LESSON_COMPLETE', { lessonId: lesson.id });
+
     return {
       lessonId: lesson.id,
       completed: true,
@@ -166,7 +185,8 @@ export const lessonController = {
         content: validated.content,
         description: validated.description,
         order: validated.order,
-        status: validated.status
+        status: validated.status as any,
+        questions: validated.questions
       });
 
       return reply.status(201).send({ message: 'Lesson created', lesson });
@@ -212,6 +232,11 @@ export const lessonController = {
     });
     if (!lesson) return reply.status(404).send({ error: 'Lesson not found' });
 
+    // FIX 20: Students can only submit answers to PUBLIC lessons
+    if (user.role === 'STUDENT' && lesson.status !== 'PUBLIC') {
+      return reply.status(403).send({ error: 'Lesson not accessible' });
+    }
+
     // Ensure question exists
     const question = await prisma.lessonQuestion.findUnique({
         where: { id: questionId }
@@ -222,7 +247,7 @@ export const lessonController = {
 
     // Upsert response
     const response = await prisma.lessonResponse.upsert({
-        where: { id: `${user.id}_${questionId}` },
+        where: { userId_questionId: { userId: user.id, questionId } },
         create: {
             id: `${user.id}_${questionId}`,
             userId: user.id,
@@ -236,6 +261,20 @@ export const lessonController = {
         }
     });
 
-    return { success: true, responseId: response.id };
+    // Check answer — case-insensitive, trim whitespace
+    const correct = question.correctAnswer
+      ? answer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()
+      : null; // open-ended question, no correct answer stored
+
+    if (correct) {
+      await awardPoints(user.id, 'CORRECT_ANSWER', { questionId });
+    }
+
+    return { 
+      success: true, 
+      correct,
+      correctAnswer: correct === false ? question.correctAnswer : undefined, // reveal on wrong
+      hint: correct === false ? question.hint ?? null : null,
+    };
   }
 };

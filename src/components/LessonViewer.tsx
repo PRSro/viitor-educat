@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ProgressBar } from './ProgressBar';
@@ -10,16 +9,16 @@ import { CommentThread } from './CommentThread';
 import { 
   ChevronLeft, 
   ChevronRight, 
-  CheckCircle, 
-  CheckCircle2, 
+  CheckCircle,
+  CheckCircle2,
   Loader2,
   ExternalLink,
   BookOpen,
   FileText,
   PlayCircle,
-  FileStack,
-  Send
+  FileStack
 } from 'lucide-react';
+import { LessonTaskBlock } from './LessonTaskBlock';
 
 interface LessonViewerProps {
   lesson: {
@@ -66,67 +65,6 @@ interface LessonViewerProps {
   };
   onMarkComplete: () => Promise<void>;
   isCompleting: boolean;
-}
-
-function QuestionBlock({ 
-  question, 
-  lessonId 
-}: { 
-  question: { id: string; prompt: string; questionType: string }; 
-  lessonId: string 
-}) {
-  const [answer, setAnswer] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleSubmit = async () => {
-    if (!answer.trim()) return;
-    try {
-      setSubmitting(true);
-      const { submitAnswer } = await import('@/modules/lessons/services/lessonService');
-      await submitAnswer(lessonId, question.id, answer);
-      setSubmitted(true);
-    } catch (err) {
-      console.error('Failed to submit answer:', err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Card key={question.id}>
-      <CardContent className="p-6 space-y-4">
-        <p className="font-medium text-lg">{question.prompt}</p>
-        {submitted ? (
-          <div className="bg-green-100 dark:bg-green-900/30 p-4 rounded-lg flex items-center gap-3">
-            <CheckCircle2 className="h-5 w-5 text-green-500" />
-            <p className="text-sm font-medium">Answer submitted! Well done.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <Textarea 
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              placeholder="Type your answer here..."
-              className="aero-input"
-            />
-            <Button 
-              onClick={handleSubmit} 
-              disabled={submitting || !answer.trim()}
-              size="sm"
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Submit Answer
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
 }
 
 export function LessonViewer({
@@ -179,6 +117,11 @@ export function LessonViewer({
 
   const handleNextCard = () => {
     setCurrentCard((prev) => (prev + 1) % lesson.flashcards.length);
+    setIsFlipped(false);
+  };
+
+  const handlePrevCard = () => {
+    setCurrentCard((prev) => (prev - 1 + lesson.flashcards.length) % lesson.flashcards.length);
     setIsFlipped(false);
   };
 
@@ -269,16 +212,16 @@ export function LessonViewer({
 
       {/* Interactive Questions */}
       {lesson.questions && lesson.questions.length > 0 && (
-        <div className="space-y-4 pt-8 border-t">
+        <div className="mt-8 space-y-4">
           <h3 className="text-xl font-bold flex items-center gap-2">
-            <CheckCircle className="h-6 w-6 text-primary" />
-            Check Your Understanding
+            <span>Tasks</span>
+            <Badge variant="outline">{lesson.questions.length}</Badge>
           </h3>
-          <div className="space-y-6">
-            {lesson.questions.map((q) => (
-              <QuestionBlock key={q.id} question={q} lessonId={lesson.id} />
-            ))}
-          </div>
+          <LessonTaskBlock 
+            lessonId={lesson.id}
+            questions={lesson.questions as any}
+            taskNumber={1}
+          />
         </div>
       )}
 
@@ -321,6 +264,13 @@ export function LessonViewer({
                   Card {currentCard + 1} of {lesson.flashcards.length}
                 </span>
                 <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handlePrevCard}
+                  >
+                    Prev Card
+                  </Button>
                   <Button 
                     variant="outline" 
                     size="sm"

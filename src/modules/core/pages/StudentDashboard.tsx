@@ -35,13 +35,16 @@ import {
   GraduationCap,
   Clock,
   User,
-  Filter,
-  Loader2,
   Users,
   Settings,
   Bookmark as BookmarkIcon,
-  Trash2
+  Trash2,
+  FolderOpen,
+  Trophy
 } from 'lucide-react';
+import { Leaderboard } from '@/components/Leaderboard';
+import { StudentClassrooms } from '@/components/StudentClassrooms';
+import { LessonCollections } from '@/components/LessonCollections';
 import { getStudentProgress } from '@/modules/core/services/studentService';
 import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
 import { getLessons, Lesson } from '@/modules/lessons/services/lessonService';
@@ -239,10 +242,14 @@ export default function StudentDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 aero-glass p-1 max-w-md">
+          <TabsList className="grid w-full grid-cols-6 aero-glass p-1 max-w-3xl">
             <TabsTrigger value="lessons" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               Lessons
+            </TabsTrigger>
+            <TabsTrigger value="classrooms" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Classrooms
             </TabsTrigger>
             <TabsTrigger value="articles" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -251,6 +258,14 @@ export default function StudentDashboard() {
             <TabsTrigger value="bookmarks" className="flex items-center gap-2">
               <BookmarkIcon className="h-4 w-4" />
               Saved
+            </TabsTrigger>
+            <TabsTrigger value="collections" className="flex items-center gap-2">
+              <FolderOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Collections</span>
+            </TabsTrigger>
+            <TabsTrigger value="leaderboard" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              Leaderboard
             </TabsTrigger>
           </TabsList>
 
@@ -383,7 +398,7 @@ export default function StudentDashboard() {
                             {bookmark.resourceType === 'LESSON' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                           </div>
                           <div>
-                            <p className="font-medium group-hover:text-primary transition-colors">{bookmark.resourceTitle}</p>
+                            <p className="font-medium group-hover:text-primary transition-colors">{bookmark.title}</p>
                             <p className="text-xs text-muted-foreground">Saved on {new Date(bookmark.createdAt).toLocaleDateString()}</p>
                           </div>
                         </div>
@@ -401,6 +416,18 @@ export default function StudentDashboard() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="collections" className="space-y-4">
+            <LessonCollections />
+          </TabsContent>
+
+          <TabsContent value="classrooms" className="space-y-4">
+            <StudentClassrooms />
+          </TabsContent>
+
+          <TabsContent value="leaderboard" className="space-y-4">
+            <Leaderboard />
           </TabsContent>
         </Tabs>
       </main>

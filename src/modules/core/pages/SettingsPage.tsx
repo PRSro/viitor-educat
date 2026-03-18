@@ -27,6 +27,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { PageBackground } from '@/components/PageBackground';
 import {
   Settings,
   Palette,
@@ -116,9 +117,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageBackground>
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm">
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -648,6 +649,6 @@ export default function SettingsPage() {
           )}
         </Tabs>
       </main>
-    </div>
+    </PageBackground>
   );
 }

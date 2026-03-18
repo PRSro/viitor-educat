@@ -27,8 +27,9 @@ import ArticlesPage from "@/modules/articles/pages/ArticlesPage";
 import ResourcesPage from "@/modules/core/pages/ResourcesPage";
 import FlashcardsPage from "@/modules/core/pages/FlashcardsPage";
 import SettingsPage from "@/modules/core/pages/SettingsPage";
-import NewsPage from "@/modules/core/pages/NewsPage";
 import StudentProfilePage from "@/modules/core/pages/StudentProfilePage";
+import ForumPage from "@/pages/ForumPage";
+import ForumThreadPage from "@/pages/ForumThreadPage";
 import LessonViewerPage from "@/modules/lessons/pages/LessonViewerPage";
 import SearchPage from "@/modules/core/pages/SearchPage";
 import ArticleEditorPage from "@/modules/articles/pages/ArticleEditorPage";
@@ -36,6 +37,7 @@ import LessonEditorPage from "@/modules/lessons/pages/LessonEditorPage";
 import BookmarksPage from "@/modules/core/pages/BookmarksPage";
 import QuizPage from "@/modules/core/pages/QuizPage";
 import TeacherDirectoryPage from "@/modules/core/pages/TeacherDirectoryPage";
+import ClassroomPage from '@/pages/ClassroomPage';
 import { MusicPlayer } from "@/components/MusicPlayer";
 
 const queryClient = new QueryClient();
@@ -58,7 +60,6 @@ const App = () => (
                       <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
                       <Route path="/register" element={<ErrorBoundary><Register /></ErrorBoundary>} />
                       <Route path="/access-denied" element={<ErrorBoundary><AccessDenied /></ErrorBoundary>} />
-                      <Route path="/noutati" element={<ErrorBoundary><NewsPage /></ErrorBoundary>} />
                       <Route path="/profesori" element={<ErrorBoundary><TeacherDirectoryPage /></ErrorBoundary>} />
 
                       {/* Protected Routes - Admin Only */}
@@ -258,6 +259,10 @@ const App = () => (
                           </ProtectedRoute>
                         }
                       />
+
+                      {/* Forum Pages */}
+                      <Route path="/forum" element={<ProtectedRoute allowedRoles={['STUDENT','TEACHER','ADMIN']}><ErrorBoundary><ForumPage /></ErrorBoundary></ProtectedRoute>} />
+                      <Route path="/forum/:threadId" element={<ProtectedRoute allowedRoles={['STUDENT','TEACHER','ADMIN']}><ErrorBoundary><ForumThreadPage /></ErrorBoundary></ProtectedRoute>} />
 
                       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                       <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />

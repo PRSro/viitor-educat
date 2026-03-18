@@ -53,6 +53,8 @@ export const forumController = {
                 author: { select: { id: true, email: true, role: true } },
                 posts: {
                     where: { parentId: null },
+                    take: 50,
+                    orderBy: { createdAt: 'asc' },
                     include: {
                         author: { select: { id: true, email: true, role: true } },
                         replies: {
@@ -62,8 +64,7 @@ export const forumController = {
                             },
                             orderBy: { createdAt: 'asc' }
                         }
-                    },
-                    orderBy: { createdAt: 'asc' }
+                    }
                 }
             }
         });

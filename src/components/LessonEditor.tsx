@@ -61,7 +61,7 @@ export function LessonEditor({
   const [attachmentUrl, setAttachmentUrl] = useState<string>(lesson?.attachmentUrl || '');
   const published = status === 'PUBLIC';
   const setPublished = (val: boolean) => setStatus(val ? 'PUBLIC' : 'DRAFT');
-  const [questions, setQuestions] = useState<{ id?: string; prompt: string; type: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE' }[]>([]);
+  const [questions, setQuestions] = useState<{ id?: string; prompt: string; type: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE'; correctAnswer?: string; hint?: string }[]>(lesson?.questions as any || []);
   const [activeTab, setActiveTab] = useState('edit');
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -309,15 +309,16 @@ export function LessonEditor({
               {/* Interactive Questions */}
               <div className="mt-8 pt-8 border-t">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Label className="text-base font-semibold text-primary flex items-center gap-2">
                     <FileStack className="w-5 h-5 text-primary" />
-                    Interactive Questions
-                  </h3>
+                    Task Questions
+                  </Label>
                   <Button 
                     type="button" 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setQuestions([...questions, { prompt: '', type: 'SHORT_ANSWER' }])}
+                    className="aero-button gap-1"
+                    onClick={() => setQuestions(prev => [...prev, { prompt: '', correctAnswer: '', hint: '', type: 'SHORT_ANSWER' }])}
                   >
                     Add Question
                   </Button>
@@ -330,58 +331,52 @@ export function LessonEditor({
                 ) : (
                   <div className="space-y-4">
                     {questions.map((q, idx) => (
-                      <Card key={idx} className="bg-muted/10">
-                        <CardHeader className="p-4 pb-2">
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline">Question {idx + 1}</Badge>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0 space-y-3">
-                          <div className="flex gap-4">
-                            <div className="flex-1">
-                              <Label className="text-xs">Prompt</Label>
-                              <Input 
-                                value={q.prompt}
-                                onChange={(e) => {
-                                  const newQs = [...questions];
-                                  newQs[idx].prompt = e.target.value;
-                                  setQuestions(newQs);
-                                }}
-                                placeholder="e.g. What is the capital of France?"
-                                className="aero-input mt-1 h-9"
-                              />
-                            </div>
-                            <div className="w-40">
-                              <Label className="text-xs">Response Type</Label>
-                              <Select 
-                                value={q.type} 
-                                onValueChange={(v: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE') => {
-                                  const newQs = [...questions];
-                                  newQs[idx].type = v;
-                                  setQuestions(newQs);
-                                }}
-                              >
-                                <SelectTrigger className="mt-1 h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="SHORT_ANSWER">Short Answer</SelectItem>
-                                  <SelectItem value="MULTIPLE_CHOICE" disabled>Multiple Choice (Coming Soon)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <div key={idx} className="aero-glass p-4 rounded-xl space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-muted-foreground w-5">Q{idx+1}</span>
+                          <Input 
+                            value={q.prompt}
+                            onChange={(e) => {
+                              const newQs = [...questions];
+                              newQs[idx].prompt = e.target.value;
+                              setQuestions(newQs);
+                            }}
+                            placeholder="Question prompt..."
+                            className="aero-input flex-1 text-sm h-9"
+                          />
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 hover:text-destructive shrink-0"
+                            onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="flex gap-2 pl-7">
+                          <Input
+                            value={q.correctAnswer || ''}
+                            onChange={e => {
+                                const newQs = [...questions];
+                                newQs[idx].correctAnswer = e.target.value;
+                                setQuestions(newQs);
+                            }}
+                            placeholder="Correct answer (leave blank for open-ended)"
+                            className="aero-input flex-1 text-sm h-9"
+                          />
+                          <Input
+                            value={q.hint || ''}
+                            onChange={e => {
+                                const newQs = [...questions];
+                                newQs[idx].hint = e.target.value;
+                                setQuestions(newQs);
+                            }}
+                            placeholder="Hint (optional)"
+                            className="aero-input flex-1 text-sm h-9"
+                          />
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}

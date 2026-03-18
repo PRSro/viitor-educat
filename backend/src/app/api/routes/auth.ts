@@ -60,7 +60,7 @@ export async function authRoutes(server: FastifyInstance) {
         id: user.id, 
         email: user.email,
         role: user.role 
-      });
+      }, { expiresIn: '7d' });
 
       return reply.status(201).send({ user, token });
     } catch (error) {
@@ -102,7 +102,7 @@ export async function authRoutes(server: FastifyInstance) {
         id: user.id, 
         email: user.email,
         role: user.role 
-      });
+      }, { expiresIn: '7d' });
 
       return reply.send({
         user: {

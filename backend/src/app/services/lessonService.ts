@@ -2,7 +2,7 @@ import { Status } from '@prisma/client';
 import { prisma } from '../models/prisma.js';
 
 export const lessonService = {
-    async createLesson(teacherId: string, data: { title: string; content: string; description?: string; order?: number; status?: Status }) {
+    async createLesson(teacherId: string, data: { title: string; content: string; description?: string; order?: number; status?: Status, questions?: any[] }) {
         let order = data.order;
         if (order === undefined) {
             order = 0;
@@ -16,10 +16,12 @@ export const lessonService = {
                 order: order,
                 teacherId,
                 status: data.status || Status.PUBLIC,
-                questions: (data as any).questions ? {
-                    create: (data as any).questions.map((q: any, i: number) => ({
+                questions: data.questions ? {
+                    create: data.questions.map((q: any, i: number) => ({
                         prompt: q.prompt,
                         questionType: q.type || 'SHORT_ANSWER',
+                        correctAnswer: q.correctAnswer || null,
+                        hint: q.hint || null,
                         order: i
                     }))
                 } : undefined
@@ -27,7 +29,7 @@ export const lessonService = {
         });
     },
 
-    async updateLesson(id: string, data: { title?: string; content?: string; description?: string; status?: Status; order?: number; questions?: any[] }) {
+    async updateLesson(id: string, data: { title?: string; content?: string; description?: string; status?: Status | string; order?: number; questions?: any[] }) {
         const { questions, ...updateData } = data;
         
         return prisma.$transaction(async (tx) => {
@@ -44,6 +46,8 @@ export const lessonService = {
                         lessonId: id,
                         prompt: q.prompt,
                         questionType: q.type || 'SHORT_ANSWER',
+                        correctAnswer: q.correctAnswer || null,
+                        hint: q.hint || null,
                         order: i
                     }))
                 });

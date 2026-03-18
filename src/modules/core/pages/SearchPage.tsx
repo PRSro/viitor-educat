@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TeacherCard } from '@/components/TeacherCard';
+import { PageBackground } from '@/components/PageBackground';
 import {
   Search as SearchIcon,
   BookOpen,
@@ -152,8 +153,8 @@ export default function SearchPage() {
   const hasActiveFilters = selectedCategory !== 'ALL' || selectedLevel !== 'ALL' || selectedTeacher !== 'ALL' || searchQuery.trim();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50">
+    <PageBackground>
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -189,10 +190,10 @@ export default function SearchPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-10"
+                className="aero-input pl-10"
               />
             </div>
-            <Button onClick={handleSearch} disabled={loading}>
+            <Button className="aero-button-accent" onClick={handleSearch} disabled={loading}>
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -279,7 +280,7 @@ export default function SearchPage() {
 
             <TabsContent value="teachers">
               {results?.teachers.length === 0 ? (
-                <Card className="p-12 text-center">
+                <Card className="aero-glass p-12 text-center">
                   <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium mb-2">No teachers found</h3>
                   <p className="text-muted-foreground">Try adjusting your search or filters</p>
@@ -287,7 +288,9 @@ export default function SearchPage() {
               ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {results?.teachers.map((teacher) => (
-                    <TeacherCard key={teacher.id} teacher={teacher} />
+                    <div key={teacher.id} className="aero-glass hover-lift">
+                      <TeacherCard teacher={teacher} />
+                    </div>
                   ))}
                 </div>
               )}
@@ -339,6 +342,6 @@ export default function SearchPage() {
           </Card>
         )}
       </main>
-    </div>
+    </PageBackground>
   );
 }

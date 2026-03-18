@@ -214,7 +214,7 @@ export async function searchRoutes(fastify: FastifyInstance) {
    * GET /search/suggestions
    * Autocomplete with caching and rate limiting
    */
-  fastify.get('/suggestions', async (request, reply) => {
+  fastify.get('/suggestions', { preHandler: [authMiddleware] }, async (request, reply) => {
     const { q, limit: limitParam } = request.query as { q?: string; limit?: string };
     const clientIp = request.ip || 'unknown';
 
@@ -280,11 +280,11 @@ export async function searchRoutes(fastify: FastifyInstance) {
    * GET /search/filters
    * Get available filter options
    */
-  fastify.get('/filters', async (request, reply) => {
+  fastify.get('/filters', { preHandler: [authMiddleware] }, async (request, reply) => {
     try {
       const [articleCategories] = await Promise.all([
         prisma.article.findMany({
-          where: { published: true },
+          where: { status: 'PUBLISHED' },
           select: { category: true },
           distinct: ['category']
         })

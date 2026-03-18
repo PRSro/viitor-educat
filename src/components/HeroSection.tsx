@@ -132,6 +132,14 @@ export const HeroSection = () => {
               variant="hero" 
               size="lg" 
               className="group aero-button-accent"
+              onClick={() => {
+                const programsSection = document.getElementById('programe');
+                if (programsSection) {
+                  programsSection.scrollIntoView({ behavior: 'smooth' });
+                  // Dispatch custom event to open the programs dialog
+                  window.dispatchEvent(new CustomEvent('openProgramsDialog'));
+                }
+              }}
             >
               Descoperă Programele
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />

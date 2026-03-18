@@ -94,34 +94,47 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const { days } = request.query as { days?: string };
       const numDays = parseInt(days || '30');
 
-      const trends = [];
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - numDays);
+      startDate.setHours(0, 0, 0, 0);
+
+      const [lessonTrends, userTrends] = await Promise.all([
+        prisma.$queryRaw<{ date: Date; count: bigint }[]>`
+          SELECT DATE("completedAt") as date, COUNT(*) as count
+          FROM "LessonCompletion"
+          WHERE "completedAt" >= ${startDate}
+          GROUP BY DATE("completedAt")
+          ORDER BY date ASC
+        `,
+        prisma.$queryRaw<{ date: Date; count: bigint }[]>`
+          SELECT DATE("createdAt") as date, COUNT(*) as count
+          FROM "User"
+          WHERE "createdAt" >= ${startDate}
+          GROUP BY DATE("createdAt")
+          ORDER BY date ASC
+        `
+      ]);
+
+      const trendsMap = new Map<string, any>();
+      
+      // Initialize map with all dates
       for (let i = numDays - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        date.setHours(0, 0, 0, 0);
-
-        const nextDate = new Date(date);
-        nextDate.setDate(nextDate.getDate() + 1);
-
-        const [lessonsCompleted, usersCreated] = await Promise.all([
-          prisma.lessonCompletion.count({
-            where: {
-              completedAt: { gte: date, lt: nextDate }
-            }
-          }),
-          prisma.user.count({
-            where: {
-              createdAt: { gte: date, lt: nextDate }
-            }
-          })
-        ]);
-
-        trends.push({
-          date: date.toISOString().split('T')[0],
-          lessonsCompleted,
-          usersCreated
-        });
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const iso = d.toISOString().split('T')[0];
+        trendsMap.set(iso, { date: iso, lessonsCompleted: 0, usersCreated: 0 });
       }
+
+      for (const row of lessonTrends) {
+        const isoDate = new Date(row.date).toISOString().split('T')[0];
+        if (trendsMap.has(isoDate)) trendsMap.get(isoDate).lessonsCompleted = Number(row.count);
+      }
+      for (const row of userTrends) {
+        const isoDate = new Date(row.date).toISOString().split('T')[0];
+        if (trendsMap.has(isoDate)) trendsMap.get(isoDate).usersCreated = Number(row.count);
+      }
+
+      const trends = Array.from(trendsMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
       return { trends };
     } catch (error) {

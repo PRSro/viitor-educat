@@ -35,17 +35,19 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   const { isOpen, openPlayer, closePlayer } = useMusicPlayer();
   const { theme } = useSettings();
   const [tracks, setTracks] = useState<Track[]>([
-    { id: '1', frequencyHz: 432, name: 'Frutiger Aero', benefit: 'Aquatic serenity and nature-tech harmony.', duration: 3600, order: 0, url: '/assets/music/safe-haven.mp3' },
-    { id: '2', frequencyHz: 174, name: 'Foundation', benefit: 'Removes pain and strengthens the feeling of security.', duration: 3600, order: 1 },
-    { id: '3', frequencyHz: 285, name: 'Healing', benefit: 'Heals tissues and organs; resets them to original perfect state.', duration: 3600, order: 2 },
-    { id: '4', frequencyHz: 396, name: 'Liberation', benefit: 'Liberates guilt and fear; transforms grief into joy.', duration: 3600, order: 3 },
-    { id: '5', frequencyHz: 528, name: 'Miracle', benefit: 'Repairs DNA and brings miracles; known as the love frequency.', duration: 3600, order: 5 },
-    { id: '6', frequencyHz: 639, name: 'Harmony', benefit: 'Brings harmony to relationships and facilitates connection.', duration: 3600, order: 6 },
+    { id: '1', frequencyHz: 432, name: 'Frutiger Aero — 432Hz', benefit: 'Natural tuning, aquatic serenity.', duration: 3600, order: 0, url: 'CfhddcGwsWY' },
+    { id: '2', frequencyHz: 174, name: 'Foundation — 174Hz', benefit: 'Removes pain and strengthens security.', duration: 3600, order: 1, url: 'FkJfGEkVUhE' },
+    { id: '3', frequencyHz: 285, name: 'Healing — 285Hz', benefit: 'Heals tissues and organs.', duration: 3600, order: 2, url: 'q1eBkrxSJeQ' },
+    { id: '4', frequencyHz: 396, name: 'Liberation — 396Hz', benefit: 'Liberates guilt and fear.', duration: 3600, order: 3, url: 'pEGT80dDR60' },
+    { id: '5', frequencyHz: 417, name: 'Transformation — 417Hz', benefit: 'Facilitates change.', duration: 3600, order: 4, url: 'dBNMnWJBIF8' },
+    { id: '6', frequencyHz: 528, name: 'Miracle — 528Hz', benefit: 'DNA repair, the love frequency.', duration: 3600, order: 5, url: 'FEnxTz-KWNY' },
+    { id: '7', frequencyHz: 639, name: 'Harmony — 639Hz', benefit: 'Harmonises relationships.', duration: 3600, order: 6, url: 'A4Tcoa_BHZY' },
+    { id: '8', frequencyHz: 741, name: 'Awakening — 741Hz', benefit: 'Awakens intuition.', duration: 3600, order: 7, url: 'Tc5c-BWKGPQ' },
+    { id: '9', frequencyHz: 852, name: 'Spiritual Order — 852Hz', benefit: 'Restores spiritual order.', duration: 3600, order: 8, url: '7NCsRfpbBEI' },
+    { id: '10', frequencyHz: 963, name: 'Divine Consciousness — 963Hz', benefit: 'Highest spiritual frequency.', duration: 3600, order: 9, url: 'L8IkuQIGiUY' },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [waitingForGesture, setWaitingForGesture] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number | null>(null);
   const pendingAutoplayRef = useRef<Track | null>(null);
   const hasShownToastRef = useRef(false);
 
@@ -68,8 +70,8 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   useEffect(() => {
     const fetchTracks = async () => {
       try {
-        console.log('[MusicPlayer] Fetching tracks from /api/music/tracks');
-        const response = await api.get<TracksResponse>('/api/music/tracks');
+        console.log('[MusicPlayer] Fetching tracks from /music/tracks');
+        const response = await api.get<TracksResponse>('/music/tracks');
         console.log('[MusicPlayer] Tracks response:', response);
         setTracks(response.tracks);
       } catch (error) {
@@ -88,7 +90,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     if (!token) return; // Guest: don't auto-play
 
     // Logged in — fetch saved preference
-    api.get<PreferenceResponse>('/api/music/preferences')
+    api.get<PreferenceResponse>('/music/preferences')
       .then(response => {
         // Only restore if they had an explicit saved track
         if (response.preference?.trackId && response.preference?.track) {
@@ -131,7 +133,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     if (!token) return;
 
     try {
-      await api.patch('/api/music/preferences', { trackId, volume: vol });
+      await api.patch('/music/preferences', { trackId, volume: vol });
     } catch (error) {
       console.error('Failed to save preference:', error);
     }
@@ -167,48 +169,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  useEffect(() => {
-    if (!analyserNode || !canvasRef.current) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const bufferLength = analyserNode.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    const draw = () => {
-      animationRef.current = requestAnimationFrame(draw);
-      analyserNode.getByteFrequencyData(dataArray);
-
-      ctx.fillStyle = 'rgba(30, 30, 30, 0.3)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const barWidth = (canvas.width / bufferLength) * 2.5;
-      let x = 0;
-
-      for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (dataArray[i] / 255) * canvas.height;
-
-        const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
-        gradient.addColorStop(0, '#8b5cf6');
-        gradient.addColorStop(0.5, '#ec4899');
-        gradient.addColorStop(1, '#06b6d4');
-
-        ctx.fillStyle = gradient;
-        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-        x += barWidth + 1;
-      }
-    };
-
-    draw();
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [analyserNode]);
 
   return (
     <div className={`fixed bottom-6 right-4 z-[9999] pb-safe ${className}`}>
@@ -252,19 +213,16 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
           </div>
 
           {isPlaying && currentTrack && (
-            <div className="mb-3 p-2 rounded-lg bg-primary/10 border border-primary/20">
-              <canvas
-                ref={canvasRef}
-                width={280}
-                height={40}
-                className="w-full rounded mb-2"
-              />
-              <div className="text-center">
-                <p className="font-medium text-sm">{currentTrack.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {currentTrack.benefit} • {formatTime(elapsedTime)}
-                </p>
+            <div className="mb-3 p-2 rounded-lg bg-primary/10 border border-primary/20 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <span className="text-2xl font-bold text-primary">{currentTrack.frequencyHz}Hz</span>
+                <span className="text-xs text-muted-foreground animate-pulse">● LIVE</span>
               </div>
+              <p className="font-medium text-sm">{currentTrack.name}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {currentTrack.benefit}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{formatTime(elapsedTime)} elapsed</p>
             </div>
           )}
 

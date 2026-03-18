@@ -34,6 +34,8 @@ export interface Lesson {
     id: string;
     prompt: string;
     questionType: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE';
+    correctAnswer?: string;
+    hint?: string;
     order: number;
   }[];
   createdAt: string;
@@ -47,7 +49,7 @@ export interface CreateLessonData {
   order?: number;
   status?: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
   attachmentUrl?: string;
-  questions?: { prompt: string; type: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE' }[];
+  questions?: { prompt: string; type: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE'; correctAnswer?: string; hint?: string }[];
 }
 
 export interface UpdateLessonData {
@@ -55,6 +57,8 @@ export interface UpdateLessonData {
   description?: string;
   content?: string;
   attachmentUrl?: string;
+  status?: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
+  order?: number;
 }
 
 /**
@@ -140,14 +144,11 @@ export async function completeLesson(lessonId: string): Promise<LessonCompleteRe
   return api.post(`/lessons/${lessonId}/complete`, {});
 }
 
-export async function getLessonProgress(lessonId: string): Promise<LessonProgress> {
-  return api.get(`/lessons/${lessonId}/progress`);
-}
 
 export async function viewLesson(lessonId: string): Promise<LessonViewResponse> {
   return api.get(`/lessons/${lessonId}/view`);
 }
 
-export async function submitAnswer(lessonId: string, questionId: string, answer: string): Promise<{ success: boolean }> {
+export async function submitAnswer(lessonId: string, questionId: string, answer: string): Promise<{ success: boolean; correct: boolean | null; correctAnswer?: string; hint?: string }> {
   return api.post(`/lessons/${lessonId}/questions/${questionId}/answer`, { answer });
 }

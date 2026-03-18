@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArticleCard, ArticleCardSkeleton, ArticleEmptyState } from '@/components/ArticleCard';
+import { PageBackground } from '@/components/PageBackground';
 import {
   getArticles,
   getLatestArticles,
@@ -122,9 +123,9 @@ export default function ArticlesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageBackground>
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm">
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -134,6 +135,7 @@ export default function ArticlesPage() {
             <div className="flex gap-2">
               <Button
                 variant={showLatest ? "default" : "outline"}
+                className={showLatest ? "aero-button-accent" : "aero-button"}
                 onClick={() => setShowLatest(!showLatest)}
               >
                 <Calendar className="h-4 w-4 mr-2" />
@@ -161,11 +163,13 @@ export default function ArticlesPage() {
             ) : latestArticles.length > 0 ? (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {latestArticles.slice(0, 6).map((article) => (
-                  <ArticleCard key={article.id} article={article} />
+                  <div key={article.id} className="aero-glass hover-lift hover-glow">
+                    <ArticleCard article={article} />
+                  </div>
                 ))}
               </div>
             ) : (
-              <Card className="p-8 text-center">
+              <Card className="aero-glass p-8 text-center">
                 <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No latest articles available</p>
               </Card>
@@ -182,11 +186,11 @@ export default function ArticlesPage() {
                 placeholder="Search articles..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="aero-input pl-10"
               />
             </div>
             <Select value={category} onValueChange={handleCategoryChange}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="aero-button w-full sm:w-48">
                 <Filter className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -198,7 +202,7 @@ export default function ArticlesPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button type="submit">Search</Button>
+            <Button type="submit" className="aero-button-accent">Search</Button>
           </form>
         </section>
 
@@ -237,7 +241,9 @@ export default function ArticlesPage() {
             <>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {articles.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
+                  <div key={article.id} className="aero-glass hover-lift hover-glow">
+                    <ArticleCard article={article} />
+                  </div>
                 ))}
               </div>
 
@@ -277,6 +283,6 @@ export default function ArticlesPage() {
           )}
         </section>
       </main>
-    </div>
+    </PageBackground>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSettings } from '@/contexts/SettingsContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,6 +40,7 @@ import {
 import { sanitizeInput, containsXssPatterns } from '@/lib/sanitize';
 import { lessonSchema, getFirstError } from '@/lib/validation';
 import { NotificationBell } from '@/components/NotificationBell';
+import { StudentProgressPanel } from '@/components/StudentProgressPanel';
 import { api } from '@/lib/apiClient';
 import { 
   Plus, 
@@ -55,12 +56,14 @@ import {
   Settings,
   TrendingUp,
   AlertCircle,
-  CheckCircle2,
-  Users,
   BarChart3,
   Search,
-  BookOpen
+  BookOpen,
+  Trophy,
+  Users as UsersIcon
 } from 'lucide-react';
+import { Leaderboard } from '@/components/Leaderboard';
+import { TeacherClassrooms } from '@/components/TeacherClassrooms';
 import { 
   BarChart, 
   Bar, 
@@ -75,21 +78,13 @@ import {
 
 export default function TeacherDashboard() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { theme } = useSettings();
-  const [lessons, setLessons] = useState<TeacherLesson[]>([]);
+  const [lessons, setLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-
-  const [lessonFormOpen, setLessonFormOpen] = useState(false);
-  const [editingLesson, setEditingLesson] = useState<TeacherLesson | null>(null);
-  const [lessonFormData, setLessonFormData] = useState({
-    title: '',
-    description: '',
-    content: ''
-  });
-  const [lessonSaving, setLessonSaving] = useState(false);
 
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
   const [articleFormOpen, setArticleFormOpen] = useState(false);
@@ -168,61 +163,6 @@ export default function TeacherDashboard() {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete lesson');
-    }
-  }
-
-  function openLessonForm(lesson?: TeacherLesson) {
-    if (lesson) {
-      setEditingLesson(lesson);
-      setLessonFormData({
-        title: lesson.title,
-        description: lesson.description || '',
-        content: '' // Content is not returned in the list view
-      });
-    } else {
-      setEditingLesson(null);
-      setLessonFormData({ title: '', description: '', content: '' });
-    }
-    setLessonFormOpen(true);
-  }
-
-  async function handleLessonSubmit() {
-    const sanitizedTitle = sanitizeInput(lessonFormData.title, 200);
-    const sanitizedDescription = sanitizeInput(lessonFormData.description, 500);
-    const sanitizedContent = sanitizeInput(lessonFormData.content, 50000);
-
-    if (containsXssPatterns(sanitizedTitle) || containsXssPatterns(sanitizedContent)) {
-      setError('Input contains invalid characters');
-      return;
-    }
-
-    try {
-      setLessonSaving(true);
-      setError(null);
-      if (editingLesson) {
-        await updateLesson(editingLesson.id, { 
-          title: sanitizedTitle, 
-          description: sanitizedDescription, 
-          content: sanitizedContent 
-        });
-        setSuccess('Lesson updated successfully!');
-      } else {
-        await createLesson({ 
-          title: sanitizedTitle, 
-          description: sanitizedDescription, 
-          content: sanitizedContent
-        });
-        setSuccess('Lesson created successfully!');
-      }
-      
-      const updatedLessons = await getTeacherLessons(user.id);
-      setLessons(updatedLessons);
-      setLessonFormOpen(false);
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save lesson');
-    } finally {
-      setLessonSaving(false);
     }
   }
 
@@ -388,7 +328,7 @@ export default function TeacherDashboard() {
                   <p className="text-sm text-muted-foreground">Total Students</p>
                   <p className="text-2xl font-bold">{overview?.students || 0}</p>
                 </div>
-                <Users className="h-8 w-8 text-purple-500/50" />
+                <UsersIcon className="h-8 w-8 text-purple-500/50" />
               </div>
             </CardContent>
           </Card>
@@ -402,67 +342,25 @@ export default function TeacherDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="aero-glass p-1">
+          <TabsList className="aero-glass p-1 flex-wrap">
             <TabsTrigger value="overview">My Lessons</TabsTrigger>
+            <TabsTrigger value="classrooms">Classrooms</TabsTrigger>
             <TabsTrigger value="articles">My Articles</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="progress">Student Progress</TabsTrigger>
+            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Lessons</h2>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => window.open('/lessons/new', '_blank')}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Lesson
-                </Button>
-                <Dialog open={lessonFormOpen} onOpenChange={setLessonFormOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => openLessonForm()}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Quick Create
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>{editingLesson ? 'Edit Lesson' : 'Create Quick Lesson'}</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="title">Title</Label>
-                        <Input 
-                          id="title" 
-                          value={lessonFormData.title}
-                          onChange={e => setLessonFormData({...lessonFormData, title: e.target.value})}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="desc">Description</Label>
-                        <Input 
-                          id="desc" 
-                          value={lessonFormData.description}
-                          onChange={e => setLessonFormData({...lessonFormData, description: e.target.value})}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="content">Content (Markdown)</Label>
-                        <Textarea 
-                          id="content" 
-                          className="h-64"
-                          value={lessonFormData.content}
-                          onChange={e => setLessonFormData({...lessonFormData, content: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button onClick={handleLessonSubmit} disabled={lessonSaving}>
-                        {lessonSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                        Save Lesson
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">My Lessons</h2>
+              <Button 
+                className="aero-button-accent gap-2"
+                onClick={() => navigate('/lessons/new')}
+              >
+                <Plus className="h-4 w-4" />
+                New Lesson
+              </Button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -474,11 +372,11 @@ export default function TeacherDashboard() {
                   </CardHeader>
                   <CardFooter className="flex justify-between">
                     <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" asChild>
-                        <Link to={`/lessons/${lesson.id}/edit`}>
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                      </Button>
+                       <Button size="sm" variant="ghost" asChild>
+                         <Link to={`/lessons/${lesson.id}/edit`}>
+                           <Edit className="h-4 w-4" />
+                         </Link>
+                       </Button>
                       <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDeleteLesson(lesson.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -498,7 +396,7 @@ export default function TeacherDashboard() {
           <TabsContent value="articles" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Articles</h2>
-              <Button onClick={() => openArticleForm()}>
+              <Button onClick={() => setArticleFormOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Article
               </Button>
@@ -620,6 +518,18 @@ export default function TeacherDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="progress" className="space-y-4">
+            <StudentProgressPanel lessons={lessons.map((l: any) => ({ id: l.id, title: l.title }))} />
+          </TabsContent>
+
+          <TabsContent value="classrooms" className="space-y-4">
+            <TeacherClassrooms />
+          </TabsContent>
+
+          <TabsContent value="leaderboard" className="space-y-4">
+            <Leaderboard />
           </TabsContent>
         </Tabs>
       </main>

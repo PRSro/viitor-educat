@@ -7,13 +7,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../../core/middleware/authMiddleware.js';
 import { teacherOnly } from '../../core/middleware/permissionMiddleware.js';
 import { prisma } from '../../models/prisma.js';
-import { 
-  saveFile, 
-  deleteFile, 
-  validateMimeType, 
-  ALLOWED_MIME_TYPES,
-  MAX_FILE_SIZE 
-} from '../../services/storageService.js';
+import { saveFile, deleteFile, validateMimeType, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '../../services/storageService.js';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 
@@ -48,6 +42,9 @@ export async function uploadRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request: FastifyRequest<{ Body: UploadBody }>, reply: FastifyReply) => {
     try {
+      if (!request.isMultipart()) {
+        return reply.status(400).send({ error: 'Request must be multipart/form-data' });
+      }
       const user = getCurrentUser(request);
       const data = await request.file();
       
@@ -196,6 +193,9 @@ export async function uploadRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+      if (!request.isMultipart()) {
+        return reply.status(400).send({ error: 'Request must be multipart/form-data' });
+      }
       const user = getCurrentUser(request);
       const data = await request.file();
       
@@ -237,6 +237,9 @@ export async function uploadRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+      if (!request.isMultipart()) {
+        return reply.status(400).send({ error: 'Request must be multipart/form-data' });
+      }
       const data = await request.file();
       
       if (!data) {
@@ -244,10 +247,10 @@ export async function uploadRoutes(server: FastifyInstance) {
       }
 
       const ext = data.filename.split('.').pop()?.toLowerCase();
-      if (ext !== 'docx') {
+      if (!ext || !['docx', 'md', 'markdown', 'pdf'].includes(ext)) {
         return reply.status(415).send({ 
           error: 'Invalid file type',
-          message: 'Articles can only be created from .docx files'
+          message: 'Articles can be created from .docx, .md, or .pdf files'
         });
       }
 
@@ -262,20 +265,30 @@ export async function uploadRoutes(server: FastifyInstance) {
       let title = '';
       
       try {
-        const mammoth = await import('mammoth');
-        const result = await mammoth.extractRawText({ path: join(UPLOAD_DIR, saveResult.filename!) });
-        content = result.value;
+        if (ext === 'docx') {
+          const mammoth = await import('mammoth');
+          const result = await mammoth.extractRawText({ path: join(UPLOAD_DIR, saveResult.filename!) });
+          content = result.value;
+        } else if (ext === 'pdf') {
+          const pdfParseModule = await import('pdf-parse');
+          const pdfParse = pdfParseModule.default || pdfParseModule;
+          // @ts-ignore
+          const pdfData = await pdfParse(buffer);
+          content = pdfData.text;
+        } else if (ext === 'md' || ext === 'markdown') {
+          content = buffer.toString('utf-8');
+        }
         
         const lines = content.split('\n').filter(l => l.trim());
         if (lines.length > 0) {
-          title = lines[0].substring(0, 200);
+          title = lines[0].substring(0, 200).replace(/^#+\s*/, ''); // strip markdown headers
           content = lines.slice(1).join('\n');
         } else {
-          title = data.filename.replace('.docx', '');
+          title = data.filename.replace(new RegExp(`\\.${ext}$`, 'i'), '');
         }
       } catch (parseError) {
-        server.log.warn('Failed to parse .docx, using raw content');
-        title = data.filename.replace('.docx', '');
+        server.log.warn('Failed to parse document, using raw content');
+        title = data.filename.replace(new RegExp(`\\.${ext}$`, 'i'), '');
         content = buffer.toString('utf-8').substring(0, 50000);
       }
 
@@ -300,6 +313,9 @@ export async function uploadRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, teacherOnly]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+      if (!request.isMultipart()) {
+        return reply.status(400).send({ error: 'Request must be multipart/form-data' });
+      }
       const data = await request.file();
       
       if (!data) {
@@ -307,15 +323,33 @@ export async function uploadRoutes(server: FastifyInstance) {
       }
 
       const ext = data.filename.split('.').pop()?.toLowerCase();
-      if (ext !== 'md' && ext !== 'markdown') {
+      if (!ext || !['docx', 'md', 'markdown'].includes(ext)) {
         return reply.status(415).send({ 
           error: 'Invalid file type',
-          message: 'Lesson materials can only be uploaded as .md (Markdown) files'
+          message: 'Lesson materials can only be uploaded as .md or .docx files'
         });
       }
 
-      const content = await data.toBuffer();
-      const textContent = content.toString('utf-8');
+      const buffer = await data.toBuffer();
+      let textContent = '';
+
+      if (ext === 'docx') {
+        try {
+          const mammoth = await import('mammoth');
+          const saveResult = await saveFile(buffer, data.filename);
+          if (saveResult.success) {
+            const result = await mammoth.extractRawText({ path: join(UPLOAD_DIR, saveResult.filename!) });
+            textContent = result.value;
+            await deleteFile(saveResult.filename!);
+          } else {
+             throw new Error('Save failed');
+          }
+        } catch (e) {
+             textContent = buffer.toString('utf-8');
+        }
+      } else {
+        textContent = buffer.toString('utf-8');
+      }
       
       return { 
         message: 'Lesson material processed successfully',

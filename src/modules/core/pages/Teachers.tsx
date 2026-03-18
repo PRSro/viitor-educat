@@ -19,6 +19,7 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { getAllTeachers, TeacherWithProfile } from '@/modules/core/services/authService';
+import { PageBackground } from '@/components/PageBackground';
 
 export default function TeachersPage() {
   const { user, logout } = useAuth();
@@ -71,8 +72,8 @@ export default function TeachersPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
-      <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50">
+    <PageBackground>
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -163,7 +164,7 @@ export default function TeachersPage() {
           </div>
         )}
       </main>
-    </div>
+    </PageBackground>
   );
 }
 

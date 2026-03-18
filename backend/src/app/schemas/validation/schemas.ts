@@ -45,6 +45,15 @@ export const loginSchema = z.object({
 // Lesson Schemas
 // ============================================
 
+const lessonQuestionSchema = z.object({
+  id: z.string().optional(),
+  prompt: z.string().min(1, { message: 'Question prompt is required' }),
+  type: z.enum(['SHORT_ANSWER', 'MULTIPLE_CHOICE']).optional().default('SHORT_ANSWER'),
+  correctAnswer: z.string().optional().nullable(),
+  hint: z.string().optional().nullable(),
+});
+
+
 export const createLessonSchema = z.object({
   title: z
     .string()
@@ -67,6 +76,8 @@ export const createLessonSchema = z.object({
     .min(0)
     .optional()
     .default(0),
+  status: z.string().optional(),
+  questions: z.array(lessonQuestionSchema).optional(),
 });
 
 export const updateLessonSchema = z.object({
@@ -93,6 +104,7 @@ export const updateLessonSchema = z.object({
     .min(0)
     .optional(),
   status: z.string().optional(),
+  questions: z.array(lessonQuestionSchema).optional(),
 });
 
 export const lessonIdSchema = z.object({

@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PageBackground } from '@/components/PageBackground';
 import { ResourceCard, ResourceCardSkeleton, ResourceEmptyState } from '@/components/ResourceCard';
 import { 
   getResources, 
@@ -51,7 +52,7 @@ export default function ResourcesPage() {
   const { user } = useAuth();
   const isTeacher = user?.role === 'TEACHER' || user?.role === 'ADMIN';
   
-  const [resources, setResources] = useState<ResourceListItem[]>([]);
+  const [resources, setResources] = useState< ResourceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -107,9 +108,9 @@ export default function ResourcesPage() {
   const grouped = groupBy !== 'none' ? groupedResources() : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageBackground>
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm">
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -119,7 +120,7 @@ export default function ResourcesPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-sm">
+              <Badge variant="outline" className="aero-glass text-sm">
                 {resources.length} resources
               </Badge>
             </div>
@@ -134,6 +135,7 @@ export default function ResourcesPage() {
             <div className="flex gap-2 flex-wrap">
               <Button
                 variant={typeFilter === 'ALL' ? 'default' : 'outline'}
+                className={typeFilter === 'ALL' ? 'aero-button-accent' : 'aero-button'}
                 size="sm"
                 onClick={() => setTypeFilter('ALL')}
               >
@@ -145,6 +147,7 @@ export default function ResourcesPage() {
                   <Button
                     key={type}
                     variant={typeFilter === type ? 'default' : 'outline'}
+                    className={typeFilter === type ? 'aero-button-accent' : 'aero-button'}
                     size="sm"
                     onClick={() => setTypeFilter(type)}
                   >
@@ -157,7 +160,7 @@ export default function ResourcesPage() {
             
             <div className="ml-auto">
               <Select value={groupBy} onValueChange={(v) => setGroupBy(v as typeof groupBy)}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="aero-button w-40">
                   <FolderOpen className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Group by" />
                 </SelectTrigger>
@@ -204,10 +207,9 @@ export default function ResourcesPage() {
                   </div>
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {items.map((resource) => (
-                      <ResourceCard 
-                        key={resource.id} 
-                        resource={resource}
-                      />
+                      <div key={resource.id} className="aero-glass hover-lift hover-glow">
+                        <ResourceCard resource={resource} />
+                      </div>
                     ))}
                   </div>
                 </section>
@@ -217,11 +219,13 @@ export default function ResourcesPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {resources.map((resource) => (
-              <ResourceCard key={resource.id} resource={resource} />
+              <div key={resource.id} className="aero-glass hover-lift hover-glow">
+                <ResourceCard resource={resource} />
+              </div>
             ))}
           </div>
         )}
       </main>
-    </div>
+    </PageBackground>
   );
 }

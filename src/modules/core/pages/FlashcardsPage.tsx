@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageBackground } from '@/components/PageBackground';
 import {
   FlashcardDeck,
   FlashcardDeckGrouped,
@@ -61,10 +62,10 @@ export default function FlashcardsPage() {
 
   if (studyMode && currentDeck.length > 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b bg-card/50 backdrop-blur-sm">
+      <PageBackground>
+        <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <Button variant="ghost" onClick={() => setStudyMode(false)}>
+            <Button className="aero-button" variant="ghost" onClick={() => setStudyMode(false)}>
               ← Înapoi la Flashcard-uri
             </Button>
           </div>
@@ -76,14 +77,14 @@ export default function FlashcardsPage() {
             onComplete={() => setStudyMode(false)}
           />
         </main>
-      </div>
+      </PageBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <PageBackground>
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm">
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -93,7 +94,7 @@ export default function FlashcardsPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-sm">
+              <Badge variant="outline" className="aero-glass text-sm">
                 {flashcards.length} carduri în total
               </Badge>
             </div>
@@ -109,7 +110,7 @@ export default function FlashcardsPage() {
         )}
 
         <Tabs defaultValue="browse" className="space-y-6">
-          <TabsList>
+          <TabsList className="aero-glass">
             <TabsTrigger value="browse" className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
               Răsfoiește
@@ -127,7 +128,7 @@ export default function FlashcardsPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : flashcards.length === 0 ? (
-              <Card className="p-12 text-center">
+              <Card className="aero-glass p-12 text-center">
                 <Layers className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Niciun flashcard disponibil</h3>
                 <p className="text-muted-foreground">
@@ -137,7 +138,9 @@ export default function FlashcardsPage() {
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {flashcards.slice(0, 12).map((flashcard) => (
-                  <FlashcardItem key={flashcard.id} flashcard={flashcard} />
+                  <div key={flashcard.id} className="aero-glass hover-lift shine-sweep">
+                    <FlashcardItem flashcard={flashcard} />
+                  </div>
                 ))}
               </div>
             )}
@@ -150,7 +153,7 @@ export default function FlashcardsPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : flashcards.length === 0 ? (
-              <Card className="p-12 text-center">
+              <Card className="aero-glass p-12 text-center">
                 <Layers className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">Niciun flashcard disponibil</h3>
                 <p className="text-muted-foreground">
@@ -160,7 +163,7 @@ export default function FlashcardsPage() {
             ) : (
               <>
                 <div className="flex justify-end mb-4">
-                  <Button onClick={() => {
+                  <Button className="aero-button-accent" onClick={() => {
                     setCurrentDeck(flashcards);
                     setStudyMode(true);
                   }}>
@@ -170,7 +173,9 @@ export default function FlashcardsPage() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   {flashcards.map((flashcard) => (
-                    <FlashcardItem key={flashcard.id} flashcard={flashcard} />
+                    <div key={flashcard.id} className="aero-glass hover-lift shine-sweep">
+                      <FlashcardItem flashcard={flashcard} />
+                    </div>
                   ))}
                 </div>
               </>
@@ -178,6 +183,6 @@ export default function FlashcardsPage() {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
+    </PageBackground>
   );
 }
