@@ -19,21 +19,6 @@ function getCurrentUser(request: FastifyRequest): JwtPayload | undefined {
 export async function protectedRoutes(server: FastifyInstance) {
   
   /**
-   * GET /api/profile
-   * Accessible by any authenticated user (student or teacher)
-   * Returns the current user's info from JWT
-   */
-  server.get('/profile', {
-    preHandler: [authMiddleware]
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
-    // request.user is set by authMiddleware
-    return {
-      message: 'Profile accessed successfully',
-      user: request.user
-    };
-  });
-
-  /**
    * GET /api/shared
    * Accessible by both STUDENT and TEACHER roles
    * Example: viewing shared resources

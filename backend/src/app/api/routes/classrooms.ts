@@ -88,6 +88,11 @@ export const classroomRoutes = async (server: FastifyInstance) => {
         classroomLessons: {
           orderBy: { order: 'asc' },
           include: { lesson: { select: { id: true, title: true, status: true, order: true, description: true } } }
+        },
+        students: {
+          include: {
+            student: { select: { id: true, email: true } }
+          }
         }
       }
     });

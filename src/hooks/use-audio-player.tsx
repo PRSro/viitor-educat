@@ -56,8 +56,11 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimeRef = useRef<number>(0);
+  // FIX BUG 3: initialize to Date.now() so remount doesn't immediately fire stop()
+  const startTimeRef = useRef<number>(Date.now());
   const pendingTrackRef = useRef<{ track: Track; volume: number } | null>(null);
+  // FIX BUG 1: cancel ref for pending YT player creation
+  const pendingCancelRef = useRef<{ cancelled: boolean } | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
@@ -77,8 +80,15 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   }, []);
 
   const stop = useCallback(() => {
+    // FIX BUG 1: cancel any pending player creation before it fires onReady
+    if (pendingCancelRef.current) {
+      pendingCancelRef.current.cancelled = true;
+      pendingCancelRef.current = null;
+    }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     try { playerRef.current?.stopVideo(); } catch {}
+    try { playerRef.current?.destroy(); } catch {}
+    playerRef.current = null;
     setIsPlaying(false);
     setCurrentTrack(null);
     setCurrentFrequency(null);
@@ -88,10 +98,14 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const setVolume = useCallback((vol: number) => {
     const clamped = Math.max(0, Math.min(1, vol));
     setVolumeState(clamped);
-    try { playerRef.current?.setVolume(clamped * 100); } catch {}
-  }, []);
+    // FIX BUG 2: only set volume on the player when it's actually playing
+    if (isPlaying) {
+      try { playerRef.current?.setVolume(clamped * 100); } catch {}
+    }
+  }, [isPlaying]);
 
   const startTimer = useCallback(() => {
+    // FIX BUG 3: always reset startTimeRef here so elapsed begins at 0
     startTimeRef.current = Date.now();
     timerRef.current = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current;
@@ -100,7 +114,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     }, 1000);
   }, [stop]);
 
-  const createPlayerAndPlay = useCallback((track: Track, vol: number) => {
+  const createPlayerAndPlay = useCallback((track: Track, vol: number, cancelRef: { cancelled: boolean }) => {
     if (!containerRef.current) return;
     // Destroy existing player
     try { playerRef.current?.destroy(); } catch {}
@@ -126,6 +140,11 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
       },
       events: {
         onReady: (e: any) => {
+          // FIX BUG 1: if stop() was called before onReady, abandon this player
+          if (cancelRef.cancelled) {
+            try { e.target.destroy(); } catch {}
+            return;
+          }
           e.target.setVolume(vol * 100);
           e.target.playVideo();
           setIsPlaying(true);
@@ -145,7 +164,13 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const play = useCallback((track: Track, initialVolume: number = 0.25) => {
     stop();
     if (!track.url) { console.warn('No YouTube ID for track', track.name); return; }
-    loadYTApi(() => createPlayerAndPlay(track, initialVolume));
+    // FIX BUG 1: create a fresh cancel ref for this play invocation
+    const cancelRef = { cancelled: false };
+    pendingCancelRef.current = cancelRef;
+    loadYTApi(() => {
+      if (cancelRef.cancelled) return;
+      createPlayerAndPlay(track, initialVolume, cancelRef);
+    });
   }, [stop, createPlayerAndPlay]);
 
   useEffect(() => () => stop(), [stop]);

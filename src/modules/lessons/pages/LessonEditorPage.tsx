@@ -27,13 +27,13 @@ export default function LessonEditorPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: CreateLessonData | UpdateLessonData) => {
-      if (lessonId) return updateLesson(lessonId, data);
+      if (lessonId) return updateLesson(lessonId, data as UpdateLessonData);
       return createLesson(data as CreateLessonData);
     },
     onSuccess: (savedLesson) => {
       queryClient.invalidateQueries({ queryKey: ['lessons'] });
       toast({ title: isNew ? 'Lesson created!' : 'Lesson saved!' });
-      navigate(`/lessons/${savedLesson.id}`);
+      if (savedLesson?.id) navigate(`/lessons/${savedLesson.id}`);
     },
     onError: () => {
       toast({ title: 'Save failed', variant: 'destructive' });
@@ -91,9 +91,7 @@ export default function LessonEditorPage() {
           lesson={lessonData?.lesson}
           onSave={saveMutation.mutateAsync}
           onDelete={lessonId ? deleteMutation.mutateAsync : undefined}
-          // @ts-ignore - props provided by prompt
           onPublish={lessonId ? publishMutation.mutateAsync : undefined}
-          // @ts-ignore - props provided by prompt
           onViewLesson={() => lessonId && navigate(`/lessons/${lessonId}`)}
           isLoading={saveMutation.isPending || deleteMutation.isPending || publishMutation.isPending}
         />

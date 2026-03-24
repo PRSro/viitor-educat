@@ -31,6 +31,7 @@ import {
   BookOpen,
   FileText,
   Search,
+  Filter,
   ExternalLink,
   GraduationCap,
   Clock,
@@ -40,7 +41,9 @@ import {
   Bookmark as BookmarkIcon,
   Trash2,
   FolderOpen,
-  Trophy
+  Trophy,
+  CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 import { Leaderboard } from '@/components/Leaderboard';
 import { StudentClassrooms } from '@/components/StudentClassrooms';
@@ -57,6 +60,7 @@ import {
   categoryColors
 } from '@/modules/articles/services/articleService';
 import { getBookmarks, deleteBookmarkByResource, Bookmark } from '@/modules/core/services/bookmarkService';
+import { api } from '@/lib/apiClient';
 
 export default function StudentDashboard() {
   const { user, logout } = useAuth();
@@ -73,6 +77,9 @@ export default function StudentDashboard() {
   const [allLessons, setAllLessons] = useState<Lesson[]>([]);
   const [loadingLessons, setLoadingLessons] = useState(true);
   const [lessonSearch, setLessonSearch] = useState('');
+
+  // Completed lesson IDs
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
 
   // Articles state
   const [articles, setArticles] = useState<ArticleListItem[]>([]);
@@ -99,18 +106,22 @@ export default function StudentDashboard() {
     async function fetchData() {
       try {
         setLoadingLessons(true);
-        const [lessonsData, progressData, bookmarksData] = await Promise.all([
+        setLoadingBookmarks(true);
+        const [lessonsData, progressData, bookmarksData, completionsData] = await Promise.all([
           getLessons(),
           getStudentProgress().catch(() => null),
-          getBookmarks().catch(() => ({ bookmarks: [] }))
+          getBookmarks().catch(() => ({ bookmarks: [] })),
+          api.get<{ completions: { lessonId: string }[] }>('/student/completions').catch(() => ({ completions: [] }))
         ]);
         setAllLessons(lessonsData);
         setProgress(progressData);
         setBookmarks(bookmarksData.bookmarks);
+        setCompletedLessonIds(new Set(completionsData.completions.map((c) => c.lessonId)));
       } catch (err) {
         setError('Failed to load dashboard data');
       } finally {
         setLoadingLessons(false);
+        setLoadingBookmarks(false);
       }
     }
     fetchData();
@@ -298,20 +309,31 @@ export default function StudentDashboard() {
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredLessons.map((lesson) => (
-                  <Card key={lesson.id} className="aero-glass group hover:shadow-lg transition-all">
-                    <CardHeader>
-                      <Badge variant="outline" className="w-fit mb-2">Lesson</Badge>
-                      <CardTitle className="group-hover:text-primary transition-colors line-clamp-1">{lesson.title}</CardTitle>
-                      <CardDescription className="line-clamp-2">{lesson.description || 'Interactive educational content.'}</CardDescription>
-                    </CardHeader>
-                    <CardFooter>
-                      <Button asChild className="w-full">
-                        <Link to={`/lessons/${lesson.id}`}>Start Learning</Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
+                {filteredLessons.map((lesson) => {
+                  const isCompleted = completedLessonIds.has(lesson.id);
+                  return (
+                    <Card key={lesson.id} className={`aero-glass group hover:shadow-lg transition-all ${isCompleted ? 'border-primary/30' : ''}`}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge variant="outline">Lesson</Badge>
+                          {isCompleted && (
+                            <Badge variant="default" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Completed
+                            </Badge>
+                          )}
+                        </div>
+                        <CardTitle className="group-hover:text-primary transition-colors line-clamp-1">{lesson.title}</CardTitle>
+                        <CardDescription className="line-clamp-2">{lesson.description || 'Interactive educational content.'}</CardDescription>
+                      </CardHeader>
+                      <CardFooter>
+                        <Button asChild className="w-full" variant={isCompleted ? 'outline' : 'default'}>
+                          <Link to={`/lessons/${lesson.id}`}>{isCompleted ? 'Review' : 'Start Learning'}</Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>

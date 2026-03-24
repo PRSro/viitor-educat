@@ -59,6 +59,7 @@ export interface UpdateLessonData {
   attachmentUrl?: string;
   status?: 'DRAFT' | 'PRIVATE' | 'PUBLIC';
   order?: number;
+  questions?: { prompt: string; type: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE'; correctAnswer?: string; hint?: string }[];
 }
 
 /**
@@ -104,7 +105,7 @@ export async function createLesson(lessonData: CreateLessonData): Promise<Lesson
  * Update a lesson
  */
 export async function updateLesson(id: string, lessonData: UpdateLessonData): Promise<Lesson> {
-  const data = await api.put<{ lesson: Lesson }>(`/lessons/${id}`, lessonData);
+  const data = await api.patch<{ lesson: Lesson }>(`/lessons/${id}`, lessonData);
   return data.lesson;
 }
 

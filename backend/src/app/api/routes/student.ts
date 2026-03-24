@@ -73,4 +73,22 @@ export async function studentRoutes(server: FastifyInstance) {
       totalQuizzesAttempted: quizAttemptsCount
     };
   });
+
+  /**
+   * GET /student/progress
+   * Returns overall lesson completion progress for the student
+   */
+  server.get('/progress', {
+    preHandler: [authMiddleware, requireRole(['STUDENT'])]
+  }, async (request, reply) => {
+    const user = getCurrentUser(request);
+    const [totalCompleted, totalLessons] = await Promise.all([
+      prisma.lessonCompletion.count({ where: { studentId: user.id } }),
+      prisma.lesson.count({ where: { status: 'PUBLIC' } })
+    ]);
+    const percentComplete = totalLessons > 0
+      ? Math.round((totalCompleted / totalLessons) * 100)
+      : 0;
+    return { totalCompleted, percentComplete };
+  });
 }

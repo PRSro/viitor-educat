@@ -35,7 +35,7 @@ export async function lessonRoutes(server: FastifyInstance) {
   server.get('/:id/view', { preHandler: [authMiddleware, anyRole] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.view(request as any, reply));
   server.post('/:id/complete', { preHandler: [authMiddleware, anyRole] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.complete(request as any, reply));
   server.post('/', { preHandler: [authMiddleware, teacherOnly] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.create(request, reply));
-  server.put('/:id', { preHandler: [authMiddleware, teacherOnly] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.update(request as any, reply));
   server.delete('/:id', { preHandler: [authMiddleware, teacherOnly] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.remove(request as any, reply));
+  server.patch('/:id', { preHandler: [authMiddleware, teacherOnly] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.update(request as any, reply));
   server.post('/:id/questions/:questionId/answer', { preHandler: [authMiddleware, anyRole] }, (request: FastifyRequest, reply: FastifyReply) => lessonController.submitAnswer(request as any, reply));
 }

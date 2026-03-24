@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
@@ -43,6 +42,7 @@ interface LessonEditorProps {
   onSave: (data: CreateLessonData | UpdateLessonData) => Promise<Lesson>;
   onDelete?: () => Promise<void>;
   onPublish?: (publish: boolean) => Promise<void>;
+  onViewLesson?: () => void;
   isLoading?: boolean;
 }
 
@@ -51,6 +51,7 @@ export function LessonEditor({
   onSave, 
   onDelete, 
   onPublish,
+  onViewLesson,
   isLoading = false 
 }: LessonEditorProps) {
   const [title, setTitle] = useState(lesson?.title || '');
@@ -59,8 +60,7 @@ export function LessonEditor({
   const [order, setOrder] = useState(lesson?.order || 0);
   const [status, setStatus] = useState<'DRAFT' | 'PRIVATE' | 'PUBLIC'>(lesson?.status as any || 'DRAFT');
   const [attachmentUrl, setAttachmentUrl] = useState<string>(lesson?.attachmentUrl || '');
-  const published = status === 'PUBLIC';
-  const setPublished = (val: boolean) => setStatus(val ? 'PUBLIC' : 'DRAFT');
+  
   const [questions, setQuestions] = useState<{ id?: string; prompt: string; type: 'SHORT_ANSWER' | 'MULTIPLE_CHOICE'; correctAnswer?: string; hint?: string }[]>(lesson?.questions as any || []);
   const [activeTab, setActiveTab] = useState('edit');
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
@@ -100,12 +100,13 @@ export function LessonEditor({
   }, [content]);
 
   const handleSave = useCallback(async (asDraft: boolean = true) => {
+    const saveStatus = asDraft ? (status === 'PUBLIC' ? 'PUBLIC' : 'DRAFT') : 'PUBLIC';
     const data: CreateLessonData | UpdateLessonData = {
       title,
       content,
       description: description || undefined,
       order,
-      status: status,
+      status: saveStatus,
       attachmentUrl: attachmentUrl || undefined,
       questions: questions.length > 0 ? questions : undefined,
     };
@@ -397,7 +398,7 @@ export function LessonEditor({
                 className="w-full aero-button-accent"
               >
                 <Save className="w-4 h-4 mr-2" />
-                Save Draft
+                {isLoading ? 'Saving...' : 'Save Draft'}
               </Button>
               
               {onPublish && (
@@ -408,7 +409,7 @@ export function LessonEditor({
                   className="w-full"
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  {published ? 'Update Published' : 'Publish'}
+                  {status === 'PUBLIC' ? 'Update Published' : 'Publish'}
                 </Button>
               )}
 
@@ -465,17 +466,6 @@ export function LessonEditor({
                   Higher numbers appear later (0 = first)
                 </p>
               </div>
-
-              {onPublish && (
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="published">Published</Label>
-                  <Switch
-                    id="published"
-                    checked={published}
-                    onCheckedChange={setPublished}
-                  />
-                </div>
-              )}
             </div>
           </GlassCard>
         </div>

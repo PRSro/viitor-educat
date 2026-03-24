@@ -46,10 +46,15 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     { id: '9', frequencyHz: 852, name: 'Spiritual Order — 852Hz', benefit: 'Restores spiritual order.', duration: 3600, order: 8, url: '7NCsRfpbBEI' },
     { id: '10', frequencyHz: 963, name: 'Divine Consciousness — 963Hz', benefit: 'Highest spiritual frequency.', duration: 3600, order: 9, url: 'L8IkuQIGiUY' },
   ]);
-  const [isLoading, setIsLoading] = useState(false);
+  // FIX BUG 1: start as true so "Loading ambient tracks..." shows on mount
+  const [isLoading, setIsLoading] = useState(true);
   const [waitingForGesture, setWaitingForGesture] = useState(false);
   const pendingAutoplayRef = useRef<Track | null>(null);
   const hasShownToastRef = useRef(false);
+  // FIX BUG 4: track whether tracks came from backend (not hardcoded defaults)
+  const tracksFromBackend = useRef(false);
+  // FIX BUG 3: store the preference volume to use when manually selecting tracks
+  const preferenceVolumeRef = useRef<number>(0.25);
 
   const setIsOpen = (open: boolean) => {
     if (open) openPlayer();
@@ -69,11 +74,15 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
 
   useEffect(() => {
     const fetchTracks = async () => {
+      // FIX BUG 1: set loading true before the fetch
+      setIsLoading(true);
       try {
         console.log('[MusicPlayer] Fetching tracks from /music/tracks');
         const response = await api.get<TracksResponse>('/music/tracks');
         console.log('[MusicPlayer] Tracks response:', response);
         setTracks(response.tracks);
+        // FIX BUG 4: mark that tracks are now from the backend
+        tracksFromBackend.current = true;
       } catch (error) {
         console.error('[MusicPlayer] Failed to fetch tracks:', error);
       } finally {
@@ -85,6 +94,8 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
 
   useEffect(() => {
     if (tracks.length === 0) return;
+    // FIX BUG 4: only run preference restore after tracks are fetched from backend
+    if (!tracksFromBackend.current) return;
 
     const token = getToken();
     if (!token) return; // Guest: don't auto-play
@@ -96,8 +107,18 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
         if (response.preference?.trackId && response.preference?.track) {
           const savedTrack = tracks.find(t => t.id === response.preference?.trackId);
           if (savedTrack) {
-            pendingAutoplayRef.current = savedTrack;
-            setWaitingForGesture(true);
+            // FIX BUG 3: restore preference volume and sync slider
+            const prefVol = response.preference.volume ?? 0.25;
+            preferenceVolumeRef.current = prefVol;
+            setVolume(prefVol);
+
+            // FIX BUG 2: if player is already open, autoplay directly without gesture prompt
+            if (isOpen) {
+              play(savedTrack, prefVol);
+            } else {
+              pendingAutoplayRef.current = savedTrack;
+              setWaitingForGesture(true);
+            }
           }
           // No else — if no saved preference, don't auto-play anything
         }
@@ -105,11 +126,12 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
       .catch(() => {
         // Preference fetch failed — don't auto-play
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracks]);
 
   const handleGestureManual = useCallback(() => {
     if (waitingForGesture && pendingAutoplayRef.current) {
-      play(pendingAutoplayRef.current, 0.2);
+      play(pendingAutoplayRef.current, preferenceVolumeRef.current);
       pendingAutoplayRef.current = null;
       setWaitingForGesture(false);
     }
@@ -141,6 +163,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
 
   const handlePlay = (track: Track) => {
     console.log('[MusicPlayer] handlePlay called for track:', track.name, 'URL:', track.url);
+    // FIX BUG 3: use the current volume state (which is synced with preference on restore)
     play(track, volume);
     savePreference(track.id, volume);
   };
@@ -178,6 +201,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
           <Button
             variant="default"
             size="icon"
+            onClick={handleGestureManual}
             className={`
               h-12 w-12 rounded-full shadow-lg
               bg-emerald-500 hover:bg-emerald-600

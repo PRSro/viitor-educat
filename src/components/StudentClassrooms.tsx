@@ -106,8 +106,8 @@ export function StudentClassrooms() {
             <CardContent className="pb-2">
                <div className="p-3 mt-2 rounded-lg border border-cyan-500/20 bg-cyan-500/10 flex items-center justify-between">
                 <div className="flex gap-2 items-center text-cyan-300">
-                  <BookOpen className="h-4 w-4" /> 
-                  <span className="text-sm font-medium">{classroom._count?.lessons || 0} de lecții primite</span>
+                   <BookOpen className="h-4 w-4" /> 
+                   <span className="text-sm font-medium">{classroom._count?.classroomLessons || 0} de lecții primite</span>
                 </div>
               </div>
             </CardContent>
