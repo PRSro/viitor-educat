@@ -33,9 +33,48 @@ export function validateMimeType(mimeType: string): boolean {
 }
 
 export function validateFilename(filename: string): boolean {
-  const forbiddenPatterns = ['../', '~', '\\0', '%00'];
-  const hasForbidden = forbiddenPatterns.some(pattern => filename.includes(pattern));
-  return !hasForbidden;
+  // Decode URL encoding first — catches %2e%2e%2f, ..%2f, etc.
+  let decoded = filename;
+  try {
+    decoded = decodeURIComponent(filename);
+  } catch {
+    // Malformed percent-encoding is also invalid
+    return false;
+  }
+
+  const forbiddenPatterns = ['../', '..\\', '~', '\0', '%00', '\x00'];
+  if (forbiddenPatterns.some(p => decoded.includes(p))) return false;
+
+  // Only allow safe characters: alphanumeric, dots, dashes, underscores, spaces
+  const safeFilenameRegex = /^[a-zA-Z0-9._\- ]+$/;
+  return safeFilenameRegex.test(decoded);
+}
+
+// Magic byte signatures for allowed MIME types
+const MAGIC_BYTES: { mime: string; bytes: number[]; offset?: number }[] = [
+  { mime: 'image/jpeg',  bytes: [0xFF, 0xD8, 0xFF] },
+  { mime: 'image/png',   bytes: [0x89, 0x50, 0x4E, 0x47] },
+  { mime: 'image/gif',   bytes: [0x47, 0x49, 0x46] },
+  { mime: 'image/webp',  bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF header
+  { mime: 'application/pdf', bytes: [0x25, 0x50, 0x44, 0x46] }, // %PDF
+  // DOCX (and XLSX/PPTX) are ZIP-based — PK header
+  { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', bytes: [0x50, 0x4B, 0x03, 0x04] },
+  // Legacy DOC — Compound Document
+  { mime: 'application/msword', bytes: [0xD0, 0xCF, 0x11, 0xE0] },
+];
+
+/**
+ * Detect MIME type from actual file bytes, not from the client-supplied header.
+ * Returns null if the buffer doesn't match any known safe type.
+ */
+export function detectMimeFromBuffer(buffer: Buffer): string | null {
+  for (const sig of MAGIC_BYTES) {
+    const offset = sig.offset ?? 0;
+    if (buffer.length < offset + sig.bytes.length) continue;
+    const matches = sig.bytes.every((b, i) => buffer[offset + i] === b);
+    if (matches) return sig.mime;
+  }
+  return null;
 }
 
 export function getFileExtension(filename: string): string {

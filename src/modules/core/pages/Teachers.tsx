@@ -183,6 +183,10 @@ interface TeacherCardProps {
 function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
   const profile = teacher.teacherProfile;
 
+  const username = teacher.email?.split('@')[0] || 'teacher';
+  const displaySubject = profile?.office || 'Educator';
+  const displayAffiliation = profile?.school?.name || 'Viitor Educat Platform';
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
       <CardHeader className="pb-4">
@@ -197,17 +201,29 @@ function TeacherCard({ teacher, onViewProfile }: TeacherCardProps) {
             <CardTitle className="text-lg line-clamp-1">
               {getTeacherDisplayName(teacher)}
             </CardTitle>
-            <CardDescription className="flex items-center gap-1 mt-1">
-              <Mail className="h-3 w-3" />
-              {teacher?.email}
-            </CardDescription>
+            <div className="flex flex-col gap-1 mt-1 text-sm text-muted-foreground">
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                {displaySubject}
+              </span>
+              <span className="line-clamp-1 flex items-center gap-1">
+                <BookOpen className="h-3 w-3" />
+                {displayAffiliation}
+              </span>
+              <span className="flex items-center gap-1 font-mono text-xs mt-1 bg-muted w-max px-2 py-0.5 rounded-md">
+                @{username}
+              </span>
+            </div>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pb-4">
-        {profile?.bio && (
-          <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+        {profile?.bio ? (
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
             {profile.bio}
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground italic line-clamp-2 mb-4">
+            No biography provided.
           </p>
         )}
       </CardContent>

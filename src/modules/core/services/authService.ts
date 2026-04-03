@@ -109,6 +109,7 @@ export interface TeacherProfile {
   website: string | null;
   linkedin: string | null;
   twitter: string | null;
+  school?: { name: string } | null;
   createdAt?: string;
   updatedAt?: string;
 }

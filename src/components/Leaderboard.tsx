@@ -138,8 +138,10 @@ export function Leaderboard() {
           })}
 
           {(!leaderboard || leaderboard.length === 0) && (
-            <div className="text-center py-8 text-gray-400">
-              Nu există date în clasament încă. Fii primul!
+            <div className="text-center py-10 space-y-2">
+              <Trophy className="h-10 w-10 text-gray-600 mx-auto" />
+              <p className="text-gray-400 font-medium">Clasamentul este gol momentan</p>
+              <p className="text-gray-500 text-sm">Completează o lecție sau un quiz pentru a câștiga puncte și a apărea aici.</p>
             </div>
           )}
         </div>

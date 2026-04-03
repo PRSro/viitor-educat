@@ -364,7 +364,7 @@ export default function TeacherDashboard() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {lessons.map(lesson => (
+              {(lessons ?? []).map(lesson => (
                 <Card key={lesson.id} className="aero-glass hover:shadow-lg transition-all">
                   <CardHeader>
                     <CardTitle className="text-lg line-clamp-1">{lesson.title}</CardTitle>
@@ -403,7 +403,7 @@ export default function TeacherDashboard() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {articles.map(article => (
+              {(articles ?? []).map(article => (
                 <Card key={article.id} className="aero-glass">
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -521,7 +521,7 @@ export default function TeacherDashboard() {
           </TabsContent>
 
           <TabsContent value="progress" className="space-y-4">
-            <StudentProgressPanel lessons={lessons.map((l: any) => ({ id: l.id, title: l.title }))} />
+            <StudentProgressPanel lessons={(lessons ?? []).map((l: any) => ({ id: l.id, title: l.title }))} />
           </TabsContent>
 
           <TabsContent value="classrooms" className="space-y-4">

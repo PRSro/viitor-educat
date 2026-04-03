@@ -29,21 +29,21 @@ export const JWT_SECRET = isDevelopment
 export const PORT = parseInt(getOptionalEnv('PORT', '3001'), 10);
 
 // CORS configuration
-const defaultOrigins: string[] | boolean = isDevelopment
+const defaultOrigins = isDevelopment
   ? ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:3000']
-  : true; // Default to allow-all in production if not specified, to avoid Railway "Unable to Connect"
+  : []; // Empty = block all cross-origin in production unless ALLOWED_ORIGINS is set
 
 export const ALLOWED_ORIGINS: string[] | boolean = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : defaultOrigins;
+  : isDevelopment
+    ? defaultOrigins
+    : false; // In production, block all if not explicitly configured — don't silently allow everything
 
 // Database URL - Required
 export const DATABASE_URL = getRequiredEnv('DATABASE_URL');
 
-// Redis URL - Required in production for distributed rate limiting
-export const REDIS_URL = isDevelopment
-  ? getOptionalEnv('REDIS_URL', '')
-  : getRequiredEnv('REDIS_URL');
+// Redis URL - Optional; if not set, redisService falls back to in-memory (no-op)
+export const REDIS_URL = getOptionalEnv('REDIS_URL', '');
 
 // Log configuration on startup (without sensitive values)
 export function logConfig(): void {

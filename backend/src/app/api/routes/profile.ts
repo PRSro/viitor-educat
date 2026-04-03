@@ -117,7 +117,13 @@ export async function profileRoutes(server: FastifyInstance) {
         select: {
           id: true,
           email: true,
-          teacherProfile: true,
+          teacherProfile: {
+            include: {
+              school: {
+                select: { name: true }
+              }
+            }
+          },
           lessons: {
             where: { status: 'PUBLIC' },
             select: {

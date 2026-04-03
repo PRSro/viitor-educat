@@ -309,7 +309,7 @@ export default function StudentDashboard() {
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredLessons.map((lesson) => {
+                {(filteredLessons ?? []).map((lesson) => {
                   const isCompleted = completedLessonIds.has(lesson.id);
                   return (
                     <Card key={lesson.id} className={`aero-glass group hover:shadow-lg transition-all ${isCompleted ? 'border-primary/30' : ''}`}>
@@ -381,7 +381,7 @@ export default function StudentDashboard() {
               </Card>
             ) : (
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {articles.map((article) => (
+                {(articles ?? []).map((article) => (
                   <Card key={article.id} className="aero-glass flex flex-col">
                     <CardHeader className="flex-1">
                       <Badge className={categoryColors[article.category]}>{categoryLabels[article.category]}</Badge>
@@ -408,7 +408,7 @@ export default function StudentDashboard() {
               </Card>
             ) : (
               <div className="grid gap-4">
-                {bookmarks.map((bookmark) => (
+                {(bookmarks ?? []).map((bookmark) => (
                   <Card key={bookmark.id} className="aero-glass border-none shadow-sm hover:translate-x-1 transition-transform">
                     <CardContent className="py-4 flex items-center justify-between">
                       <Link 

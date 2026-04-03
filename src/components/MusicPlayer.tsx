@@ -77,8 +77,8 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
       // FIX BUG 1: set loading true before the fetch
       setIsLoading(true);
       try {
-        console.log('[MusicPlayer] Fetching tracks from /music/tracks');
-        const response = await api.get<TracksResponse>('/music/tracks');
+        console.log('[MusicPlayer] Fetching tracks from /api/music/tracks');
+        const response = await api.get<TracksResponse>('/api/music/tracks');
         console.log('[MusicPlayer] Tracks response:', response);
         setTracks(response.tracks);
         // FIX BUG 4: mark that tracks are now from the backend
@@ -101,7 +101,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     if (!token) return; // Guest: don't auto-play
 
     // Logged in — fetch saved preference
-    api.get<PreferenceResponse>('/music/preferences')
+    api.get<PreferenceResponse>('/api/music/preferences')
       .then(response => {
         // Only restore if they had an explicit saved track
         if (response.preference?.trackId && response.preference?.track) {
@@ -155,7 +155,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     if (!token) return;
 
     try {
-      await api.patch('/music/preferences', { trackId, volume: vol });
+      await api.patch('/api/music/preferences', { trackId, volume: vol });
     } catch (error) {
       console.error('Failed to save preference:', error);
     }

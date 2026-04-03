@@ -7,7 +7,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { authMiddleware } from '../../core/middleware/authMiddleware.js';
 import { teacherOnly } from '../../core/middleware/permissionMiddleware.js';
 import { prisma } from '../../models/prisma.js';
-import { saveFile, deleteFile, validateMimeType, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '../../services/storageService.js';
+import { saveFile, deleteFile, validateMimeType, detectMimeFromBuffer, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '../../services/storageService.js';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 
@@ -52,16 +52,20 @@ export async function uploadRoutes(server: FastifyInstance) {
         return reply.status(400).send({ error: 'No file provided' });
       }
 
-      const mimeType = data.mimetype;
-      if (!validateMimeType(mimeType)) {
-        return reply.status(415).send({ 
+      // Buffer first so we can inspect the actual bytes
+      const buffer = await data.toBuffer();
+
+      // Verify actual file content by magic bytes — client header can lie
+      const detectedMime = detectMimeFromBuffer(buffer);
+      if (!detectedMime || !validateMimeType(detectedMime)) {
+        return reply.status(415).send({
           error: 'Unsupported file type',
-          allowedTypes: ALLOWED_MIME_TYPES
+          message: 'File content does not match an allowed type',
+          allowedTypes: ALLOWED_MIME_TYPES,
         });
       }
+      const mimeType = detectedMime;
 
-      const buffer = await data.toBuffer();
-      
       if (buffer.byteLength > MAX_FILE_SIZE) {
         return reply.status(413).send({ 
           error: 'File too large',
@@ -203,15 +207,18 @@ export async function uploadRoutes(server: FastifyInstance) {
         return reply.status(400).send({ error: 'No file uploaded' });
       }
 
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (!allowedTypes.includes(data.mimetype)) {
-        return reply.status(415).send({ 
+      const buffer = await data.toBuffer();
+
+      // Verify by magic bytes — images only
+      const allowedImageMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const detectedMime = detectMimeFromBuffer(buffer);
+      if (!detectedMime || !allowedImageMimes.includes(detectedMime)) {
+        return reply.status(415).send({
           error: 'Invalid file type',
-          message: 'Only JPEG, PNG, GIF, and WebP images are allowed'
+          message: 'Only JPEG, PNG, GIF, and WebP images are allowed',
         });
       }
 
-      const buffer = await data.toBuffer();
       const saveResult = await saveFile(buffer, data.filename);
       
       if (!saveResult.success) {

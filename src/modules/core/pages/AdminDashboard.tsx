@@ -60,7 +60,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ type: ErrorType; message: string } | null>(null);
   const [systemStatus, setSystemStatus] = useState<SystemStatus>({
-    apiHealth: false,
+    apiHealth: true,   // optimistic — assume online until proven otherwise
     lastChecked: null,
     userCount: 0,
   });
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
               <div>
                 <h1 className="text-2xl font-bold">Admin Dashboard</h1>
                 <p className="text-muted-foreground">
-                  Logged in as: {user?.email} ({user?.role})
+                  Platform administrator · {user?.email}
                 </p>
               </div>
             </div>
@@ -162,9 +162,9 @@ export default function AdminDashboard() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${systemStatus.apiHealth ? 'bg-green-500' : 'bg-destructive'}`} />
+                    <div className={`w-3 h-3 rounded-full ${loading ? 'bg-yellow-400 animate-pulse' : systemStatus.apiHealth ? 'bg-green-500' : 'bg-destructive'}`} />
                     <span className="font-semibold">
-                      {systemStatus.apiHealth ? 'Online' : 'Offline'}
+                      {loading ? 'Checking...' : systemStatus.apiHealth ? 'Online' : 'Offline'}
                     </span>
                   </div>
                   <Button
@@ -192,9 +192,9 @@ export default function AdminDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <span className="text-3xl font-bold">{analytics?.users.total || systemStatus.userCount}</span>
+                <span className="text-3xl font-bold">{analytics?.users?.total ?? systemStatus.userCount}</span>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {analytics?.users.students || 0} students, {analytics?.users.teachers || 0} teachers
+                  {analytics?.users?.students ?? 0} students, {analytics?.users?.teachers ?? 0} teachers
                 </p>
               </CardContent>
             </Card>
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <span className="text-3xl font-bold">{analytics?.content.lessons || 0}</span>
+                <span className="text-3xl font-bold">{analytics?.content?.lessons ?? 0}</span>
                 <p className="text-xs text-muted-foreground mt-1">
                   Total lessons
                 </p>
@@ -222,9 +222,9 @@ export default function AdminDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <span className="text-3xl font-bold">{analytics?.content.lessons || 0}</span>
+                <span className="text-3xl font-bold">{analytics?.content?.lessons ?? 0}</span>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {analytics?.content.articles || 0} articles
+                  {analytics?.content?.articles ?? 0} articles
                 </p>
               </CardContent>
             </Card>
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
                     Users
                   </CardTitle>
                   <CardDescription>
-                    Manage registered users
+                    All users across all schools
                   </CardDescription>
                 </div>
                 <Button className="aero-button" size="sm" onClick={fetchAdminData} disabled={loading}>
@@ -263,7 +263,7 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((u) => (
+                    {(users ?? []).map((u) => (
                       <TableRow key={u.id}>
                         <TableCell className="font-medium">{u.email}</TableCell>
                         <TableCell>

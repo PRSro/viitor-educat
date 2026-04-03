@@ -39,7 +39,16 @@ export async function securityHeadersPlugin(server: FastifyInstance) {
         : "'self'";
       reply.header(
         'Content-Security-Policy',
-        `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src ${connectSrc}`
+        [
+          "default-src 'self'",
+          "script-src 'self' https://www.youtube.com https://s.ytimg.com",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: https:",
+          "font-src 'self' https:",
+          `connect-src 'self' ${connectSrc} https://www.youtube.com`,
+          "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
+          "media-src 'self' https://www.youtube.com",
+        ].join('; ')
       );
     }
 
@@ -135,16 +144,27 @@ async function checkRateLimit(
 }
 
 export async function rateLimitPlugin(server: FastifyInstance) {
-  // Initialize Redis in production
-  if (!isDevelopment) {
-    if (!REDIS_URL) {
-      throw new Error('REDIS_URL is required in production for distributed rate limiting');
+  // Initialize Redis if REDIS_URL is set (optional — falls back to in-memory)
+  if (REDIS_URL) {
+    try {
+      redis = new Redis(REDIS_URL);
+      redis.on('connect', () => {
+        useRedis = true;
+        console.log('[RateLimit] Redis connected');
+      });
+      redis.on('error', (err) => {
+        useRedis = false;
+        console.warn('[RateLimit] Redis error, falling back to in-memory:', err.message);
+      });
+      await redis.ping(); // test connection immediately
+      useRedis = true;
+      console.log('[RateLimit] Using Redis for distributed rate limiting');
+    } catch (err) {
+      useRedis = false;
+      console.warn('[RateLimit] Redis unavailable, using in-memory rate limiting:', (err as Error).message);
     }
-    redis = new Redis(REDIS_URL);
-    useRedis = true;
-    console.log('[RateLimit] Using Redis for distributed rate limiting');
   } else {
-    console.log('[RateLimit] Using in-memory rate limiting (development only)');
+    console.log('[RateLimit] No REDIS_URL — using in-memory rate limiting');
   }
 
   server.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
