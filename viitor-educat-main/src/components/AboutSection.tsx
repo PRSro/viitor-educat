@@ -61,32 +61,32 @@ export const AboutSection = () => {
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center mb-4">
                   <Terminal className="w-7 h-7 text-white" />
                 </div>
-                <div className="font-bold text-2xl text-white mb-1">500+</div>
-                <div className="text-sm text-white/60">CTF Challenges</div>
+                <div className="font-bold text-2xl text-foreground mb-1">500+</div>
+                <div className="text-sm text-muted-foreground">CTF Challenges</div>
               </div>
               
               <div className="aero-glass p-6 rounded-2xl animate-float" style={{ animationDelay: '0.5s' }}>
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center mb-4">
                   <Shield className="w-7 h-7 text-white" />
                 </div>
-                <div className="font-bold text-2xl text-white mb-1">10K+</div>
-                <div className="text-sm text-white/60">Active Learners</div>
+                <div className="font-bold text-2xl text-foreground mb-1">10K+</div>
+                <div className="text-sm text-muted-foreground">Active Learners</div>
               </div>
               
               <div className="aero-glass p-6 rounded-2xl animate-float" style={{ animationDelay: '1s' }}>
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mb-4">
                   <Target className="w-7 h-7 text-white" />
                 </div>
-                <div className="font-bold text-2xl text-white mb-1">50+</div>
-                <div className="text-sm text-white/60">Expert Courses</div>
+                <div className="font-bold text-2xl text-foreground mb-1">50+</div>
+                <div className="text-sm text-muted-foreground">Expert Courses</div>
               </div>
               
               <div className="aero-glass p-6 rounded-2xl animate-float-slow" style={{ animationDelay: '1.5s' }}>
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mb-4">
                   <Heart className="w-7 h-7 text-white" />
                 </div>
-                <div className="font-bold text-2xl text-white mb-1">100%</div>
-                <div className="text-sm text-white/60">Free Content</div>
+                <div className="font-bold text-2xl text-foreground mb-1">100%</div>
+                <div className="text-sm text-muted-foreground">Free Content</div>
               </div>
             </div>
           </div>

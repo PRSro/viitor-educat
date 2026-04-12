@@ -5,6 +5,18 @@ import { Button } from '@/components/ui/button';
 import { TerminalEmulator } from './TerminalEmulator';
 import { ChevronDown, ChevronUp, CheckCircle, Lock } from 'lucide-react';
 
+export interface TerminalCommandStep {
+  match: string;
+  output: string;
+  revealsFlag: boolean;
+}
+
+export interface TerminalCommandDef {
+  name: string;
+  description: string;
+  steps: TerminalCommandStep[];
+}
+
 export interface Challenge {
   id: string;
   title: string;
@@ -13,6 +25,7 @@ export interface Challenge {
   points: number;
   description: string;
   hints: string[];
+  terminalCommands?: TerminalCommandDef[];
 }
 
 interface ChallengeCardProps {
@@ -40,16 +53,37 @@ export function ChallengeCard({ challenge, solved, onSolve }: ChallengeCardProps
 
   const getCommands = () => {
     const commands: Record<string, (args: string[]) => string> = {};
-    if (challenge.id === 'sqli-1') {
+
+    if (challenge.terminalCommands && challenge.terminalCommands.length > 0) {
+      for (const cmdDef of challenge.terminalCommands) {
+        commands[cmdDef.name] = (args: string[]) => {
+          const input = args.join(' ').trim();
+          const step = cmdDef.steps.find(s => s.match === input) 
+                    ?? cmdDef.steps.find(s => s.match === '*');
+          if (!step) {
+            return `${cmdDef.name}: invalid input. Try: ${cmdDef.name} <argument>`;
+          }
+          if (step.revealsFlag) {
+            setTimeout(() => {
+              const match = step.output.match(/\{[^}]+\}/)?.[0] ?? step.output;
+              onSolve(match?.replace(/[{}]/g, '') ?? step.output);
+            }, 300);
+          }
+          return step.output;
+        };
+      }
+    }
+
+    if (!challenge.terminalCommands?.length && challenge.id === 'sqli-1') {
       commands['login'] = (args) => {
         const input = args.join(' ');
         if (input === "' OR '1'='1") {
           return `Access Granted. Flag: viitor{' OR '1'='1}`;
         }
-        return `Access Denied.`;
+        return 'Access Denied.';
       };
     }
-    // More challenge-specific commands can go here
+
     commands['submit'] = (args) => {
       const input = args.join(' ');
       if (!input) return 'Usage: submit <flag>';
@@ -60,8 +94,13 @@ export function ChallengeCard({ challenge, solved, onSolve }: ChallengeCardProps
       });
       return 'Checking flag...';
     };
+
     return commands;
   };
+
+  const commandDescriptions = Object.fromEntries(
+    (challenge.terminalCommands ?? []).map(c => [c.name, c.description])
+  );
 
   if (!expanded) {
     return (
@@ -143,6 +182,7 @@ export function ChallengeCard({ challenge, solved, onSolve }: ChallengeCardProps
       <div className="flex-1 bg-black p-2 min-h-[400px]">
         <TerminalEmulator 
           commands={getCommands()} 
+          commandDescriptions={commandDescriptions}
           initialOutput={[
              `Starting CyberLab Instance...`,
              `Challenge ID: ${challenge.id}`,

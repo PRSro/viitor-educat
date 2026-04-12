@@ -29,7 +29,7 @@ export function ProgressBar({
   
   const variantClasses = {
     default: 'bg-primary',
-    success: 'bg-green-500',
+    success: 'bg-primary',
     warning: 'bg-yellow-500',
   };
 

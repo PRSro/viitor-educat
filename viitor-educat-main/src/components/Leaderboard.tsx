@@ -80,7 +80,7 @@ export function Leaderboard() {
           {myPoints && (
             <div className="text-right">
               <div className="text-sm text-gray-400">Your Points</div>
-              <div className="flex items-center gap-1 text-lg font-bold text-emerald-400">
+              <div className="flex items-center gap-1 text-lg font-bold text-primary">
                 <Star className="h-4 w-4" />
                 {myPoints.totalPoints} <span className="text-xs text-gray-300 font-normal"> (Level {myPoints.level})</span>
               </div>
@@ -129,17 +129,17 @@ export function Leaderboard() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center overflow-hidden shrink-0">
                       {avatarUrl ? (
                         <img src={avatarUrl} alt={entry.user.email} className="h-full w-full object-cover" />
                       ) : (
-                        <UserIcon className="h-5 w-5 text-emerald-400" />
+                        <UserIcon className="h-5 w-5 text-primary" />
                       )}
                     </div>
                     <div>
                       <div className="font-semibold text-gray-100 flex items-center gap-2">
                         {username}
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary/80 border border-primary/30">
                           Nivelul {level}
                         </span>
                       </div>
@@ -147,7 +147,7 @@ export function Leaderboard() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 font-bold text-emerald-400">
+                <div className="flex items-center gap-2 font-bold text-primary">
                   <div className="flex flex-col items-end">
                     <span className="flex items-center gap-1">{entry.total} <Star className="h-4 w-4" /></span>
                     {activeTab === 'cyberlab' && (

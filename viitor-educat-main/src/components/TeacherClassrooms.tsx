@@ -58,7 +58,7 @@ export function TeacherClassrooms() {
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-emerald-500 hover:bg-emerald-600">
+            <Button className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" /> Create Class
             </Button>
           </DialogTrigger>
@@ -107,7 +107,7 @@ export function TeacherClassrooms() {
             <CardContent className="pb-2">
               <div className="flex justify-between text-sm text-gray-400 mb-4">
                 <div className="flex items-center gap-1.5 align-middle">
-                  <Users className="h-4 w-4 text-emerald-400" />
+                  <Users className="h-4 w-4 text-primary" />
                   <span>{classroom._count?.students || 0} students</span>
                 </div>
                 <div className="flex items-center gap-1.5 align-middle">
@@ -115,15 +115,15 @@ export function TeacherClassrooms() {
                   <span>{classroom._count?.classroomLessons || 0} lessons</span>
                 </div>
               </div>
-              <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 flex items-center justify-between">
+              <div className="p-3 rounded-lg border border-primary/20 bg-primary/10 flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-emerald-300/70 mb-1 flex items-center gap-1"><Key className="h-3 w-3" /> Join Code</div>
-                  <div className="font-mono text-lg font-bold text-emerald-400 tracking-wider mix-blend-screen">{classroom.joinCode}</div>
+                  <div className="text-xs text-primary/70 mb-1 flex items-center gap-1"><Key className="h-3 w-3" /> Join Code</div>
+                  <div className="font-mono text-lg font-bold text-primary tracking-wider mix-blend-screen">{classroom.joinCode}</div>
                 </div>
                 <Button 
                   size="icon" 
                   variant="ghost" 
-                  className="h-8 w-8 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/20"
+                  className="h-8 w-8 text-primary hover:text-primary/80 hover:bg-primary/20"
                   onClick={() => copyToClipboard(classroom.joinCode)}
                 >
                   {copiedCode === classroom.joinCode ? <Check className="h-4 w-4" /> : <CopyIcon className="h-4 w-4" />}

@@ -43,7 +43,7 @@ export const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-950 via-background to-background">
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-700 dark:from-violet-950 via-violet-500/30 dark:via-background to-background">
         <div className="absolute inset-0 pattern-grid opacity-10" />
       </div>
 
@@ -141,12 +141,12 @@ export const HeroSection = () => {
             {stats.map((stat, index) => (
               <div
                 key={stat.label}
-                className="stat-card animate-fade-up backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6"
+                className="stat-card animate-fade-up backdrop-blur-md bg-background/60 dark:bg-white/5 border border-border/40 dark:border-white/10 rounded-2xl p-6"
                 style={{ animationDelay: `${0.4 + index * 0.1}s` }}
               >
                 <stat.icon className="w-6 h-6 text-violet-400 mb-3" />
-                <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                <div className="text-sm text-white/60">{stat.label}</div>
+                <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                <div className="text-sm text-muted-foreground">{stat.label}</div>
               </div>
             ))}
           </div>

@@ -1,33 +1,27 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import fs from 'fs';
-import path from 'path';
 import bcrypt from 'bcryptjs';
-import { fileURLToPath } from 'url';
 import { authMiddleware } from '../../core/middleware/authMiddleware.js';
 import { prisma } from '../../models/prisma.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const CHALLENGES_DIR = path.join(__dirname, '../../../../../lessons/free/cyberlab');
-
 export const cyberlabRoutes = async (server: FastifyInstance) => {
   server.get('/challenges', { preHandler: [authMiddleware] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    server.log.info(`CyberLab challenges dir: ${CHALLENGES_DIR}`);
     try {
-      const token = request.headers.authorization?.split(' ')[1];
-      const decoded: any = server.jwt.decode(token as string);
-      const userId: string = decoded?.sub;
+      const user = (request as any).user as { id: string };
+      const userId = user.id;
 
-      const files = fs.existsSync(CHALLENGES_DIR) ? fs.readdirSync(CHALLENGES_DIR).filter(f => f.endsWith('.json')) : [];
-      const challenges = [];
-
-      for (const file of files) {
-        const filePath = path.join(CHALLENGES_DIR, file);
-        const data = fs.readFileSync(filePath, 'utf8');
-        const parsed = JSON.parse(data);
-        const { flagHash, ...publicData } = parsed;
-        challenges.push(publicData);
-      }
+      const challenges = await prisma.cyberChallenge.findMany({
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          difficulty: true,
+          points: true,
+          description: true,
+          hints: true,
+          terminalCommands: true
+        }
+      });
 
       const events = await prisma.pointEvent.findMany({
         where: { userId, type: 'CYBERLAB_SOLVE' }
@@ -61,23 +55,22 @@ export const cyberlabRoutes = async (server: FastifyInstance) => {
         return reply.status(400).send({ error: 'Flag is required' });
       }
 
-      const token = request.headers.authorization?.split(' ')[1];
-      const decoded: any = server.jwt.decode(token as string);
-      const userId: string = decoded?.sub;
+      const user = (request as any).user as { id: string };
+      const userId = user.id;
 
-      const filepath = path.join(CHALLENGES_DIR, `${id}.json`);
-      if (!fs.existsSync(filepath)) {
+      const challenge = await prisma.cyberChallenge.findUnique({ 
+        where: { id } 
+      });
+
+      if (!challenge) {
         return reply.status(404).send({ error: 'Challenge not found' });
       }
 
-      const fileData = fs.readFileSync(filepath, 'utf8');
-      const data = JSON.parse(fileData);
-      
-      if (!data.flagHash) {
+      if (!challenge.flagHash) {
         return reply.status(500).send({ error: 'Challenge configuration error' });
       }
       
-      const correct = await bcrypt.compare(flag, data.flagHash);
+      const correct = await bcrypt.compare(flag, challenge.flagHash);
       if (!correct) {
         return { correct: false };
       }
@@ -98,15 +91,15 @@ export const cyberlabRoutes = async (server: FastifyInstance) => {
         await tx.userPoints.upsert({
           where: { userId },
           update: { 
-            total: { increment: data.points }, 
-            weekly: { increment: data.points }, 
-            monthly: { increment: data.points }
+            total: { increment: challenge.points }, 
+            weekly: { increment: challenge.points }, 
+            monthly: { increment: challenge.points }
           },
           create: { 
             userId, 
-            total: data.points, 
-            weekly: data.points, 
-            monthly: data.points 
+            total: challenge.points, 
+            weekly: challenge.points, 
+            monthly: challenge.points 
           }
         });
         
@@ -114,13 +107,13 @@ export const cyberlabRoutes = async (server: FastifyInstance) => {
           data: { 
             userId, 
             type: 'CYBERLAB_SOLVE', 
-            points: data.points, 
+            points: challenge.points, 
             metadata: { challengeId: id } 
           }
         });
       });
       
-      return { correct: true, pointsAwarded: data.points, alreadySolved: false };
+      return { correct: true, pointsAwarded: challenge.points, alreadySolved: false };
     } catch (error) {
       server.log.error(error);
       return reply.status(500).send({ error: 'Failed to submit flag' });

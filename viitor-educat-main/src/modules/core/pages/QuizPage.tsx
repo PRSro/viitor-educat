@@ -131,11 +131,11 @@ export default function QuizPage() {
         </Card>
 
         {submitted && result ? (
-          <Card className={result.passed ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-red-500 bg-red-50 dark:bg-red-950/20'}>
+          <Card className={result.passed ? 'border-primary bg-primary/5 dark:bg-primary/10' : 'border-red-500 bg-red-50 dark:bg-red-950/20'}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {result.passed ? (
-                  <CheckCircle className="h-6 w-6 text-green-500" />
+                  <CheckCircle className="h-6 w-6 text-primary" />
                 ) : (
                   <XCircle className="h-6 w-6 text-red-500" />
                 )}
@@ -156,13 +156,13 @@ export default function QuizPage() {
                   const answerResult = result.answers.find(a => a.questionId === q.id);
                   return (
                     <div key={q.id} className={`p-3 rounded-lg ${
-                      answerResult?.correct 
-                        ? 'bg-green-100 dark:bg-green-900/30' 
-                        : 'bg-red-100 dark:bg-red-900/30'
+answerResult?.correct 
+                         ? 'bg-primary/10 dark:bg-primary/20' 
+                         : 'bg-red-100 dark:bg-red-900/30'
                     }`}>
                       <div className="flex items-start gap-2">
                         {answerResult?.correct ? (
-                          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                          <CheckCircle className="h-4 w-4 text-primary mt-0.5" />
                         ) : (
                           <XCircle className="h-4 w-4 text-red-500 mt-0.5" />
                         )}

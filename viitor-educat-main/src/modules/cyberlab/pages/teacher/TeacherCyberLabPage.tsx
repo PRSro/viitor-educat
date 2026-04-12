@@ -22,9 +22,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ShieldAlert, Plus, Trash2, Edit, Users, Trophy, Target, TrendingUp, Terminal, Loader2 } from 'lucide-react';
+import { ShieldAlert, Plus, Trash2, Edit, Users, Trophy, Target, TrendingUp, Terminal, Loader2, PlusCircle, XCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/apiClient';
+import type { TerminalCommandDef } from '@/modules/cyberlab/components/ChallengeCard';
+
+interface TerminalCommandStep {
+  match: string;
+  output: string;
+  revealsFlag: boolean;
+}
 
 interface Challenge {
   id: string;
@@ -34,6 +41,7 @@ interface Challenge {
   points: number;
   description: string;
   hints: string[];
+  terminalCommands?: TerminalCommandDef[];
   solveCount?: number;
 }
 
@@ -72,6 +80,8 @@ export function TeacherCyberLabPage() {
     flag: ''
   });
 
+  const [terminalCommands, setTerminalCommands] = useState<TerminalCommandDef[]>([]);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -104,6 +114,7 @@ export function TeacherCyberLabPage() {
       hints: '',
       flag: ''
     });
+    setTerminalCommands([]);
   };
 
   const openCreate = () => {
@@ -123,6 +134,7 @@ export function TeacherCyberLabPage() {
       hints: challenge.hints.join('\n'),
       flag: ''
     });
+    setTerminalCommands(challenge.terminalCommands ?? []);
     setIsEditOpen(true);
   };
 
@@ -138,7 +150,8 @@ export function TeacherCyberLabPage() {
       
       await api.post('/api/teacher/cyberlab/challenges', {
         ...formData,
-        hints
+        hints,
+        terminalCommands
       });
       
       toast.success('Challenge created successfully');
@@ -168,7 +181,8 @@ export function TeacherCyberLabPage() {
         difficulty: formData.difficulty,
         points: formData.points,
         description: formData.description,
-        hints
+        hints,
+        terminalCommands
       };
 
       if (formData.flag) {
@@ -528,6 +542,132 @@ export function TeacherCyberLabPage() {
               />
               <p className="text-xs text-muted-foreground">The exact string students need to submit</p>
             </div>
+
+            {/* Terminal Commands Section */}
+            <div className="space-y-3 border-t pt-4">
+              <label className="text-sm font-medium">Terminal Commands</label>
+              <p className="text-xs text-muted-foreground">
+                Define custom shell commands that respond to user input in the terminal.
+              </p>
+              
+              {terminalCommands.map((cmd, cmdIdx) => (
+                <div key={cmdIdx} className="rounded-lg border border-border p-3 space-y-2 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2 flex-1">
+                      <Input
+                        placeholder="Command name (e.g. nmap, decode)"
+                        value={cmd.name}
+                        onChange={(e) => {
+                          const updated = [...terminalCommands];
+                          updated[cmdIdx].name = e.target.value;
+                          setTerminalCommands(updated);
+                        }}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Description (shown in help)"
+                        value={cmd.description}
+                        onChange={(e) => {
+                          const updated = [...terminalCommands];
+                          updated[cmdIdx].description = e.target.value;
+                          setTerminalCommands(updated);
+                        }}
+                        className="flex-1"
+                      />
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-red-500" onClick={() => {
+                      setTerminalCommands(terminalCommands.filter((_, i) => i !== cmdIdx));
+                    }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Steps */}
+                  <div className="space-y-2 pl-4">
+                    <label className="text-xs text-muted-foreground">Response Steps</label>
+                    {cmd.steps.map((step, stepIdx) => (
+                      <div key={stepIdx} className="flex gap-2 items-start">
+                        <Input
+                          placeholder="Match input (or * for wildcard)"
+                          value={step.match}
+                          onChange={(e) => {
+                            const updated = [...terminalCommands];
+                            updated[cmdIdx].steps[stepIdx].match = e.target.value;
+                            setTerminalCommands(updated);
+                          }}
+                          className="flex-1"
+                        />
+                        <Textarea
+                          placeholder="Output to display"
+                          value={step.output}
+                          onChange={(e) => {
+                            const updated = [...terminalCommands];
+                            updated[cmdIdx].steps[stepIdx].output = e.target.value;
+                            setTerminalCommands(updated);
+                          }}
+                          className="flex-1"
+                          rows={2}
+                        />
+                        <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={step.revealsFlag}
+                            onChange={(e) => {
+                              const updated = [...terminalCommands];
+                              updated[cmdIdx].steps[stepIdx].revealsFlag = e.target.checked;
+                              setTerminalCommands(updated);
+                            }}
+                          />
+                          Trigger
+                        </label>
+                        <Button variant="ghost" size="icon" className="text-red-500 h-8" onClick={() => {
+                          const updated = [...terminalCommands];
+                          updated[cmdIdx].steps = updated[cmdIdx].steps.filter((_, i) => i !== stepIdx);
+                          setTerminalCommands(updated);
+                        }}>
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      const updated = [...terminalCommands];
+                      updated[cmdIdx].steps.push({ match: '', output: '', revealsFlag: false });
+                      setTerminalCommands(updated);
+                    }}>
+                      <PlusCircle className="w-4 h-4 mr-1" /> Add Step
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              
+              <Button variant="outline" onClick={() => {
+                setTerminalCommands([...terminalCommands, { name: '', description: '', steps: [] }]);
+              }}>
+                <Plus className="w-4 h-4 mr-1" /> Add Command
+              </Button>
+
+              {/* JSON Preview */}
+              {terminalCommands.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">JSON Preview (read-only)</label>
+                  <pre className="font-mono text-xs bg-black/60 text-green-400 rounded-lg p-3 border border-green-500/20 overflow-x-auto">
+                    {JSON.stringify(terminalCommands, null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {/* Shell Commands Reference */}
+              <div className="mt-4 p-3 rounded-lg border border-border bg-muted/10">
+                <label className="text-xs font-medium text-muted-foreground">Supported Shell Commands</label>
+                <p className="text-xs text-muted-foreground mb-2">Built-in commands available in the terminal:</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono">
+                  {['help', 'clear', 'echo', 'whoami', 'ls', 'cat', 'pwd', 'date', 'uname', 'hostname', 'env', 'history', 'head', 'tail', 'grep', 'wc', 'tr', 'base64', 'hash', 'curl', 'wget', 'ping', 'nslookup', 'ip', 'netstat', 'ps', 'uptime', 'df', 'free'].map(cmd => (
+                    <span key={cmd} className="text-primary/70">{cmd}</span>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Reference these when creating match patterns.</p>
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
@@ -628,6 +768,130 @@ export function TeacherCyberLabPage() {
                 value={formData.flag}
                 onChange={(e) => setFormData({ ...formData, flag: e.target.value })}
               />
+            </div>
+
+            {/* Terminal Commands Section - Same as Create */}
+            <div className="space-y-3 border-t pt-4">
+              <label className="text-sm font-medium">Terminal Commands</label>
+              <p className="text-xs text-muted-foreground">
+                Define custom shell commands that respond to user input in the terminal.
+              </p>
+              
+              {terminalCommands.map((cmd, cmdIdx) => (
+                <div key={cmdIdx} className="rounded-lg border border-border p-3 space-y-2 bg-muted/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2 flex-1">
+                      <Input
+                        placeholder="Command name"
+                        value={cmd.name}
+                        onChange={(e) => {
+                          const updated = [...terminalCommands];
+                          updated[cmdIdx].name = e.target.value;
+                          setTerminalCommands(updated);
+                        }}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Description"
+                        value={cmd.description}
+                        onChange={(e) => {
+                          const updated = [...terminalCommands];
+                          updated[cmdIdx].description = e.target.value;
+                          setTerminalCommands(updated);
+                        }}
+                        className="flex-1"
+                      />
+                    </div>
+                    <Button variant="ghost" size="icon" className="text-red-500" onClick={() => {
+                      setTerminalCommands(terminalCommands.filter((_, i) => i !== cmdIdx));
+                    }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2 pl-4">
+                    <label className="text-xs text-muted-foreground">Response Steps</label>
+                    {cmd.steps.map((step, stepIdx) => (
+                      <div key={stepIdx} className="flex gap-2 items-start">
+                        <Input
+                          placeholder="Match input"
+                          value={step.match}
+                          onChange={(e) => {
+                            const updated = [...terminalCommands];
+                            updated[cmdIdx].steps[stepIdx].match = e.target.value;
+                            setTerminalCommands(updated);
+                          }}
+                          className="flex-1"
+                        />
+                        <Textarea
+                          placeholder="Output"
+                          value={step.output}
+                          onChange={(e) => {
+                            const updated = [...terminalCommands];
+                            updated[cmdIdx].steps[stepIdx].output = e.target.value;
+                            setTerminalCommands(updated);
+                          }}
+                          className="flex-1"
+                          rows={2}
+                        />
+                        <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={step.revealsFlag}
+                            onChange={(e) => {
+                              const updated = [...terminalCommands];
+                              updated[cmdIdx].steps[stepIdx].revealsFlag = e.target.checked;
+                              setTerminalCommands(updated);
+                            }}
+                          />
+                          Trigger
+                        </label>
+                        <Button variant="ghost" size="icon" className="text-red-500 h-8" onClick={() => {
+                          const updated = [...terminalCommands];
+                          updated[cmdIdx].steps = updated[cmdIdx].steps.filter((_, i) => i !== stepIdx);
+                          setTerminalCommands(updated);
+                        }}>
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      const updated = [...terminalCommands];
+                      updated[cmdIdx].steps.push({ match: '', output: '', revealsFlag: false });
+                      setTerminalCommands(updated);
+                    }}>
+                      <PlusCircle className="w-4 h-4 mr-1" /> Add Step
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              
+              <Button variant="outline" onClick={() => {
+                setTerminalCommands([...terminalCommands, { name: '', description: '', steps: [] }]);
+              }}>
+                <Plus className="w-4 h-4 mr-1" /> Add Command
+              </Button>
+
+              {terminalCommands.length > 0 && (
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">JSON Preview</label>
+                  <pre className="font-mono text-xs bg-black/60 text-green-400 rounded-lg p-3 border border-green-500/20 overflow-x-auto">
+                    {JSON.stringify(terminalCommands, null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {/* Shell Commands Reference */}
+              <div className="mt-4 p-3 rounded-lg border border-border bg-muted/10">
+                <label className="text-xs font-medium text-muted-foreground">Supported Shell Commands</label>
+                <p className="text-xs text-muted-foreground mb-2">Built-in commands available in the terminal:</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono">
+                  {['help', 'clear', 'echo', 'whoami', 'ls', 'cat', 'pwd', 'date', 'uname', 'hostname', 'env', 'history', 'head', 'tail', 'grep', 'wc', 'tr', 'base64', 'hash', 'curl', 'wget', 'ping', 'nslookup', 'ip', 'netstat', 'ps', 'uptime', 'df', 'free'].map(cmd => (
+                    <span key={cmd} className="text-primary/70">{cmd}</span>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Reference these when creating match patterns.</p>
+              </div>
             </div>
           </div>
 

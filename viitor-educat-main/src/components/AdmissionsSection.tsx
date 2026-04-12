@@ -69,7 +69,7 @@ export const AdmissionsSection = () => {
 
   return (
     <section id="admissions" className="py-24 lg:py-32 relative overflow-hidden">
-      <div className="absolute inset-0 hero-gradient dark:hero-gradient" />
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-700 via-purple-600 to-fuchsia-600 dark:from-violet-950 dark:via-background dark:to-background" />
       <div className="absolute inset-0 pattern-grid opacity-15 dark:opacity-10" />
       
       <div 

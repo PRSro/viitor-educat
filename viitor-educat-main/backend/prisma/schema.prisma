@@ -648,3 +648,17 @@ model LearningPath {
   lessonIds   String[]
   createdAt   DateTime @default(now())
 }
+
+model CyberChallenge {
+  id                String   @id
+  title             String
+  category          String
+  difficulty        String
+  points            Int
+  description       String   @db.Text
+  hints             String[]
+  flagHash          String
+  terminalCommands  Json?    @default("[]")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

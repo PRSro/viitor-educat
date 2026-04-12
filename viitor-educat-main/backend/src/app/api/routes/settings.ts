@@ -10,7 +10,7 @@ function getCurrentUser(request: FastifyRequest): JwtPayload {
 
 // Default settings for new users
 const defaultSettings = {
-  theme: 'dark',
+  theme: 'system',
   language: 'en',
   defaultDashboardView: 'lessons',
   contentPriority: 'lessons',
@@ -37,7 +37,7 @@ const defaultSettings = {
 const updateSettingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   language: z.string().max(10).optional(),
-  defaultDashboardView: z.enum(['articles', 'resources', 'flashcards']).optional(),
+  defaultDashboardView: z.enum(['lessons', 'articles', 'resources', 'flashcards']).optional(),
   contentPriority: z.enum(['teacher_profiles']).optional(),
   showArticles: z.boolean().optional(),
   showFlashcards: z.boolean().optional(),

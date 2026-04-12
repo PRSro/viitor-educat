@@ -738,6 +738,11 @@ async function main() {
     await seedTracks();
     console.log(`   📁 ${lessonFileCount} lesson JSON files written to ${lessonsDir}`);
     console.log(`   📁 ${articleFileCount} article JSON files written to ${articlesDir}`);
+
+    // Seed CyberChallenges from JSON files
+    console.log('🏴󠁧󠁢󠁥󠁮󠁧󠁿 Seeding CyberChallenges...');
+    const challengeCount = await seedCyberChallenges(prisma);
+    console.log(`  🏴󠁧󠁢󠁥󠁮󠁧󠁿 ${challengeCount} CyberChallenges seeded`);
 }
 
 // Seed lessons from existing JSON files in backend/lessons/free/
@@ -784,6 +789,55 @@ async function seedLessonsFromJson(prisma: PrismaClient, teacherId: string) {
             } catch (err) {
                 console.error(`  ❌ Failed to seed ${file}:`, err);
             }
+        }
+    }
+
+    return seededCount;
+}
+
+// Seed CyberChallenges from JSON files
+async function seedCyberChallenges(prisma: PrismaClient) {
+    const challengesDir = join(ROOT, 'lessons', 'free', 'cyberlab');
+    let seededCount = 0;
+
+    if (!existsSync(challengesDir)) {
+        console.log('⚠️  CyberLab challenges directory not found');
+        return seededCount;
+    }
+
+    const files = readdirSync(challengesDir).filter(f => f.endsWith('.json'));
+    console.log(`📂 Seeding ${files.length} CyberChallenges...`);
+
+    for (const file of files) {
+        try {
+            const raw = JSON.parse(readFileSync(join(challengesDir, file), 'utf-8'));
+
+            await prisma.cyberChallenge.upsert({
+                where: { id: raw.id },
+                update: {
+                    title: raw.title,
+                    category: raw.category,
+                    difficulty: raw.difficulty,
+                    points: raw.points,
+                    description: raw.description,
+                    hints: raw.hints || [],
+                    flagHash: raw.flagHash,
+                },
+                create: {
+                    id: raw.id,
+                    title: raw.title,
+                    category: raw.category,
+                    difficulty: raw.difficulty,
+                    points: raw.points,
+                    description: raw.description,
+                    hints: raw.hints || [],
+                    flagHash: raw.flagHash,
+                },
+            });
+            seededCount++;
+            console.log(`  🏴󠁧󠁢󠁥󠁮󠁧󠁿 Challenge: ${raw.id} - ${raw.title}`);
+        } catch (err) {
+            console.error(`  ❌ Failed to seed ${file}:`, err);
         }
     }
 

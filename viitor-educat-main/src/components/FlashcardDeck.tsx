@@ -73,7 +73,7 @@ export function FlashcardDeck({ flashcards, title, onComplete }: FlashcardDeckPr
             {title && <h3 className="text-lg font-semibold">{title}</h3>}
             <p className="text-sm text-muted-foreground">
               Card {currentIndex + 1} of {flashcards.length}
-              {isStudied && <CheckCircle className="h-4 w-4 inline ml-2 text-green-500" />}
+              {isStudied && <CheckCircle className="h-4 w-4 inline ml-2 text-primary" />}
             </p>
           </div>
           <Badge variant="outline">

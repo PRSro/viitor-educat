@@ -35,16 +35,16 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   const { isOpen, openPlayer, closePlayer } = useMusicPlayer();
   const { theme } = useSettings();
   const [tracks, setTracks] = useState<Track[]>([
-    { id: '1', frequencyHz: 432, name: 'Frutiger Aero — 432Hz', benefit: 'Natural tuning, aquatic serenity.', duration: 3600, order: 0, url: 'CfhddcGwsWY' },
-    { id: '2', frequencyHz: 174, name: 'Foundation — 174Hz', benefit: 'Removes pain and strengthens security.', duration: 3600, order: 1, url: 'FkJfGEkVUhE' },
-    { id: '3', frequencyHz: 285, name: 'Healing — 285Hz', benefit: 'Heals tissues and organs.', duration: 3600, order: 2, url: 'q1eBkrxSJeQ' },
-    { id: '4', frequencyHz: 396, name: 'Liberation — 396Hz', benefit: 'Liberates guilt and fear.', duration: 3600, order: 3, url: 'pEGT80dDR60' },
-    { id: '5', frequencyHz: 417, name: 'Transformation — 417Hz', benefit: 'Facilitates change.', duration: 3600, order: 4, url: 'dBNMnWJBIF8' },
-    { id: '6', frequencyHz: 528, name: 'Miracle — 528Hz', benefit: 'DNA repair, the love frequency.', duration: 3600, order: 5, url: 'FEnxTz-KWNY' },
-    { id: '7', frequencyHz: 639, name: 'Harmony — 639Hz', benefit: 'Harmonises relationships.', duration: 3600, order: 6, url: 'A4Tcoa_BHZY' },
-    { id: '8', frequencyHz: 741, name: 'Awakening — 741Hz', benefit: 'Awakens intuition.', duration: 3600, order: 7, url: 'Tc5c-BWKGPQ' },
-    { id: '9', frequencyHz: 852, name: 'Spiritual Order — 852Hz', benefit: 'Restores spiritual order.', duration: 3600, order: 8, url: '7NCsRfpbBEI' },
-    { id: '10', frequencyHz: 963, name: 'Divine Consciousness — 963Hz', benefit: 'Highest spiritual frequency.', duration: 3600, order: 9, url: 'L8IkuQIGiUY' },
+    { id: '1', frequencyHz: 432, name: 'Frutiger Aero — 432Hz', benefit: 'Natural tuning, aquatic serenity.', duration: 3600000, order: 0, url: 'Nn1FwzqrmSo' },
+    { id: '2', frequencyHz: 174, name: 'Foundation — 174Hz', benefit: 'Removes pain and strengthens security.', duration: 3600000, order: 1, url: 'hROqlWgLylg' },
+    { id: '3', frequencyHz: 285, name: 'Healing — 285Hz', benefit: 'Heals tissues and organs.', duration: 3600000, order: 2, url: 'hROqlWgLylg' },
+    { id: '4', frequencyHz: 396, name: 'Liberation — 396Hz', benefit: 'Liberates guilt and fear.', duration: 3600000, order: 3, url: 'Nn1FwzqrmSo' },
+    { id: '5', frequencyHz: 417, name: 'Transformation — 417Hz', benefit: 'Facilitates change.', duration: 3600000, order: 4, url: 'Nn1FwzqrmSo' },
+    { id: '6', frequencyHz: 528, name: 'Miracle — 528Hz', benefit: 'DNA repair, the love frequency.', duration: 3600000, order: 5, url: 'zSZB92LPyOg' },
+    { id: '7', frequencyHz: 639, name: 'Harmony — 639Hz', benefit: 'Harmonises relationships.', duration: 3600000, order: 6, url: 'Nn1FwzqrmSo' },
+    { id: '8', frequencyHz: 741, name: 'Awakening — 741Hz', benefit: 'Awakens intuition.', duration: 3600000, order: 7, url: 'Nn1FwzqrmSo' },
+    { id: '9', frequencyHz: 852, name: 'Spiritual Order — 852Hz', benefit: 'Restores spiritual order.', duration: 3600000, order: 8, url: 'Nn1FwzqrmSo' },
+    { id: '10', frequencyHz: 963, name: 'Divine Consciousness — 963Hz', benefit: 'Highest spiritual frequency.', duration: 3600000, order: 9, url: 'O3AuByXd9Yo' },
   ]);
   // FIX BUG 1: start as false to avoid race conditions overriding the loaded list
   const [isLoading, setIsLoading] = useState(false);
@@ -250,8 +250,8 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
             aria-label="Toggle ambient music"
             className={`
               h-12 w-12 rounded-full shadow-lg
-              bg-emerald-500 hover:bg-emerald-600
-              dark:bg-emerald-500 dark:hover:bg-emerald-600
+              bg-primary hover:bg-primary/90
+              dark:bg-primary dark:hover:bg-primary/90
               border-2 border-white/40 text-white
               transition-all duration-300
               ${isPlaying ? 'animate-pulse shadow-emerald-400/60' : 'shadow-emerald-500/30'}

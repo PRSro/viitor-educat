@@ -30,10 +30,10 @@ export function ProtectedRoute({ children, allowedRoles, redirectTo }: Protected
   // Show styled spinner while checking auth state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-950 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-slate-900">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-emerald-400/30 border-t-emerald-400 animate-spin" />
-          <p className="text-emerald-200/60 text-sm font-medium">Verifying session...</p>
+          <div className="w-12 h-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
+          <p className="text-primary/60 text-sm font-medium">Verifying session...</p>
         </div>
       </div>
     );

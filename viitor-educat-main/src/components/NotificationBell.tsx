@@ -257,7 +257,7 @@ export function NotificationBell() {
           <TabsContent value="timer" className="p-4 space-y-4">
             {/* Timer Display */}
             <div className="text-center space-y-2">
-              <div className={`text-5xl font-bold font-mono ${timerMode === 'focus' ? 'text-primary' : 'text-green-500'}`}>
+              <div className={`text-5xl font-bold font-mono ${timerMode === 'focus' ? 'text-primary' : 'text-primary'}`}>
                 {formatTime(timeLeft)}
               </div>
               <div className="flex justify-center gap-2">

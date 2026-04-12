@@ -1,56 +1,51 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import fs from 'fs';
-import path from 'path';
 import bcrypt from 'bcryptjs';
-import { fileURLToPath } from 'url';
 import { authMiddleware } from '../../core/middleware/authMiddleware.js';
+import { requireRole } from '../../core/middleware/permissionMiddleware.js';
 import { prisma } from '../../models/prisma.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const CHALLENGES_DIR = path.join(__dirname, '../../../../../lessons/free/cyberlab');
+function sanitizeChallengeId(id: string): string {
+  return id.replace(/[^a-z0-9_-]/gi, '').slice(0, 64);
+}
 
 export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
-
-  const requireTeacher = async (request: FastifyRequest, reply: FastifyReply) => {
-    const user = (request as { user?: { role?: string } }).user;
-    if (user?.role !== 'TEACHER' && user?.role !== 'ADMIN') {
-      return reply.status(403).send({ error: 'Teacher or Admin access required' });
-    }
-  };
 
   /**
    * GET /api/teacher/cyberlab/challenges
    * Get all challenges with submission stats
    */
   server.get('/challenges', {
-    preHandler: [authMiddleware, requireTeacher]
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const files = fs.existsSync(CHALLENGES_DIR) ? fs.readdirSync(CHALLENGES_DIR).filter(f => f.endsWith('.json')) : [];
-      const challenges = [];
+      const challenges = await prisma.cyberChallenge.findMany({
+        orderBy: { createdAt: 'asc' }
+      });
 
-      for (const file of files) {
-        const filePath = path.join(CHALLENGES_DIR, file);
-        const data = fs.readFileSync(filePath, 'utf8');
-        const parsed = JSON.parse(data);
-        const { flagHash, ...publicData } = parsed;
+      const challengesWithStats = await Promise.all(
+        challenges.map(async (challenge) => {
+          const solveCount = await prisma.pointEvent.count({
+            where: { 
+              type: 'CYBERLAB_SOLVE',
+              metadata: { path: ['challengeId'], equals: challenge.id }
+            }
+          });
 
-        const solveCount = await prisma.pointEvent.count({
-          where: { 
-            type: 'CYBERLAB_SOLVE',
-            metadata: { path: ['challengeId'], equals: parsed.id }
-          }
-        });
+          return {
+            id: challenge.id,
+            title: challenge.title,
+            category: challenge.category,
+            difficulty: challenge.difficulty,
+            points: challenge.points,
+            description: challenge.description,
+            hints: challenge.hints,
+            terminalCommands: challenge.terminalCommands as any,
+            solveCount
+          };
+        })
+      );
 
-        challenges.push({
-          ...publicData,
-          solveCount,
-          flagHash: undefined
-        });
-      }
-
-      return { challenges };
+      return { challenges: challengesWithStats };
     } catch (error) {
       server.log.error(error);
       return reply.status(500).send({ error: 'Failed to load challenges' });
@@ -62,30 +57,35 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
    * Get a single challenge with full details
    */
   server.get('/challenges/:id', {
-    preHandler: [authMiddleware, requireTeacher]
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      const filepath = path.join(CHALLENGES_DIR, `${id}.json`);
+      const safeId = sanitizeChallengeId(id);
       
-      if (!fs.existsSync(filepath)) {
+      if (!safeId || safeId !== id) {
+        return reply.status(400).send({ error: 'Invalid challenge ID format' });
+      }
+      
+      const challenge = await prisma.cyberChallenge.findUnique({
+        where: { id: safeId }
+      });
+
+      if (!challenge) {
         return reply.status(404).send({ error: 'Challenge not found' });
       }
 
-      const fileData = fs.readFileSync(filepath, 'utf8');
-      const data = JSON.parse(fileData);
-      
       const solveCount = await prisma.pointEvent.count({
         where: { 
           type: 'CYBERLAB_SOLVE',
-          metadata: { path: ['challengeId'], equals: id }
+          metadata: { path: ['challengeId'], equals: safeId }
         }
       });
 
       const recentSolves = await prisma.pointEvent.findMany({
         where: { 
           type: 'CYBERLAB_SOLVE',
-          metadata: { path: ['challengeId'], equals: id }
+          metadata: { path: ['challengeId'], equals: safeId }
         },
         include: { user: { select: { email: true } } },
         orderBy: { createdAt: 'desc' },
@@ -93,8 +93,14 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
       });
 
       return { 
-        ...data,
-        flagHash: undefined,
+        id: challenge.id,
+        title: challenge.title,
+        category: challenge.category,
+        difficulty: challenge.difficulty,
+        points: challenge.points,
+        description: challenge.description,
+        hints: challenge.hints,
+        terminalCommands: challenge.terminalCommands as any,
         solveCount,
         recentSolves: recentSolves.map(s => ({
           email: s.user.email,
@@ -112,10 +118,10 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
    * Create a new challenge
    */
   server.post('/challenges', {
-    preHandler: [authMiddleware, requireTeacher]
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const { id, title, category, difficulty, points, description, hints, flag } = request.body as {
+      const { id, title, category, difficulty, points, description, hints, flag, terminalCommands } = request.body as {
         id?: string;
         title?: string;
         category?: string;
@@ -124,34 +130,50 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
         description?: string;
         hints?: string[];
         flag?: string;
+        terminalCommands?: Array<{
+          name: string;
+          description: string;
+          steps: Array<{ match: string; output: string; revealsFlag: boolean }>;
+        }>;
       };
 
       if (!id || !title || !category || !difficulty || !points || !description || !flag) {
         return reply.status(400).send({ error: 'Missing required fields: id, title, category, difficulty, points, description, flag' });
       }
 
-      const filepath = path.join(CHALLENGES_DIR, `${id}.json`);
-      
-      if (fs.existsSync(filepath)) {
+      if (!Number.isInteger(points) || points < 1 || points > 10000) {
+        return reply.status(400).send({ error: 'Points must be an integer between 1 and 10000' });
+      }
+
+      const safeId = sanitizeChallengeId(id);
+      if (!safeId || safeId !== id) {
+        return reply.status(400).send({ error: 'Invalid challenge ID format' });
+      }
+
+      const existing = await prisma.cyberChallenge.findUnique({
+        where: { id: safeId }
+      });
+
+      if (existing) {
         return reply.status(409).send({ error: 'Challenge ID already exists' });
       }
 
       const saltRounds = 10;
       const flagHash = await bcrypt.hash(flag, saltRounds);
 
-      const challenge = {
-        id,
-        title,
-        category,
-        difficulty,
-        points,
-        description,
-        hints: hints || [],
-        flagHash,
-        createdAt: new Date().toISOString()
-      };
-
-      fs.writeFileSync(filepath, JSON.stringify(challenge, null, 2));
+      const challenge = await prisma.cyberChallenge.create({
+        data: {
+          id: safeId,
+          title,
+          category,
+          difficulty,
+          points,
+          description,
+          hints: hints || [],
+          terminalCommands: terminalCommands || [],
+          flagHash
+        }
+      });
 
       const { flagHash: _, ...publicChallenge } = challenge;
       return { success: true, challenge: publicChallenge };
@@ -166,11 +188,17 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
    * Update an existing challenge
    */
   server.put('/challenges/:id', {
-    preHandler: [authMiddleware, requireTeacher]
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      const { title, category, difficulty, points, description, hints, flag } = request.body as {
+      const safeId = sanitizeChallengeId(id);
+      
+      if (!safeId || safeId !== id) {
+        return reply.status(400).send({ error: 'Invalid challenge ID format' });
+      }
+
+      const { title, category, difficulty, points, description, hints, flag, terminalCommands } = request.body as {
         title?: string;
         category?: string;
         difficulty?: string;
@@ -178,32 +206,45 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
         description?: string;
         hints?: string[];
         flag?: string;
+        terminalCommands?: Array<{
+          name: string;
+          description: string;
+          steps: Array<{ match: string; output: string; revealsFlag: boolean }>;
+        }>;
       };
 
-      const filepath = path.join(CHALLENGES_DIR, `${id}.json`);
-      
-      if (!fs.existsSync(filepath)) {
+      const existing = await prisma.cyberChallenge.findUnique({
+        where: { id: safeId }
+      });
+
+      if (!existing) {
         return reply.status(404).send({ error: 'Challenge not found' });
       }
 
-      const existingData = fs.readFileSync(filepath, 'utf8');
-      const existing = JSON.parse(existingData);
+      if (points !== undefined && (!Number.isInteger(points) || points < 1 || points > 10000)) {
+        return reply.status(400).send({ error: 'Points must be an integer between 1 and 10000' });
+      }
 
-      const updated = {
-        ...existing,
+      const updateData: any = {
         ...(title && { title }),
         ...(category && { category }),
         ...(difficulty && { difficulty }),
         ...(points !== undefined && { points }),
         ...(description && { description }),
         ...(hints && { hints }),
-        ...(flag && { flagHash: await bcrypt.hash(flag, 10) }),
-        updatedAt: new Date().toISOString()
+        ...(terminalCommands !== undefined && { terminalCommands })
       };
 
-      fs.writeFileSync(filepath, JSON.stringify(updated, null, 2));
+      if (flag) {
+        updateData.flagHash = await bcrypt.hash(flag, 10);
+      }
 
-      const { flagHash: _, ...publicChallenge } = updated;
+      const challenge = await prisma.cyberChallenge.update({
+        where: { id: safeId },
+        data: updateData
+      });
+
+      const { flagHash: _, ...publicChallenge } = challenge;
       return { success: true, challenge: publicChallenge };
     } catch (error) {
       server.log.error(error);
@@ -216,19 +257,40 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
    * Delete a challenge
    */
   server.delete('/challenges/:id', {
-    preHandler: [authMiddleware, requireTeacher]
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      const filepath = path.join(CHALLENGES_DIR, `${id}.json`);
+      const safeId = sanitizeChallengeId(id);
       
-      if (!fs.existsSync(filepath)) {
+      if (!safeId || safeId !== id) {
+        return reply.status(400).send({ error: 'Invalid challenge ID format' });
+      }
+      
+      const existing = await prisma.cyberChallenge.findUnique({
+        where: { id: safeId }
+      });
+
+      if (!existing) {
         return reply.status(404).send({ error: 'Challenge not found' });
       }
 
-      fs.unlinkSync(filepath);
+      const solveCount = await prisma.pointEvent.count({
+        where: { 
+          type: 'CYBERLAB_SOLVE',
+          metadata: { path: ['challengeId'], equals: safeId }
+        }
+      });
 
-      return { success: true, message: 'Challenge deleted' };
+      await prisma.cyberChallenge.delete({
+        where: { id: safeId }
+      });
+
+      return { 
+        success: true, 
+        message: 'Challenge deleted',
+        warning: solveCount > 0 ? `${solveCount} student solve records remain in the database` : null
+      };
     } catch (error) {
       server.log.error(error);
       return reply.status(500).send({ error: 'Failed to delete challenge' });
@@ -240,12 +302,10 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
    * Get overall CyberLab analytics
    */
   server.get('/analytics', {
-    preHandler: [authMiddleware, requireTeacher]
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const files = fs.existsSync(CHALLENGES_DIR) ? fs.readdirSync(CHALLENGES_DIR).filter(f => f.endsWith('.json')) : [];
-      
-      const totalChallenges = files.length;
+      const totalChallenges = await prisma.cyberChallenge.count();
       const totalSolves = await prisma.pointEvent.count({
         where: { type: 'CYBERLAB_SOLVE' }
       });
@@ -253,29 +313,24 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
       const topSolvers = await prisma.pointEvent.groupBy({
         by: ['userId'],
         where: { type: 'CYBERLAB_SOLVE' },
-        _count: true,
-        orderBy: { _count: { userId: 'desc' } },
+        _sum: { points: true },
+        _count: { id: true },
+        orderBy: { _sum: { points: 'desc' } },
         take: 10
       });
 
-      const solverDetails = await Promise.all(
-        topSolvers.map(async (solver) => {
-          const user = await prisma.user.findUnique({
-            where: { id: solver.userId },
-            select: { email: true }
-          });
-          const totalPoints = await prisma.pointEvent.aggregate({
-            where: { userId: solver.userId, type: 'CYBERLAB_SOLVE' },
-            _sum: { points: true }
-          });
-          return {
-            userId: solver.userId,
-            email: user?.email,
-            solveCount: solver._count,
-            totalPoints: totalPoints._sum.points || 0
-          };
-        })
-      );
+      const userIds = topSolvers.map(s => s.userId);
+      const users = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, email: true }
+      });
+
+      const solverDetails = topSolvers.map(s => ({
+        userId: s.userId,
+        email: users.find(u => u.id === s.userId)?.email,
+        solveCount: s._count.id,
+        totalPoints: s._sum.points || 0
+      }));
 
       return {
         totalChallenges,
@@ -294,7 +349,7 @@ export const teacherCyberlabRoutes = async (server: FastifyInstance) => {
    * Get all solves with user details
    */
   server.get('/solves', {
-    preHandler: [authMiddleware, requireTeacher]
+    preHandler: [authMiddleware, requireRole(['TEACHER', 'ADMIN'])]
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const solves = await prisma.pointEvent.findMany({

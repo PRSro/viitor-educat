@@ -279,7 +279,7 @@ export default function TeacherDashboard() {
                 </Button>
               </Link>
               <Link to="/teacher/cyberlab">
-                <Button variant="outline" size="sm" className="bg-black/20 text-green-400 border-green-500/30 hover:bg-green-500/10">
+                <Button variant="outline" size="sm" className="bg-black/20 text-primary border-primary/30 hover:bg-primary/10">
                   <Terminal className="h-4 w-4 mr-2" />
                   CyberLab
                 </Button>

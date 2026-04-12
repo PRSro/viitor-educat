@@ -46,7 +46,7 @@ export function LessonTaskBlock({ lessonId, questions, taskNumber = 1 }: TaskBlo
         correct: boolean | null;
         correctAnswer?: string;
         hint?: string | null;
-      }>(`/lessons/${lessonId}/questions/${questionId}/answer`, {
+      }>(`/api/lessons/${lessonId}/questions/${questionId}/answer`, {
         answer: state.value.trim(),
       });
 
@@ -84,7 +84,7 @@ export function LessonTaskBlock({ lessonId, questions, taskNumber = 1 }: TaskBlo
           {questions.length === 1 ? 'Task Question' : `Task ${taskNumber} — ${questions.length} Questions`}
         </span>
         {questions.every(q => answers[q.id]?.correct) && (
-          <Badge className="ml-auto bg-green-500/20 text-green-400 border-green-500/30">
+          <Badge className="ml-auto bg-primary/20 text-primary border-primary/30">
             <CheckCircle className="h-3 w-3 mr-1" /> Completed
           </Badge>
         )}
@@ -127,7 +127,7 @@ export function LessonTaskBlock({ lessonId, questions, taskNumber = 1 }: TaskBlo
                 <div className="space-y-2">
                   {/* Result banner */}
                   {state.correct === true && (
-                    <div className="flex items-center gap-2 text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center gap-2 text-primary bg-primary/10 border-primary/20 rounded-lg px-3 py-2 text-sm">
                       <CheckCircle className="h-4 w-4 shrink-0" />
                       <span className="font-medium">Correct!</span>
                     </div>

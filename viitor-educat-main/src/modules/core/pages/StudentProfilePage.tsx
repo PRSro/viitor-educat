@@ -175,7 +175,7 @@ export default function StudentProfilePage() {
         )}
 
         {success && (
-          <div className="mb-6 p-4 bg-green-100 border border-green-200 rounded-lg text-green-800 dark:bg-green-900 dark:text-green-200">
+          <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg text-primary dark:bg-primary/20 dark:text-primary">
             {success}
           </div>
         )}
@@ -264,8 +264,8 @@ export default function StudentProfilePage() {
                       <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                            <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                              <CheckCircle className="h-5 w-5 text-primary dark:text-primary" />
                             </div>
                             <div>
                               <p className="font-semibold">{item.lesson.title}</p>

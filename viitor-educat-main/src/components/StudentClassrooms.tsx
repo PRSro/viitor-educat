@@ -54,7 +54,7 @@ export function StudentClassrooms() {
         
         <Dialog open={isJoinOpen} onOpenChange={setIsJoinOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-emerald-500 hover:bg-emerald-600">
+            <Button className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" /> Join a Class
             </Button>
           </DialogTrigger>
@@ -94,8 +94,8 @@ export function StudentClassrooms() {
             <CardHeader className="pb-3">
                {classroom.teacher?.email && (
                  <div className="flex items-center gap-2 mb-2">
-                   <UserCircle2 className="h-4 w-4 text-emerald-400" />
-                   <span className="text-xs font-semibold text-emerald-300">{classroom.teacher.email.split('@')[0]}</span>
+                   <UserCircle2 className="h-4 w-4 text-primary" />
+                   <span className="text-xs font-semibold text-primary/80">{classroom.teacher.email.split('@')[0]}</span>
                  </div>
                )}
               <CardTitle className="text-lg line-clamp-1">{classroom.name}</CardTitle>

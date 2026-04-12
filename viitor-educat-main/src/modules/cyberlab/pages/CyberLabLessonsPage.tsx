@@ -137,9 +137,9 @@ export function CyberLabLessonsPage() {
                   </CardHeader>
                   <CardFooter>
                     <Button asChild className="w-full bg-green-500 hover:bg-green-600 text-black font-semibold">
-                      <Link to={lesson.challengeUrl || `/student/cyberlab_challenges`}>
+                      <Link to={`/lessons/${lesson.id}`}>
                         <BookOpen className="h-4 w-4 mr-2" />
-                        {lesson.points ? `Start Challenge (${lesson.points} pts)` : 'Start Learning'}
+                        Start Training Module
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </Link>
                     </Button>

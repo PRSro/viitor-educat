@@ -5,13 +5,6 @@ import { lessonController } from '../controllers/lessonController.js';
 
 import { prisma } from '../../models/prisma.js';
 import { JwtPayload } from '../../core/middleware/authMiddleware.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const CYBERLAB_CHALLENGES_DIR = path.join(__dirname, '../../../../../lessons/free/cyberlab');
 
 function getCurrentUser(request: FastifyRequest): JwtPayload {
   return (request as any).user as JwtPayload;
@@ -41,27 +34,28 @@ export async function lessonRoutes(server: FastifyInstance) {
     preHandler: [authMiddleware, anyRole]
   }, async (request, reply) => {
     try {
-      server.log.info(`CyberLab lessons dir: ${CYBERLAB_CHALLENGES_DIR}`);
-      
-      // Get available challenges from cyberlab directory
-      const files = fs.existsSync(CYBERLAB_CHALLENGES_DIR) 
-        ? fs.readdirSync(CYBERLAB_CHALLENGES_DIR).filter(f => f.endsWith('.json'))
-        : [];
-      
-      const ctfLessons = files.map(file => {
-        const data = JSON.parse(fs.readFileSync(path.join(CYBERLAB_CHALLENGES_DIR, file), 'utf8'));
-        const { flagHash, ...publicData } = data;
-        return {
-          id: publicData.id,
-          title: publicData.title,
-          description: publicData.description,
-          category: publicData.category,
-          type: 'challenge' as const,
-          points: publicData.points,
-          difficulty: publicData.difficulty,
-          challengeUrl: `/student/cyberlab_challenges`
-        };
+      const challenges = await prisma.cyberChallenge.findMany({
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          category: true,
+          difficulty: true,
+          points: true
+        },
+        orderBy: { createdAt: 'asc' }
       });
+
+      const ctfLessons = challenges.map(c => ({
+        id: c.id,
+        title: c.title,
+        description: c.description,
+        category: c.category,
+        type: 'challenge' as const,
+        points: c.points,
+        difficulty: c.difficulty,
+        challengeUrl: `/student/cyberlab_challenges#${c.id}`
+      }));
 
       return {
         ctfLessons,

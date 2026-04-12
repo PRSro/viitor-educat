@@ -137,7 +137,7 @@ export function LessonViewer({
         </div>
         <div className="flex items-center gap-2">
           {isCompleted ? (
-            <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+            <Badge variant="secondary" className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               Completed
             </Badge>

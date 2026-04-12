@@ -155,9 +155,14 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
             try { e.target.destroy(); } catch {}
             return;
           }
-          e.target.setVolume(vol * 100);
+          // FIX: Use fallback duration if YT duration is unavailable
           const dur = e.target.getDuration();
-          if (dur) setDuration(dur * 1000);
+          if (dur && dur > 0) {
+            setDuration(dur * 1000);
+          } else {
+            console.warn('[AudioPlayer] Could not get video duration, using fallback');
+            setDuration(MAX_SESSION_DURATION); // 4 hours fallback
+          }
           e.target.playVideo();
           setIsPlaying(true);
           setCurrentTrack(track);
@@ -165,9 +170,21 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
           setVolumeState(vol);
           startTimer();
         },
+        onStateChange: (e: any) => {
+          // Handle video ended - restart for looping
+          if (e.data === window.YT.PlayerState.ENDED) {
+            try { playerRef.current?.seekTo(0); } catch {}
+            try { playerRef.current?.playVideo(); } catch {}
+          }
+        },
         onError: (e: any) => {
-          console.warn('YT player error', e.data);
-          stop();
+          console.error('YT player error:', e.data);
+          // Fallback: play with estimated duration on error
+          setDuration(MAX_SESSION_DURATION);
+          setIsPlaying(true);
+          setCurrentTrack(track);
+          setCurrentFrequency(track.frequencyHz);
+          startTimer();
         },
       },
     });
