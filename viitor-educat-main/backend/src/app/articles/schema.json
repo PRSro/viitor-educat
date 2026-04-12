@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["id", "title", "content", "authorId", "createdAt"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^article_[a-z0-9]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1
+    },
+    "excerpt": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "sourceUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "category": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "authorId": {
+      "type": "string"
+    },
+    "published": {
+      "type": "boolean"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "published", "archived"]
+    },
+    "paths": {
+      "type": "array"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "wordCount": { "type": "number" },
+        "readingTime": { "type": "number" },
+        "lastModified": { "type": "string", "format": "date-time" },
+        "version": { "type": "number" }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

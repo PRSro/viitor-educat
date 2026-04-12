@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjvx003o9of22r64lvd7",
+  "courseId": "cmm6gtjvx003k9of271t69d5w",
+  "courseTitle": "The Cold War",
+  "title": "Fall of the Berlin Wall",
+  "description": "End of an era",
+  "content": "# Fall of the Berlin Wall\n\nThe Berlin Wall fell on November 9, 1989, symbolizing the end of the Cold War division of Europe.\n\n## Resources\n\n- [Resource 1](https://www.history.com/topics/cold-war/berlin-wall)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.history.com/topics/cold-war/berlin-wall"
+  ],
+  "createdAt": "2026-02-28T15:17:51.213Z"
+}

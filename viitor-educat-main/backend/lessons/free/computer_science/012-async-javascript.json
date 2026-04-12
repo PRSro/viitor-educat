@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcegk0048m2p3sdjzo7zk",
+  "courseId": "cmlzhcegk0043m2p3g4o586jj",
+  "courseTitle": "JavaScript Essentials",
+  "title": "Async JavaScript",
+  "description": "Promises and async/await",
+  "content": "# Async JavaScript\n\nAsynchronous code handles operations like API calls. Promises and async/await make async code readable.\n\n## Resources\n\n- [Resource 1](https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous"
+  ],
+  "createdAt": "2026-02-23T17:58:07.412Z"
+}

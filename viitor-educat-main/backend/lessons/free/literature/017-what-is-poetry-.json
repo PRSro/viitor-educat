@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjva002c9of2h0xk3csn",
+  "courseId": "cmm6gtjva002a9of2prcgjgq4",
+  "courseTitle": "Introduction to Poetry",
+  "title": "What is Poetry?",
+  "description": "Defining poetry",
+  "content": "# What is Poetry?\n\nPoetry is a literary form that uses aesthetic and rhythmic qualities of language to evoke meaning.\n\n## Resources\n\n- [Resource 1](https://www.poetryfoundation.org/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.poetryfoundation.org/"
+  ],
+  "createdAt": "2026-02-28T15:17:51.190Z"
+}

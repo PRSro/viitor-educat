@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcehq006qm2p3mixo5kyb",
+  "courseId": "cmlzhcehq006nm2p3vi57arls",
+  "courseTitle": "Digital Literacy",
+  "title": "Information Literacy",
+  "description": "Finding reliable information",
+  "content": "# Information Literacy\n\nEvaluate online information critically. Check multiple sources, look for primary sources, verify claims.\n\n## Resources\n\n- [Resource 1](https://www.ala.org/advocacy/intfreedom/iftoolkits/litoolkit)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://www.ala.org/advocacy/intfreedom/iftoolkits/litoolkit"
+  ],
+  "createdAt": "2026-02-23T17:58:07.454Z"
+}

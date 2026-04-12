@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4506000zh4pghs5zwjru",
+  "courseId": "cmm6h4506000wh4pg7d884c2m",
+  "courseTitle": "Statistics & Probability",
+  "title": "Probability Basics",
+  "description": "Fundamentals of probability",
+  "content": "# Probability Basics\n\nProbability measures the likelihood of an event occurring, expressed as a number between 0 and 1.\n\n## Resources\n\n- [Resource 1](https://openstax.org/books/introductory-statistics/pages/3-1-terminology)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://openstax.org/books/introductory-statistics/pages/3-1-terminology"
+  ],
+  "createdAt": "2026-02-28T15:26:05.142Z"
+}

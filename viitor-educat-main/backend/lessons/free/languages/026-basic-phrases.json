@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjxm006f9of2kykrx7aj",
+  "courseId": "cmm6gtjxm006c9of2vceonzsl",
+  "courseTitle": "Romanian Language Basics",
+  "title": "Basic Phrases",
+  "description": "Bună ziua, mulțumesc",
+  "content": "# Basic Phrases\n\nEssential phrases: Bună ziua (good day), Mulțumesc (thank you), Vă rog (please), Da/Nu (yes/no).\n\n## Resources\n\n- [Resource 1](https://www.loecsen.com/en/learn-romanian)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.loecsen.com/en/learn-romanian"
+  ],
+  "createdAt": "2026-02-28T15:17:51.274Z"
+}

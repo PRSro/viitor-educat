@@ -1,0 +1,16 @@
+{
+  "id": "cmm4pmyhz007mtt5vxgsmbhq5",
+  "title": "Introduction to Open Source: Why It Matters for Students",
+  "slug": "introduction-to-open-source-why-it-matters-for-students-mm4pmyhz6s2",
+  "excerpt": "How open-source software and communities can accelerate your learning and career.",
+  "category": "COMPUTER_SCIENCE",
+  "tags": [
+    "open-source",
+    "programming",
+    "community"
+  ],
+  "content": "# Introduction to Open Source: Why It Matters for Students\n\nOpen source is more than free software—it's a philosophy of collaboration, transparency, and shared knowledge.\n\n## What is Open Source?\nOpen-source software has publicly available source code that anyone can inspect, modify, and distribute. Examples: Linux, Firefox, Python, VS Code.\n\n## Why Contribute?\n- **Learn by doing**: Read real-world codebases and contribute fixes\n- **Build your portfolio**: Contributions are visible on GitHub\n- **Join a community**: Collaborate with developers worldwide\n- **Career advancement**: Many employers value open-source contributions\n\n## Getting Started\n1. **Find a project**: Look for \"good first issue\" labels on GitHub\n2. **Read the docs**: Every project has contribution guidelines\n3. **Start small**: Fix typos, improve documentation, then tackle bugs\n4. **Be respectful**: Follow codes of conduct and be patient\n\n## Key Platforms\n- [GitHub](https://github.com/)\n- [GitLab](https://gitlab.com/)\n- [First Contributions](https://firstcontributions.github.io/)\n- [Up For Grabs](https://up-for-grabs.net/)\n\n## Open Source in Education\nProjects like OpenStax, Khan Academy, and MIT OCW demonstrate how open principles can democratize education globally.\n\n## Resources\n- [Open Source Guide](https://opensource.guide/)\n- [GitHub Student Developer Pack](https://education.github.com/pack)\n- [The Open Source Initiative](https://opensource.org/)",
+  "status": "PUBLISHED",
+  "authorId": "cmm0zqget0004sls5o3uqiu42",
+  "createdAt": "2026-02-27T09:49:07.751Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjv500209of2133u3s07",
+  "courseId": "cmm6gtjv5001y9of2kgrrdbf3",
+  "courseTitle": "Earth Science",
+  "title": "Plate Tectonics",
+  "description": "Moving continents",
+  "content": "# Plate Tectonics\n\nEarth's lithosphere is divided into tectonic plates that float on the asthenosphere and interact at boundaries.\n\n## Resources\n\n- [Resource 1](https://www.usgs.gov/programs/earthquake-hazards/science/science-earthquakes)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://www.usgs.gov/programs/earthquake-hazards/science/science-earthquakes"
+  ],
+  "createdAt": "2026-02-28T15:17:51.185Z"
+}

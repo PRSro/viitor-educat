@@ -1,0 +1,15 @@
+{
+  "id": "web-5",
+  "title": "Server-Side Request Forgery",
+  "description": "Coercing servers to make arbitrary requests.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Web Security"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Server-Side Request Forgery\nThis lesson covers the fundamentals of Server-Side Request Forgery.\nUnderstand how Coercing servers to make arbitrary requests. impacts modern security protocols.",
+  "videoId": null,
+  "order": 5,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

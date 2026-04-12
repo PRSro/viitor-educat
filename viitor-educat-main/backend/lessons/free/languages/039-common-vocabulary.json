@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h453b006ah4pg6meoy4w9",
+  "courseId": "cmm6h453b0066h4pg8xsa1bwy",
+  "courseTitle": "Spanish Fundamentals",
+  "title": "Common Vocabulary",
+  "description": "Essential words and phrases",
+  "content": "# Common Vocabulary\n\nLearn essential vocabulary: food, family, directions, time, and common verbs for everyday communication.\n\n## Resources\n\n- [Resource 1](https://www.studyspanish.com/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.studyspanish.com/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.255Z"
+}

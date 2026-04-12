@@ -1,0 +1,12 @@
+{
+  "id": "xss-1",
+  "title": "Alert Box",
+  "category": "Web",
+  "difficulty": "Medium",
+  "points": 150,
+  "description": "What is the standard JavaScript payload to pop an alert box with the number 1 for a Cross-Site Scripting (XSS) proof of concept? (Include the <script> tags)",
+  "hints": [
+    "<script>...</script>"
+  ],
+  "flagHash": "$2a$10$Lv.9ay7O6B2vwzwwKNxXjOSmuTXUZDzQQNvYF9LDdfzArRgjnVkHO"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "steg-1",
+  "title": "Hidden Pixels",
+  "category": "Forensics",
+  "difficulty": "Hard",
+  "points": 200,
+  "description": "What is the name of the technique where secret messages are hidden inside the least significant bits of an image file?",
+  "hints": [
+    "Starts with 'Steg'"
+  ],
+  "flagHash": "$2a$10$MHVrOE6o74MjJ4YlGIohDe9x8YLBvciGGN6avQqhAPuSpLsYco0Qu"
+}

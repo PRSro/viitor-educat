@@ -1,0 +1,15 @@
+{
+  "id": "web-1",
+  "title": "SQL Injection",
+  "description": "Exploiting untrusted database inputs.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Web Security"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to SQL Injection\nThis lesson covers the fundamentals of SQL Injection.\nUnderstand how Exploiting untrusted database inputs. impacts modern security protocols.",
+  "videoId": null,
+  "order": 1,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

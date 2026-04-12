@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h451f0037h4pg0odenjjz",
+  "courseId": "cmm6h451e0035h4pgd9ufdnlq",
+  "courseTitle": "Ancient Civilizations",
+  "title": "Mesopotamia",
+  "description": "Cradle of civilization",
+  "content": "# Mesopotamia\n\nMesopotamia, between the Tigris and Euphrates rivers, saw the rise of writing, law codes, and city-states.\n\n## Resources\n\n- [Resource 1](https://www.worldhistory.org/Mesopotamia/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.worldhistory.org/Mesopotamia/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.187Z"
+}

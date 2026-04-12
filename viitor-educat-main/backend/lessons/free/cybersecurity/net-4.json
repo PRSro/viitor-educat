@@ -1,0 +1,15 @@
+{
+  "id": "net-4",
+  "title": "Firewalls and VPNs",
+  "description": "Perimeter defense and secure tunnels.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Networking"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Firewalls and VPNs\nThis lesson covers the fundamentals of Firewalls and VPNs.\nUnderstand how Perimeter defense and secure tunnels. impacts modern security protocols.",
+  "videoId": null,
+  "order": 4,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

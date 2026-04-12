@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h450x002eh4pg4oqwj0pf",
+  "courseId": "cmm6h450x002ah4pgwmdtkapy",
+  "courseTitle": "Introduction to Poetry",
+  "title": "Figurative Language",
+  "description": "Metaphor, simile, imagery",
+  "content": "# Figurative Language\n\nFigurative language uses words beyond their literal meaning: metaphors compare directly, similes use \"like\" or \"as.\"\n\n## Resources\n\n- [Resource 1](https://literarydevices.net/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://literarydevices.net/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.169Z"
+}

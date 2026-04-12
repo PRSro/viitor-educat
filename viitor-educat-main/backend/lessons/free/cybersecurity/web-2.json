@@ -1,0 +1,15 @@
+{
+  "id": "web-2",
+  "title": "Cross-Site Scripting (XSS)",
+  "description": "Client-side payload reflection.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Web Security"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Cross-Site Scripting (XSS)\nThis lesson covers the fundamentals of Cross-Site Scripting (XSS).\nUnderstand how Client-side payload reflection. impacts modern security protocols.",
+  "videoId": null,
+  "order": 2,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

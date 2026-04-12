@@ -1,0 +1,15 @@
+{
+  "id": "web-7",
+  "title": "Remote Code Execution",
+  "description": "Executing arbitrary shell logic via the web layer.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Web Security"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Remote Code Execution\nThis lesson covers the fundamentals of Remote Code Execution.\nUnderstand how Executing arbitrary shell logic via the web layer. impacts modern security protocols.",
+  "videoId": null,
+  "order": 7,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "base64-1",
+  "title": "The Base of Operations",
+  "category": "Crypto",
+  "difficulty": "Easy",
+  "points": 50,
+  "description": "We intercepted this scrambled string: `dmlpdG9ye2I0czY0XzFzX24wdF8zbmNyeXB0MTBufQ==`. Decode it to proceed.",
+  "hints": [
+    "The trailing '==' padding is a classic signature of base64 encoding."
+  ],
+  "flagHash": "$2a$10$FHaZnzyGmZ.gYFSmWINF5OzPMVFnTbngZ8kZbRTAvjUVoAvmo667q"
+}

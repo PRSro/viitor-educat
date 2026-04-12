@@ -1,0 +1,26 @@
+{
+  "id": "sql-injection-101",
+  "title": "SQL Injection 101",
+  "category": "Web Security",
+  "difficulty": "Easy",
+  "points": 100,
+  "description": "A vulnerable login form is protecting sensitive data. Can you bypass authentication using SQL injection techniques?",
+  "hints": [
+    "Try using OR 1=1 in the username field",
+    "The application doesn't sanitize user input properly"
+  ],
+  "resources": [
+    {
+      "type": "LINK",
+      "title": "OWASP SQL Injection Guide",
+      "url": "https://owasp.org/www-community/attacks/SQL_Injection"
+    },
+    {
+      "type": "LINK",
+      "title": "SQL Injection Prevention Cheat Sheet",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+    }
+  ],
+  "flagHash": "$2a$10$OOH0kYNJpD8qSuG8WV2u/Od3fqH.j89x0XWoULI.03x5tvQCtREe.",
+  "createdAt": "2024-01-15T10:00:00Z"
+}

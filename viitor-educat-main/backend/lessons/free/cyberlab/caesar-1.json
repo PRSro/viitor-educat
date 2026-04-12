@@ -1,0 +1,12 @@
+{
+  "id": "caesar-1",
+  "title": "Roman Secrets",
+  "category": "Crypto",
+  "difficulty": "Easy",
+  "points": 50,
+  "description": "An encrypted message was found carved on a digital ruin: `uiiuqt{f_r3p1_0s_w1p1}`. Can you crack the Caesar cipher (shift of 5)? Input the standard decoded flag format viitor{...}",
+  "hints": [
+    "Try shifting each letter backwards by 5 positions in the alphabet."
+  ],
+  "flagHash": "$2a$10$gfJVHSeO4279VDu7FiLM6uzdutKl.2CcXBgP4JRTQnDtcLnFN6swa"
+}

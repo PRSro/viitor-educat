@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcegt004qm2p32wqky4hh",
+  "courseId": "cmlzhcegt004nm2p3ojll4tan",
+  "courseTitle": "Drawing Fundamentals",
+  "title": "Light and Shadow",
+  "description": "Creating form with value",
+  "content": "# Light and Shadow\n\nUnderstanding light direction creates the illusion of 3D form. Practice shading spheres and cubes.\n\n## Resources\n\n- [Resource 1](https://drawabox.com/lesson/2)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://drawabox.com/lesson/2"
+  ],
+  "createdAt": "2026-02-23T17:58:07.421Z"
+}

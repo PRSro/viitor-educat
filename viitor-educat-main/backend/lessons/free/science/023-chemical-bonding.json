@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjux001q9of25zutp7ej",
+  "courseId": "cmm6gtjux001m9of22m1rlpgd",
+  "courseTitle": "Chemistry Basics",
+  "title": "Chemical Bonding",
+  "description": "Ionic and covalent bonds",
+  "content": "# Chemical Bonding\n\nIonic bonds transfer electrons; covalent bonds share electrons between atoms.\n\n## Resources\n\n- [Resource 1](https://www.khanacademy.org/science/chemistry/atomic-structure-and-properties)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://www.khanacademy.org/science/chemistry/atomic-structure-and-properties"
+  ],
+  "createdAt": "2026-02-28T15:17:51.177Z"
+}

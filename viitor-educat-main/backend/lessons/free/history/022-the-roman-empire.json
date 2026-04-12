@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjvo003a9of2he7q4lmb",
+  "courseId": "cmm6gtjvo00359of2cvdu1zwe",
+  "courseTitle": "Ancient Civilizations",
+  "title": "The Roman Empire",
+  "description": "Rise and fall",
+  "content": "# The Roman Empire\n\nRome grew from a city-state to an empire spanning three continents before falling in 476 CE.\n\n## Resources\n\n- [Resource 1](https://www.worldhistory.org/Roman_Empire/)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.worldhistory.org/Roman_Empire/"
+  ],
+  "createdAt": "2026-02-28T15:17:51.205Z"
+}

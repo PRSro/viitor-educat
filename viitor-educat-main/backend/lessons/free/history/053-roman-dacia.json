@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h451u003zh4pgwe7a3k1q",
+  "courseId": "cmm6h451u003wh4pgztinca16",
+  "courseTitle": "Romanian History",
+  "title": "Roman Dacia",
+  "description": "Trajan's conquest",
+  "content": "# Roman Dacia\n\nEmperor Trajan conquered Dacia in 106 CE. Roman colonization deeply influenced the region's language and culture.\n\n## Resources\n\n- [Resource 1](https://www.worldhistory.org/article/58/the-dacian-wars/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.worldhistory.org/article/58/the-dacian-wars/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.202Z"
+}

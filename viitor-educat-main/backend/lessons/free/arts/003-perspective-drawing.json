@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcegt004rm2p3u70dgjhg",
+  "courseId": "cmlzhcegt004nm2p3ojll4tan",
+  "courseTitle": "Drawing Fundamentals",
+  "title": "Perspective Drawing",
+  "description": "Creating depth",
+  "content": "# Perspective Drawing\n\nPerspective uses vanishing points to create the illusion of depth on a 2D surface.\n\n## Resources\n\n- [Resource 1](https://drawabox.com/lesson/3)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://drawabox.com/lesson/3"
+  ],
+  "createdAt": "2026-02-23T17:58:07.421Z"
+}

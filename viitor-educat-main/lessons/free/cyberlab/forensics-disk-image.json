@@ -1,0 +1,22 @@
+{
+  "id": "forensics-disk-image",
+  "title": "Digital Forensics Challenge",
+  "category": "Forensics",
+  "difficulty": "Medium",
+  "points": 250,
+  "description": "Analyze a disk image to find a hidden text file containing the flag. Use forensic tools to extract the hidden data.",
+  "hints": [
+    "Use strings command to find readable text",
+    "Look for deleted files",
+    "Check the slack space"
+  ],
+  "resources": [
+    {
+      "type": "LINK",
+      "title": "Autopsy - Forensic Tool",
+      "url": "https://www.sleuthkit.org/autopsy/"
+    }
+  ],
+  "flagHash": "$2a$10$EWKjikFHBqdSpBIAL4VIa.WlxvglYpgJ2BdMbqr8X4aAyhrTcYNWy",
+  "createdAt": "2024-01-22T10:00:00Z"
+}

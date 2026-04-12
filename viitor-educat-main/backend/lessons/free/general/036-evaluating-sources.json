@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h453m006yh4pghpjy11to",
+  "courseId": "cmm6h453m006uh4pgi4sr02u8",
+  "courseTitle": "Critical Thinking",
+  "title": "Evaluating Sources",
+  "description": "Distinguishing fact from fiction",
+  "content": "# Evaluating Sources\n\nCheck sources using the CRAAP test: Currency, Relevance, Authority, Accuracy, Purpose.\n\n## Resources\n\n- [Resource 1](https://guides.lib.unc.edu/evaluating-information)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "GENERAL",
+  "links": [
+    "https://guides.lib.unc.edu/evaluating-information"
+  ],
+  "createdAt": "2026-02-28T15:26:05.266Z"
+}

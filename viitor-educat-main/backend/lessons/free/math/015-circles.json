@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhceet000tm2p3xxjquvdx",
+  "courseId": "cmlzhceet000pm2p30qty6t81",
+  "courseTitle": "Geometry Essentials",
+  "title": "Circles",
+  "description": "Circle properties and formulas",
+  "content": "# Circles\n\nA circle is the set of all points equidistant from a center. Area = πr², Circumference = 2πr.\n\n## Resources\n\n- [Resource 1](https://www.mathsisfun.com/geometry/circle.html)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.mathsisfun.com/geometry/circle.html"
+  ],
+  "createdAt": "2026-02-23T17:58:07.349Z"
+}

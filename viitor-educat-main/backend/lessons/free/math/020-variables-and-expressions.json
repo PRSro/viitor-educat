@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtju8000j9of24n655klq",
+  "courseId": "cmm6gtju8000h9of2dao1ojv3",
+  "courseTitle": "Introduction to Algebra",
+  "title": "Variables and Expressions",
+  "description": "Understanding variables",
+  "content": "# Variables and Expressions\n\nVariables are symbols that represent unknown values. An expression combines variables, numbers, and operations.\n\n## Resources\n\n- [Resource 1](https://www.khanacademy.org/math/algebra/x2f8bb11595b61c86:foundation-algebra)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.khanacademy.org/math/algebra/x2f8bb11595b61c86:foundation-algebra"
+  ],
+  "createdAt": "2026-02-28T15:17:51.152Z"
+}

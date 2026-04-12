@@ -1,0 +1,15 @@
+{
+  "id": "web-8",
+  "title": "Broken Authentication",
+  "description": "Bypassing weak session management protocols.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Web Security"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Broken Authentication\nThis lesson covers the fundamentals of Broken Authentication.\nUnderstand how Bypassing weak session management protocols. impacts modern security protocols.",
+  "videoId": null,
+  "order": 8,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

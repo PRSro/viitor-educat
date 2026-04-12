@@ -1,0 +1,12 @@
+{
+  "id": "robots-1",
+  "title": "Friendly Robots",
+  "category": "OSINT",
+  "difficulty": "Easy",
+  "points": 50,
+  "description": "A target server hides its admin panel from search engines. What file standard dictates this behavior?",
+  "hints": [
+    "What text file is commonly placed in the web root to instruct web crawlers?"
+  ],
+  "flagHash": "$2a$10$TBSG.sDbrHpeM9w4G6GHD.dozJk0JUhd5CvOH6decsiOvQqjcGDeG"
+}

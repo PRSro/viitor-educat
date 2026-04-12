@@ -1,0 +1,12 @@
+{
+  "id": "pcap-1",
+  "title": "Clear Text",
+  "category": "Forensics",
+  "difficulty": "Easy",
+  "points": 100,
+  "description": "We are intercepting network traffic over HTTP. Which common plain-text protocol allows capturing passwords in cleartext using Wireshark?",
+  "hints": [
+    "HyperText Transfer Protocol."
+  ],
+  "flagHash": "$2a$10$kHti6Aqk2tn7kEzNrKcHTOzHfq99QHsDmBu6.zLPhQrEv1l49ip/6"
+}

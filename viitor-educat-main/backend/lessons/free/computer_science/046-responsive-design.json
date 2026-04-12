@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4525004eh4pgqi5gt48e",
+  "courseId": "cmm6h4525004ah4pgczmla8du",
+  "courseTitle": "Web Development with HTML & CSS",
+  "title": "Responsive Design",
+  "description": "Mobile-friendly layouts",
+  "content": "# Responsive Design\n\nUse media queries, flexbox, and grid to create layouts that adapt to different screen sizes.\n\n## Resources\n\n- [Resource 1](https://web.dev/responsive-web-design-basics/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://web.dev/responsive-web-design-basics/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.213Z"
+}

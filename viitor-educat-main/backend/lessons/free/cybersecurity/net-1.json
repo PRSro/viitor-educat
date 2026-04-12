@@ -1,0 +1,15 @@
+{
+  "id": "net-1",
+  "title": "TCP/IP Fundamentals",
+  "description": "Understanding the layers of standard network communication.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Networking"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to TCP/IP Fundamentals\nThis lesson covers the fundamentals of TCP/IP Fundamentals.\nUnderstand how Understanding the layers of standard network communication. impacts modern security protocols.",
+  "videoId": null,
+  "order": 1,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

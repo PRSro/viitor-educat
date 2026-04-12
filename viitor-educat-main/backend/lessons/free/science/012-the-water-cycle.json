@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcefc001om2p3j3cw423u",
+  "courseId": "cmlzhcefc001lm2p3mlgqpc0z",
+  "courseTitle": "Earth Science",
+  "title": "The Water Cycle",
+  "description": "Evaporation, condensation, precipitation",
+  "content": "# The Water Cycle\n\nWater continuously cycles through evaporation, condensation, precipitation, and collection.\n\n## Resources\n\n- [Resource 1](https://www.usgs.gov/special-topics/water-science-school/science/water-cycle)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://www.usgs.gov/special-topics/water-science-school/science/water-cycle"
+  ],
+  "createdAt": "2026-02-23T17:58:07.368Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4510002jh4pgyb0zsh9p",
+  "courseId": "cmm6h4510002gh4pgnlz6uwcp",
+  "courseTitle": "Shakespeare's Greatest Works",
+  "title": "Romeo and Juliet",
+  "description": "Star-crossed lovers",
+  "content": "# Romeo and Juliet\n\nA tragedy of two young lovers from feuding families in Verona. It explores love, fate, and impulsive youth.\n\n## Resources\n\n- [Resource 1](https://www.gutenberg.org/ebooks/1112)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://www.gutenberg.org/ebooks/1112"
+  ],
+  "createdAt": "2026-02-28T15:26:05.172Z"
+}

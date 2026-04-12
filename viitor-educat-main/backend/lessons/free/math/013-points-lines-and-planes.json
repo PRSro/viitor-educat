@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhceet000rm2p32wuzdxra",
+  "courseId": "cmlzhceet000pm2p30qty6t81",
+  "courseTitle": "Geometry Essentials",
+  "title": "Points, Lines, and Planes",
+  "description": "Basic geometric objects",
+  "content": "# Points, Lines, and Planes\n\nPoints have no dimension, lines extend infinitely in both directions, and planes extend infinitely in two dimensions.\n\n## Resources\n\n- [Resource 1](https://www.mathsisfun.com/geometry/point-line-plane-solid.html)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://www.mathsisfun.com/geometry/point-line-plane-solid.html"
+  ],
+  "createdAt": "2026-02-23T17:58:07.349Z"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "fund-1",
+  "title": "The CIA Triad",
+  "description": "Confidentiality, Integrity, and Availability concepts.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Fundamentals"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to The CIA Triad\nThis lesson covers the fundamentals of The CIA Triad.\nUnderstand how Confidentiality, Integrity, and Availability concepts. impacts modern security protocols.",
+  "videoId": null,
+  "order": 1,
+  "createdAt": "2026-04-12T13:43:59.393Z"
+}

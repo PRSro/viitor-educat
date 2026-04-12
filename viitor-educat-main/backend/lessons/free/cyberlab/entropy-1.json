@@ -1,0 +1,12 @@
+{
+  "id": "entropy-1",
+  "title": "Entropy",
+  "category": "Crypto",
+  "difficulty": "Easy",
+  "points": 50,
+  "description": "How many bits of entropy does a completely random 16-character hexadecimal string represent?",
+  "hints": [
+    "A hex character is 4 bits. 16 * 4 = ?"
+  ],
+  "flagHash": "$2a$10$LU5zymWyLnT8BcBYyey.he/azkMEHQSpHQERsld4tTyRgGQBg3nUK"
+}

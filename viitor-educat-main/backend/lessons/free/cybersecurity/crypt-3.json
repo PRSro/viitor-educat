@@ -1,0 +1,15 @@
+{
+  "id": "crypt-3",
+  "title": "TLS Handshakes",
+  "description": "How certificates negotiate secure lines.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Cryptography"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to TLS Handshakes\nThis lesson covers the fundamentals of TLS Handshakes.\nUnderstand how How certificates negotiate secure lines. impacts modern security protocols.",
+  "videoId": null,
+  "order": 3,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

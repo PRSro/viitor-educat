@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4525004ch4pgltv28h4i",
+  "courseId": "cmm6h4525004ah4pgczmla8du",
+  "courseTitle": "Web Development with HTML & CSS",
+  "title": "HTML Basics",
+  "description": "Structure of web pages",
+  "content": "# HTML Basics\n\nHTML uses tags to structure content: headings, paragraphs, links, images, lists, and more.\n\n## Resources\n\n- [Resource 1](https://developer.mozilla.org/en-US/docs/Learn/HTML)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://developer.mozilla.org/en-US/docs/Learn/HTML"
+  ],
+  "createdAt": "2026-02-28T15:26:05.213Z"
+}

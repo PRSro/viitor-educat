@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h451f0039h4pgg8eriic5",
+  "courseId": "cmm6h451e0035h4pgd9ufdnlq",
+  "courseTitle": "Ancient Civilizations",
+  "title": "Classical Greece",
+  "description": "Democracy and philosophy",
+  "content": "# Classical Greece\n\nAthens pioneered democracy. Philosophers like Socrates, Plato, and Aristotle shaped Western thought.\n\n## Resources\n\n- [Resource 1](https://www.worldhistory.org/greece/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.worldhistory.org/greece/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.187Z"
+}

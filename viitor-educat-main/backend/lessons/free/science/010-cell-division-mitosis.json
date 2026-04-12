@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhcef8001jm2p3tcqt59ib",
+  "courseId": "cmlzhcef8001fm2p3ncdh9dtt",
+  "courseTitle": "Biology: Cell Biology",
+  "title": "Cell Division: Mitosis",
+  "description": "How cells reproduce",
+  "content": "# Cell Division: Mitosis\n\nMitosis divides a cell into two identical daughter cells through prophase, metaphase, anaphase, and telophase.\n\n## Resources\n\n- [Resource 1](https://openstax.org/books/biology-2e/pages/10-2-the-cell-cycle)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://openstax.org/books/biology-2e/pages/10-2-the-cell-cycle"
+  ],
+  "createdAt": "2026-02-23T17:58:07.364Z"
+}

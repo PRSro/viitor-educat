@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhceh4005fm2p3qzjxuqr7",
+  "courseId": "cmlzhceh4005bm2p36i17uzxf",
+  "courseTitle": "Introduction to Film",
+  "title": "Sound and Music in Film",
+  "description": "Audio storytelling",
+  "content": "# Sound and Music in Film\n\nFilm sound includes dialogue, sound effects, ambient noise, and music score. Sound deeply affects emotion.\n\n## Resources\n\n- [Resource 1](https://www.filmsound.org/)",
+  "order": 2,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.filmsound.org/"
+  ],
+  "createdAt": "2026-02-23T17:58:07.433Z"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "sqli-1",
+  "title": "Always TRUE",
+  "category": "Web",
+  "difficulty": "Medium",
+  "points": 150,
+  "description": "What classic SQL injection payload is used to bypass an authentication prompt by making the WHERE clause universally true?",
+  "hints": [
+    "Think of single quotes and the logical OR operator.",
+    "Format: ' OR '1'='1"
+  ],
+  "flagHash": "$2a$10$2GZVwdOR/b.7KvY5/noS5e82/Nrof7SteK6p6EgT0tQSJfEs4PWRW"
+}

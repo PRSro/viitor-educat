@@ -1,0 +1,15 @@
+{
+  "id": "net-3",
+  "title": "HTTP vs HTTPS",
+  "description": "The backbone of web transport encryption.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Networking"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to HTTP vs HTTPS\nThis lesson covers the fundamentals of HTTP vs HTTPS.\nUnderstand how The backbone of web transport encryption. impacts modern security protocols.",
+  "videoId": null,
+  "order": 3,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

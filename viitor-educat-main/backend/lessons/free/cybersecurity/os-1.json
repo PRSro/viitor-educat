@@ -1,0 +1,15 @@
+{
+  "id": "os-1",
+  "title": "Linux Hardening",
+  "description": "Securing vanilla distributions.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Operating Systems"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Linux Hardening\nThis lesson covers the fundamentals of Linux Hardening.\nUnderstand how Securing vanilla distributions. impacts modern security protocols.",
+  "videoId": null,
+  "order": 1,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

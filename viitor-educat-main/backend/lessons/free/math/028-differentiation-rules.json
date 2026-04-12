@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjud000u9of2jgyhckgl",
+  "courseId": "cmm6gtjud000o9of24hqb6ucy",
+  "courseTitle": "Calculus I: Limits & Derivatives",
+  "title": "Differentiation Rules",
+  "description": "Power, product, and chain rules",
+  "content": "# Differentiation Rules\n\nThe power rule states d/dx[xⁿ] = nxⁿ⁻¹. The product and chain rules handle compositions.\n\n## Resources\n\n- [Resource 1](https://openstax.org/books/calculus-volume-1/pages/3-3-differentiation-rules)",
+  "order": 4,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://openstax.org/books/calculus-volume-1/pages/3-3-differentiation-rules"
+  ],
+  "createdAt": "2026-02-28T15:17:51.157Z"
+}

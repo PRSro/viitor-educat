@@ -1,0 +1,539 @@
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware.js';
+import { teacherOnly, anyRole, requireRole } from '../../core/middleware/permissionMiddleware.js';
+import { z } from 'zod';
+import { prisma } from '../../models/prisma.js';
+import { awardPoints } from '../../services/pointsService.js';
+
+function getCurrentUser(request: FastifyRequest): JwtPayload {
+  return (request as any).user as JwtPayload;
+}
+
+const createQuizSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200),
+  description: z.string().optional(),
+  lessonId: z.string().optional(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'PRIVATE']).optional(),
+  timeLimit: z.number().int().positive().optional(),
+  passingScore: z.number().int().min(0).max(100).optional(),
+});
+
+const updateQuizSchema = createQuizSchema.partial();
+
+const createQuestionSchema = z.object({
+  question: z.string().min(1, 'Question is required'),
+  type: z.enum(['MULTIPLE_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER']).optional(),
+  options: z.array(z.string()).optional(),
+  correctAnswer: z.string().min(1, 'Correct answer is required'),
+  explanation: z.string().optional(),
+  order: z.number().int().optional(),
+  points: z.number().int().positive().optional(),
+});
+
+interface QuizParams {
+  id: string;
+}
+
+interface QuizQuestionParams {
+  quizId: string;
+  questionId: string;
+}
+
+export async function quizRoutes(fastify: FastifyInstance) {
+
+  /**
+   * GET /quizzes
+   * List all quizzes (published for students, all for teachers)
+   */
+  fastify.get('/', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const user = getCurrentUser(request);
+      const { lessonId, published } = request.query as {
+        lessonId?: string;
+        published?: string
+      };
+
+      const where: any = {};
+
+      if (user.role === 'STUDENT') {
+        where.status = 'PUBLISHED';
+      }
+
+      if (lessonId) where.lessonId = lessonId;
+      if (published) where.status = published === 'true' ? 'PUBLISHED' : undefined;
+
+      const quizzes = await prisma.quiz.findMany({
+        where,
+        include: {
+          teacher: { select: { id: true, email: true } },
+          _count: { select: { questions: true, attempts: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      return { quizzes };
+    } catch (error) {
+      fastify.log.error(error, 'Error fetching quizzes');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /quizzes/teacher/my-quizzes
+   * Get all quizzes created by current teacher
+   */
+  fastify.get('/teacher/my-quizzes', {
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const teacherId = getCurrentUser(request).id;
+
+      const quizzes = await prisma.quiz.findMany({
+        where: { teacherId },
+        include: {
+          _count: { select: { questions: true, attempts: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      return { quizzes };
+    } catch (error) {
+      fastify.log.error(error, 'Error fetching teacher quizzes');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /quizzes/:id
+   * Get quiz details
+   */
+  fastify.get<{ Params: QuizParams }>('/:id', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request: FastifyRequest<{ Params: QuizParams }>, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const user = getCurrentUser(request);
+
+      const quiz = await prisma.quiz.findUnique({
+        where: { id },
+        include: {
+          teacher: { select: { id: true, email: true } }
+        }
+      });
+
+      if (!quiz) {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      const questions = await prisma.question.findMany({
+        where: { quiz: { id } },
+        orderBy: { order: 'asc' }
+      });
+
+      if (user.role === 'STUDENT' && quiz.status !== 'PUBLISHED') {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      const safeQuestions = questions.map((q: any) => ({
+        ...q,
+        correctAnswer: user.role === 'STUDENT' ? '' : q.correctAnswer,
+        explanation: user.role === 'STUDENT' ? '' : q.explanation
+      }));
+
+      return { quiz: { ...quiz, questions: safeQuestions } };
+    } catch (error) {
+      fastify.log.error(error, 'Error fetching quiz');
+      throw error;
+    }
+  });
+
+  /**
+   * POST /quizzes
+   * Create a new quiz
+   */
+  fastify.post('/', {
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const validated = createQuizSchema.parse(request.body);
+      const teacherId = getCurrentUser(request).id;
+
+      const quiz = await prisma.quiz.create({
+        data: {
+          title: validated.title,
+          description: validated.description,
+          teacherId,
+          status: validated.status || 'DRAFT',
+          timeLimit: validated.timeLimit,
+          passingScore: validated.passingScore,
+          lessonId: validated.lessonId
+        },
+        include: {
+          teacher: { select: { id: true, email: true } }
+        }
+      });
+
+      return reply.status(201).send({
+        message: 'Quiz created successfully',
+        quiz
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({
+          error: 'Validation failed',
+          details: error.errors
+        });
+      }
+      fastify.log.error(error, 'Error creating quiz');
+      throw error;
+    }
+  });
+
+  /**
+   * PUT /quizzes/:id
+   * Update a quiz
+   */
+  fastify.put<{ Params: QuizParams }>('/:id', {
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request: FastifyRequest<{ Params: QuizParams }>, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const validated = updateQuizSchema.parse(request.body);
+      const teacherId = getCurrentUser(request).id;
+
+      const existing = await prisma.quiz.findUnique({ where: { id } });
+
+      if (!existing) {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      if (existing.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You can only update your own quizzes'
+        });
+      }
+
+      const quiz = await prisma.quiz.update({
+        where: { id },
+        data: validated,
+        include: {
+          teacher: { select: { id: true, email: true } }
+        }
+      });
+
+      return { message: 'Quiz updated successfully', quiz };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({
+          error: 'Validation failed',
+          details: error.errors
+        });
+      }
+      fastify.log.error(error, 'Error updating quiz');
+      throw error;
+    }
+  });
+
+  /**
+   * DELETE /quizzes/:id
+   * Delete a quiz
+   */
+  fastify.delete<{ Params: QuizParams }>('/:id', {
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request: FastifyRequest<{ Params: QuizParams }>, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const teacherId = getCurrentUser(request).id;
+
+      const existing = await prisma.quiz.findUnique({ where: { id } });
+
+      if (!existing) {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      if (existing.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You can only delete your own quizzes'
+        });
+      }
+
+      await prisma.quiz.delete({ where: { id } });
+
+      return { message: 'Quiz deleted successfully' };
+    } catch (error) {
+      fastify.log.error(error, 'Error deleting quiz');
+      throw error;
+    }
+  });
+
+  /**
+   * POST /quizzes/:id/questions
+   * Add a question to a quiz
+   */
+  fastify.post<{ Params: QuizParams }>('/:id/questions', {
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request: FastifyRequest<{ Params: QuizParams }>, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const validated = createQuestionSchema.parse(request.body);
+      const teacherId = getCurrentUser(request).id;
+
+      const quiz = await prisma.quiz.findUnique({ where: { id } });
+
+      if (!quiz) {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      if (quiz.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You can only add questions to your own quizzes'
+        });
+      }
+
+      const question = await prisma.question.create({
+        data: {
+          quizId: id,
+          text: validated.question,
+          questionType: (validated.type as any) || 'MULTIPLE_CHOICE',
+          options: validated.options || [],
+          correctAnswer: validated.correctAnswer,
+          explanation: validated.explanation,
+          order: validated.order || 0,
+          points: validated.points || 1
+        }
+      });
+
+      return reply.status(201).send({
+        message: 'Question added successfully',
+        question
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({
+          error: 'Validation failed',
+          details: error.errors
+        });
+      }
+      fastify.log.error(error, 'Error adding question');
+      throw error;
+    }
+  });
+
+  /**
+   * PUT /quizzes/:quizId/questions/:questionId
+   * Update a question
+   */
+  fastify.put<{ Params: QuizQuestionParams }>('/:quizId/questions/:questionId', {
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request: FastifyRequest<{ Params: QuizQuestionParams }>, reply: FastifyReply) => {
+    try {
+      const { quizId, questionId } = request.params;
+      const validated = createQuestionSchema.parse(request.body);
+      const teacherId = getCurrentUser(request).id;
+
+      const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+
+      if (!quiz) {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      if (quiz.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You can only update questions in your own quizzes'
+        });
+      }
+
+      const question = await prisma.question.update({
+        where: { id: questionId },
+        data: { ...validated, options: validated.options || [] }
+      });
+
+      return { message: 'Question updated successfully', question };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return reply.status(400).send({
+          error: 'Validation failed',
+          details: error.errors
+        });
+      }
+      fastify.log.error(error, 'Error updating question');
+      throw error;
+    }
+  });
+
+  /**
+   * DELETE /quizzes/:quizId/questions/:questionId
+   * Delete a question
+   */
+  fastify.delete<{ Params: QuizQuestionParams }>('/:quizId/questions/:questionId', {
+    preHandler: [authMiddleware, teacherOnly]
+  }, async (request: FastifyRequest<{ Params: QuizQuestionParams }>, reply: FastifyReply) => {
+    try {
+      const { quizId, questionId } = request.params;
+      const teacherId = getCurrentUser(request).id;
+
+      const quiz = await prisma.quiz.findUnique({ where: { id: quizId } });
+
+      if (!quiz) {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      if (quiz.teacherId !== teacherId && getCurrentUser(request).role !== 'ADMIN') {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You can only delete questions from your own quizzes'
+        });
+      }
+
+      await prisma.question.delete({ where: { id: questionId } });
+
+      return { message: 'Question deleted successfully' };
+    } catch (error) {
+      fastify.log.error(error, 'Error deleting question');
+      throw error;
+    }
+  });
+
+  /**
+   * POST /quizzes/:id/attempt
+   * Submit a quiz attempt (student)
+   */
+  fastify.post<{ Params: QuizParams }>('/:id/attempt', {
+    preHandler: [authMiddleware, requireRole(['STUDENT', 'ADMIN'])]
+  }, async (request: FastifyRequest<{ Params: QuizParams }>, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const studentId = getCurrentUser(request).id;
+      const { answers, timeSpent } = request.body as { answers: Record<string, string>; timeSpent: number };
+
+      const quiz = await prisma.quiz.findUnique({
+        where: { id },
+        include: { questions: true }
+      });
+
+      if (!quiz || quiz.status !== 'PUBLISHED') {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      // Calculate score
+      let correctCount = 0;
+      let totalPoints = 0;
+      let earnedPoints = 0;
+
+      quiz.questions.forEach(question => {
+        totalPoints += question.points;
+        const studentAnswer = answers[question.id];
+        if (studentAnswer && studentAnswer.toLowerCase() === question.correctAnswer.toLowerCase()) {
+          correctCount++;
+          earnedPoints += question.points;
+        }
+      });
+
+      const score = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0;
+      const passed = score >= (quiz.passingScore ?? 70);
+
+      const attempt = await prisma.quizAttempt.create({
+        data: {
+          quizId: id,
+          userId: studentId,
+          score: Math.round(score),
+          maxScore: 100,
+          passed,
+          answers: JSON.stringify(answers),
+          timeSpent: timeSpent || 0
+        }
+      });
+
+      await awardPoints(studentId, passed ? 'QUIZ_PASS' : 'QUIZ_FAIL', { quizId: id });
+
+      return {
+        message: passed ? 'Quiz passed!' : 'Quiz completed',
+        attempt: {
+          id: attempt.id,
+          score: attempt.score,
+          passed: attempt.passed,
+          correctCount,
+          totalQuestions: quiz.questions.length,
+          timeSpent: attempt.timeSpent
+        }
+      };
+    } catch (error) {
+      fastify.log.error(error, 'Error submitting quiz attempt');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /quizzes/:id/attempts
+   * Get quiz attempts
+   */
+  fastify.get<{ Params: QuizParams }>('/:id/attempts', {
+    preHandler: [authMiddleware, anyRole]
+  }, async (request: FastifyRequest<{ Params: QuizParams }>, reply: FastifyReply) => {
+    try {
+      const { id } = request.params;
+      const user = getCurrentUser(request);
+
+      const quiz = await prisma.quiz.findUnique({ where: { id } });
+
+      if (!quiz) {
+        return reply.status(404).send({ error: 'Quiz not found' });
+      }
+
+      const where: any = { quizId: id };
+
+      if (user.role === 'STUDENT') {
+        where.userId = user.id;
+      }
+      else if (user.role === 'TEACHER' && quiz.teacherId !== user.id) {
+        return reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You can only view attempts for your own quizzes'
+        });
+      }
+
+      const attempts = await prisma.quizAttempt.findMany({
+        where,
+        orderBy: { startedAt: 'desc' }
+      });
+
+      return { attempts };
+    } catch (error) {
+      fastify.log.error(error, 'Error fetching quiz attempts');
+      throw error;
+    }
+  });
+
+  /**
+   * GET /quizzes/student/my-attempts
+   * Get all quiz attempts for current student
+   */
+  fastify.get('/student/my-attempts', {
+    preHandler: [authMiddleware, requireRole(['STUDENT', 'ADMIN'])]
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const studentId = getCurrentUser(request).id;
+
+      const attempts = await prisma.quizAttempt.findMany({
+        where: { userId: studentId },
+        include: {
+          quiz: {
+            select: { id: true, title: true }
+          }
+        },
+        orderBy: { startedAt: 'desc' }
+      });
+
+      return { attempts };
+    } catch (error) {
+      fastify.log.error(error, 'Error fetching student attempts');
+      throw error;
+    }
+  });
+}

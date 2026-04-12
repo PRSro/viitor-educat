@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h451z0044h4pg51k7jjs2",
+  "courseId": "cmm6h451z0042h4pgwwtw9gt9",
+  "courseTitle": "Python for Beginners",
+  "title": "Getting Started with Python",
+  "description": "Installation and first program",
+  "content": "# Getting Started with Python\n\nPython is a versatile, beginner-friendly language. Install it and write your first \"Hello, World!\" program.\n\n## Resources\n\n- [Resource 1](https://docs.python.org/3/tutorial/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://docs.python.org/3/tutorial/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.207Z"
+}

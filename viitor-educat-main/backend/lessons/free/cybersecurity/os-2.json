@@ -1,0 +1,15 @@
+{
+  "id": "os-2",
+  "title": "File Permissions & Isolation",
+  "description": "chmod, chown, and container sandboxing.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Operating Systems"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to File Permissions & Isolation\nThis lesson covers the fundamentals of File Permissions & Isolation.\nUnderstand how chmod, chown, and container sandboxing. impacts modern security protocols.",
+  "videoId": null,
+  "order": 2,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

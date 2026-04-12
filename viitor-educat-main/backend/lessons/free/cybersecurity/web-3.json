@@ -1,0 +1,15 @@
+{
+  "id": "web-3",
+  "title": "CSRF",
+  "description": "Cross-Site Request Forgery vulnerabilities.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Web Security"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to CSRF\nThis lesson covers the fundamentals of CSRF.\nUnderstand how Cross-Site Request Forgery vulnerabilities. impacts modern security protocols.",
+  "videoId": null,
+  "order": 3,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

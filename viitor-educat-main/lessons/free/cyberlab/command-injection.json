@@ -1,0 +1,22 @@
+{
+  "id": "command-injection",
+  "title": "Command Injection",
+  "category": "System Security",
+  "difficulty": "Hard",
+  "points": 300,
+  "description": "A network monitoring tool accepts user input directly into a system command. Exploit this to read sensitive files.",
+  "hints": [
+    "The application uses system() or exec() functions",
+    "Try chaining commands with ; or |",
+    "You might need to encode special characters"
+  ],
+  "resources": [
+    {
+      "type": "LINK",
+      "title": "Command Injection Techniques",
+      "url": "https://www.securecoding.com/blog/command-injection/"
+    }
+  ],
+  "flagHash": "$2a$10$hw.jG6bfLYjRpd3QOr14uu/85qKebBs1Gn2ENQbXkiS8nmKY0ryOu",
+  "createdAt": "2024-01-17T10:00:00Z"
+}

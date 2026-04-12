@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjwy005e9of2k6rh6blm",
+  "courseId": "cmm6gtjwy005c9of2djsrqlx6",
+  "courseTitle": "Art History: Renaissance to Modern",
+  "title": "The Renaissance",
+  "description": "Rebirth of art",
+  "content": "# The Renaissance\n\nThe Renaissance (14th-17th century) saw a revival of classical ideals. Key artists: Leonardo, Michelangelo, Raphael.\n\n## Resources\n\n- [Resource 1](https://www.metmuseum.org/toah/hd/ren/hd_ren.htm)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "ARTS",
+  "links": [
+    "https://www.metmuseum.org/toah/hd/ren/hd_ren.htm"
+  ],
+  "createdAt": "2026-02-28T15:17:51.250Z"
+}

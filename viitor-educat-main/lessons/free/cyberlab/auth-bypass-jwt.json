@@ -1,0 +1,27 @@
+{
+  "id": "auth-bypass-jwt",
+  "title": "JWT Token Manipulation",
+  "category": "Web Security",
+  "difficulty": "Hard",
+  "points": 350,
+  "description": "A web application uses JWT for authentication. Analyze the token structure and forge a token to access admin functions.",
+  "hints": [
+    "JWT has three parts: header, payload, signature",
+    "The secret might be weak or empty",
+    "Try using 'none' algorithm"
+  ],
+  "resources": [
+    {
+      "type": "LINK",
+      "title": "JWT.io - Debugger",
+      "url": "https://jwt.io/"
+    },
+    {
+      "type": "LINK",
+      "title": "JWT Vulnerabilities",
+      "url": "https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/"
+    }
+  ],
+  "flagHash": "$2a$10$NDRGox9.FtLQbDvfcU16u.yOe5nlFGE0f0ffQ6q9uy74nq5hKjUnO",
+  "createdAt": "2024-01-21T10:00:00Z"
+}

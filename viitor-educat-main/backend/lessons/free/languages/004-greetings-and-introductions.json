@@ -1,0 +1,16 @@
+{
+  "id": "cmlzhceha005pm2p3m5ywhues",
+  "courseId": "cmlzhceha005nm2p30bou5io6",
+  "courseTitle": "French for Beginners",
+  "title": "Greetings and Introductions",
+  "description": "Bonjour, je m'appelle...",
+  "content": "# Greetings and Introductions\n\nLearn basic French greetings: Bonjour (hello), Au revoir (goodbye), Comment allez-vous? (How are you?).\n\n## Resources\n\n- [Resource 1](https://www.lawlessfrench.com/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.lawlessfrench.com/"
+  ],
+  "createdAt": "2026-02-23T17:58:07.438Z"
+}

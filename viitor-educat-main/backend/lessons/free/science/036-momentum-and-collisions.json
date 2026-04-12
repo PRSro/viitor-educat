@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h450h001kh4pgzpu7d7va",
+  "courseId": "cmm6h450h001fh4pgl04xup2e",
+  "courseTitle": "Physics: Mechanics",
+  "title": "Momentum and Collisions",
+  "description": "Conservation of momentum",
+  "content": "# Momentum and Collisions\n\nMomentum = mass × velocity. In a closed system, total momentum is conserved during collisions.\n\n## Resources\n\n- [Resource 1](https://www.physicsclassroom.com/class/momentum)",
+  "order": 3,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "SCIENCE",
+  "links": [
+    "https://www.physicsclassroom.com/class/momentum"
+  ],
+  "createdAt": "2026-02-28T15:26:05.153Z"
+}

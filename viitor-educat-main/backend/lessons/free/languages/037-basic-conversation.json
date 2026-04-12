@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h453b0068h4pgw0bfh1bv",
+  "courseId": "cmm6h453b0066h4pg8xsa1bwy",
+  "courseTitle": "Spanish Fundamentals",
+  "title": "Basic Conversation",
+  "description": "Hola, ¿cómo estás?",
+  "content": "# Basic Conversation\n\nSpanish greetings: Hola (hello), Buenos días (good morning), ¿Cómo te llamas? (What is your name?).\n\n## Resources\n\n- [Resource 1](https://www.spanishdict.com/guide)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LANGUAGES",
+  "links": [
+    "https://www.spanishdict.com/guide"
+  ],
+  "createdAt": "2026-02-28T15:26:05.255Z"
+}

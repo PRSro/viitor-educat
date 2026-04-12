@@ -1,0 +1,22 @@
+{
+  "id": "buffer-overflow-intro",
+  "title": "Buffer Overflow Basics",
+  "category": "Binary Exploitation",
+  "difficulty": "Expert",
+  "points": 500,
+  "description": "A vulnerable program doesn't check input length. Overflow a buffer to overwrite the return address and redirect execution.",
+  "hints": [
+    "Use a debugger like gdb or ltrace",
+    "Try sending more input than expected",
+    "Look for the win function address"
+  ],
+  "resources": [
+    {
+      "type": "LINK",
+      "title": "Buffer Overflow Guide",
+      "url": "https://www.owasp.org/index.php/Buffer_Overflow"
+    }
+  ],
+  "flagHash": "$2a$10$vbyWsAAFN3kKuBkrHLs/Lec28WinWKJDPygKpx8F.lN6NESijo0sG",
+  "createdAt": "2024-01-20T10:00:00Z"
+}

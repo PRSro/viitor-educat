@@ -1,0 +1,22 @@
+{
+  "id": "xss-stored-persistent",
+  "title": "Stored XSS Attack",
+  "category": "Web Security",
+  "difficulty": "Medium",
+  "points": 200,
+  "description": "A comment system stores user input without sanitization. Inject a script that executes when other users view the page.",
+  "hints": [
+    "Look for comment input fields",
+    "Try using <script>alert(1)</script>",
+    "Modern browsers may block basic XSS, try event handlers"
+  ],
+  "resources": [
+    {
+      "type": "LINK",
+      "title": "OWASP XSS Prevention Guide",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    }
+  ],
+  "flagHash": "$2a$10$VwPT0XT1iwOOC1iLNznTg.EoaUrkHpcDSbJKRROmp/uenRZHXcAIy",
+  "createdAt": "2024-01-16T10:00:00Z"
+}

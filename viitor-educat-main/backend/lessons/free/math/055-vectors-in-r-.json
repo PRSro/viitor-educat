@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h450d001bh4pgdrhwwl68",
+  "courseId": "cmm6h450d0019h4pg5x5qjjci",
+  "courseTitle": "Linear Algebra Fundamentals",
+  "title": "Vectors in Rⁿ",
+  "description": "Vector operations",
+  "content": "# Vectors in Rⁿ\n\nVectors are ordered lists of numbers. We can add them component-wise and scale them by scalars.\n\n## Resources\n\n- [Resource 1](https://ocw.mit.edu/courses/18-06sc-linear-algebra-fall-2011/)",
+  "order": 0,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "MATH",
+  "links": [
+    "https://ocw.mit.edu/courses/18-06sc-linear-algebra-fall-2011/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.150Z"
+}

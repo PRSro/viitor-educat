@@ -1,0 +1,28 @@
+{
+  "id": "crypto-caesar-decrypt",
+  "title": "Caesar Cipher Cracker",
+  "category": "Cryptography",
+  "difficulty": "Easy",
+  "points": 50,
+  "description": "A secret message has been encrypted with a Caesar cipher. Decrypt it to reveal the hidden flag! The flag format is CTF{...}",
+  "hints": [
+    "Caesar cipher shifts each letter by a fixed number",
+    "Try all 25 possible shifts",
+    "The message was encrypted with a shift of 3"
+  ],
+  "resources": [
+    {
+      "type": "LINK",
+      "title": "Caesar Cipher Explained",
+      "url": "https://en.wikipedia.org/wiki/Caesar_cipher"
+    },
+    {
+      "type": "LINK",
+      "title": "Online Caesar Cipher Decoder",
+      "url": "https://www.dcode.fr/caesar-cipher"
+    }
+  ],
+  "encryptedMessage": "FURIH JDFWKHG WKH FOXVWRjudexuh WULDO",
+  "flagHash": "$2a$10$O3eBqWX/b/DXswIKPGBRsOyCkVFzXfle0bgfKU1C/aRelBVBEfl/i",
+  "createdAt": "2024-01-18T10:00:00Z"
+}

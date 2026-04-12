@@ -1,0 +1,22 @@
+{
+  "id": "recon-nmap-basics",
+  "title": "Network Reconnaissance",
+  "category": "Network Security",
+  "difficulty": "Easy",
+  "points": 75,
+  "description": "Use nmap to discover open ports and services on a target system. Find the flag hidden in a service banner.",
+  "hints": [
+    "Use nmap with -sV flag for version detection",
+    "The target is listening on localhost",
+    "Check all ports, not just common ones"
+  ],
+  "resources": [
+    {
+      "type": "LINK",
+      "title": "Nmap Official Guide",
+      "url": "https://nmap.org/book/man.html"
+    }
+  ],
+  "flagHash": "$2a$10$7j.GVvEKFgFZ4cfkdodro.IzAQ6G60.F7AyyfA7DuFUZZ9SZqIQgC",
+  "createdAt": "2024-01-19T10:00:00Z"
+}

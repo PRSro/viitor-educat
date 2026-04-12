@@ -1,0 +1,347 @@
+/**
+ * Search Page
+ * 
+ * Global search with filters for teachers and articles
+ */
+
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { TeacherCard } from '@/components/TeacherCard';
+import { PageBackground } from '@/components/PageBackground';
+import {
+  Search as SearchIcon,
+  BookOpen,
+  Users,
+  Loader2,
+  Filter,
+  X,
+  FileText,
+  ExternalLink
+} from 'lucide-react';
+import {
+  search,
+  getSearchFilters,
+  getSearchSuggestions,
+  SearchResponse,
+  SearchFiltersResponse,
+  SearchResultTeacher,
+  SearchResultArticle,
+  SearchFilters,
+  SearchSuggestionsResponse
+} from '@/modules/core/services/searchService';
+import { useFeatureEnabled } from '@/contexts/SettingsContext';
+
+export default function SearchPage() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const showArticles = useFeatureEnabled('showArticles');
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchType, setSearchType] = useState<string>('all');
+  const [results, setResults] = useState<SearchResponse['results'] | null>(null);
+  const [filters, setFilters] = useState<SearchFiltersResponse['filters'] | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<SearchSuggestionsResponse['suggestions'] | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
+  const [selectedTeacher, setSelectedTeacher] = useState<string>('ALL');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (debouncedQuery.length < 2) {
+      setSuggestions(null);
+      return;
+    }
+
+    async function fetchSuggestions() {
+      setLoadingSuggestions(true);
+      try {
+        const data = await getSearchSuggestions(debouncedQuery);
+        setSuggestions(data.suggestions);
+      } catch (err) {
+        console.warn('Failed to fetch suggestions');
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    }
+
+    const timer = setTimeout(fetchSuggestions, 200);
+    return () => clearTimeout(timer);
+  }, [debouncedQuery]);
+
+  useEffect(() => {
+    if (debouncedQuery || selectedCategory !== 'ALL' || selectedLevel !== 'ALL' || selectedTeacher !== 'ALL') {
+      handleSearch();
+    }
+  }, [debouncedQuery, selectedCategory, selectedLevel, selectedTeacher, searchType]);
+
+  useEffect(() => {
+    async function fetchFilters() {
+      try {
+        const data = await getSearchFilters();
+        setFilters(data.filters);
+      } catch (err) {
+        console.warn('Failed to fetch search filters');
+      }
+    }
+    fetchFilters();
+  }, []);
+
+  const handleSearch = useCallback(async () => {
+    if (!debouncedQuery.trim() && selectedCategory === 'ALL' && selectedLevel === 'ALL' && selectedTeacher === 'ALL') {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const filterParams: SearchFilters = {};
+      if (selectedCategory !== 'ALL') filterParams.category = selectedCategory;
+      if (selectedLevel !== 'ALL') filterParams.level = selectedLevel;
+      if (selectedTeacher !== 'ALL') filterParams.teacherId = selectedTeacher;
+
+      const data = await search(
+        debouncedQuery.trim() || undefined,
+        Object.keys(filterParams).length > 0 ? filterParams : undefined,
+        searchType === 'all' ? undefined : searchType
+      );
+
+      setResults(data.results);
+      setHasSearched(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Search failed');
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedQuery, selectedCategory, selectedLevel, selectedTeacher, searchType]);
+
+  function clearFilters() {
+    setSelectedCategory('ALL');
+    setSelectedLevel('ALL');
+    setSelectedTeacher('ALL');
+    setSearchQuery('');
+  }
+
+  const hasActiveFilters = selectedCategory !== 'ALL' || selectedLevel !== 'ALL' || selectedTeacher !== 'ALL' || searchQuery.trim();
+
+  return (
+    <PageBackground>
+      <header className="backdrop-blur-md bg-card/30 border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
+                <SearchIcon className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Search</h1>
+                <p className="text-sm text-muted-foreground">
+                  Find teachers and articles
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/student')}>
+                Dashboard
+              </Button>
+              <Button variant="outline" size="sm" onClick={logout}>
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search teachers, articles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="aero-input pl-10"
+              />
+            </div>
+            <Button className="aero-button-accent" onClick={handleSearch} disabled={loading}>
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <SearchIcon className="h-4 w-4 mr-2" />
+              )}
+              Search
+            </Button>
+          </div>
+        </div>
+
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filters</span>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-auto">
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Categories</SelectItem>
+                {filters?.categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+              <SelectTrigger>
+                <SelectValue placeholder="Level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Levels</SelectItem>
+                {filters?.levels.map((level) => (
+                  <SelectItem key={level} value={level}>{level}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
+              <SelectTrigger>
+                <SelectValue placeholder="Teacher" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Teachers</SelectItem>
+                {results?.teachers.map((teacher) => (
+                  <SelectItem key={teacher.id} value={teacher.id}>
+                    {teacher?.email?.split('@')[0] ?? 'Teacher'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
+            {error}
+          </div>
+        )}
+
+        {hasSearched ? (
+          <Tabs defaultValue="teachers" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="teachers" className="gap-2">
+                <Users className="h-4 w-4" />
+                Teachers ({results?.teachers.length || 0})
+              </TabsTrigger>
+              {showArticles && (
+                <TabsTrigger value="articles" className="gap-2">
+                  <FileText className="h-4 w-4" />
+                  Articles ({results?.articles.length || 0})
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="teachers">
+              {results?.teachers.length === 0 ? (
+                <Card className="aero-glass p-12 text-center">
+                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No teachers found</h3>
+                  <p className="text-muted-foreground">Try adjusting your search or filters</p>
+                </Card>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {results?.teachers.map((teacher) => (
+                    <div key={teacher.id} className="aero-glass hover-lift">
+                      <TeacherCard teacher={teacher} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {showArticles && (
+              <TabsContent value="articles">
+                {results?.articles.length === 0 ? (
+                  <Card className="p-12 text-center">
+                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No articles found</h3>
+                    <p className="text-muted-foreground">Try adjusting your search or filters</p>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {results?.articles.map((article) => (
+                      <Card key={article.id}>
+                        <CardHeader>
+                          <CardTitle className="text-lg">{article.title}</CardTitle>
+                          {article.excerpt && (
+                            <CardDescription>{article.excerpt}</CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="secondary">{article.category}</Badge>
+                            <Button variant="outline" asChild>
+                              <Link to={`/articles/${article.id}`}>
+                                Read More
+                                <ExternalLink className="h-4 w-4 ml-2" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            )}
+          </Tabs>
+        ) : (
+          <Card className="p-12 text-center">
+            <SearchIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Search for teachers and articles</h3>
+            <p className="text-muted-foreground">
+              Use the search box above to find what you're looking for
+            </p>
+          </Card>
+        )}
+      </main>
+    </PageBackground>
+  );
+}

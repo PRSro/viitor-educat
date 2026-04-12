@@ -1,0 +1,15 @@
+{
+  "id": "web-4",
+  "title": "Insecure Direct Object References",
+  "description": "IDOR and access control flaws.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Web Security"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Insecure Direct Object References\nThis lesson covers the fundamentals of Insecure Direct Object References.\nUnderstand how IDOR and access control flaws. impacts modern security protocols.",
+  "videoId": null,
+  "order": 4,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

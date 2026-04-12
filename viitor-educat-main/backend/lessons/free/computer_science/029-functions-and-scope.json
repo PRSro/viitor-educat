@@ -1,0 +1,16 @@
+{
+  "id": "cmm6gtjwe004j9of2tk6xkpoc",
+  "courseId": "cmm6gtjwe004g9of2z5re91uf",
+  "courseTitle": "JavaScript Essentials",
+  "title": "Functions and Scope",
+  "description": "Function declarations and closures",
+  "content": "# Functions and Scope\n\nFunctions can be declared, expressed, or arrow functions. Scope determines variable accessibility.\n\n## Resources\n\n- [Resource 1](https://javascript.info/function-basics)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "COMPUTER_SCIENCE",
+  "links": [
+    "https://javascript.info/function-basics"
+  ],
+  "createdAt": "2026-02-28T15:17:51.231Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h451l003nh4pgfzot4e73",
+  "courseId": "cmm6h451l003kh4pgc81vte6l",
+  "courseTitle": "The Cold War",
+  "title": "The Space Race",
+  "description": "Sputnik to Apollo",
+  "content": "# The Space Race\n\nThe US and USSR competed for supremacy in space exploration, culminating in the Apollo 11 moon landing.\n\n## Resources\n\n- [Resource 1](https://www.nasa.gov/history/)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "HISTORY",
+  "links": [
+    "https://www.nasa.gov/history/"
+  ],
+  "createdAt": "2026-02-28T15:26:05.193Z"
+}

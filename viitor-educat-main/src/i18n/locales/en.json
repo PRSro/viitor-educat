@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "lessons": "Lessons",
+    "cyberlab": "CyberLab",
+    "leaderboard": "Leaderboard"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "save": "Save Preferences"
+  },
+  "toast": {
+    "success": "Action completed successfully!",
+    "error": "Something went wrong."
+  }
+}

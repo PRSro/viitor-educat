@@ -1,0 +1,143 @@
+/**
+ * Settings Context
+ * Global settings state management
+ */
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  UserSettings,
+  getSettings,
+  updateSettings,
+  resetSettings,
+  UpdateSettingsData,
+  defaultSettings,
+  Theme
+} from '@/modules/core/services/settingsService';
+import i18n from '@/i18n';
+import { useTheme } from 'next-themes';
+
+interface SettingsContextType {
+  settings: UserSettings | null;
+  loading: boolean;
+  error: string | null;
+  theme: Theme;
+  refreshSettings: () => Promise<void>;
+  updateUserSettings: (data: UpdateSettingsData) => Promise<void>;
+  resetUserSettings: () => Promise<void>;
+  isSettingsLoaded: boolean;
+}
+
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+
+interface SettingsProviderProps {
+  children: ReactNode;
+}
+
+export function SettingsProvider({ children }: SettingsProviderProps) {
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSettingsLoaded, setIsSettingsLoaded] = useState(false);
+
+  const { setTheme: setNextTheme } = useTheme();
+
+  // Calculate effective theme (default to dark)
+  const theme = settings?.theme || 'dark';
+
+  useEffect(() => {
+    // Rely exclusively on next-themes
+    setNextTheme(theme);
+  }, [theme, setNextTheme]);
+
+  // Listen for language changes based on settings
+  useEffect(() => {
+    if (settings?.language) {
+      i18n.changeLanguage(settings.language);
+    }
+  }, [settings?.language]);
+
+  const refreshSettings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getSettings();
+      setSettings(data);
+      setIsSettingsLoaded(true);
+    } catch (err) {
+      // If settings don't exist yet, use defaults
+      setSettings(defaultSettings);
+      setIsSettingsLoaded(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUserSettings = async (data: UpdateSettingsData) => {
+    try {
+      setError(null);
+      const updated = await updateSettings(data);
+      setSettings(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update settings');
+      throw err;
+    }
+  };
+
+  const resetUserSettings = async () => {
+    try {
+      setError(null);
+      const reset = await resetSettings();
+      setSettings(reset);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset settings');
+      throw err;
+    }
+  };
+
+  useEffect(() => {
+    refreshSettings();
+  }, []);
+
+  return (
+    <SettingsContext.Provider
+      value={{
+        settings,
+        loading,
+        error,
+        theme,
+        refreshSettings,
+        updateUserSettings,
+        resetUserSettings,
+        isSettingsLoaded,
+      }}
+    >
+      {children}
+    </SettingsContext.Provider>
+  );
+}
+
+export function useSettings() {
+  const context = useContext(SettingsContext);
+  if (context === undefined) {
+    throw new Error('useSettings must be used within a SettingsProvider');
+  }
+  return context;
+}
+
+// Hook to check if a feature should be shown based on settings
+export function useFeatureEnabled(feature: 'showArticles' | 'showFlashcards' | 'showResources') {
+  const { settings } = useSettings();
+  return settings?.[feature] ?? true;
+}
+
+// Hook to get default dashboard view
+export function useDefaultDashboardView() {
+  const { settings } = useSettings();
+  return settings?.defaultDashboardView ?? 'lessons'; // Changed courses to lessons
+}
+
+// Hook to get content priority
+export function useContentPriority() {
+  const { settings } = useSettings();
+  return settings?.contentPriority ?? 'lessons'; // Changed courses to lessons
+}

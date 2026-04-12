@@ -1,0 +1,13 @@
+{
+  "id": "md5-1",
+  "title": "Cracked Hash",
+  "category": "Crypto",
+  "difficulty": "Medium",
+  "points": 100,
+  "description": "Crack this MD5 hash using an online database: `5f4dcc3b5aa765d61d8327deb882cf99`",
+  "hints": [
+    "This string is commonly used as a fast, weak placeholder in test scripts.",
+    "It's the word 'password'."
+  ],
+  "flagHash": "$2a$10$c1MEXPaUA50Hy/mVZGqB/e9PUTYh2pv6R7jqLJDeJVicBnW6I3uY2"
+}

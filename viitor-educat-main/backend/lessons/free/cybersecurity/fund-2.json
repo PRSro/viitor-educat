@@ -1,0 +1,15 @@
+{
+  "id": "fund-2",
+  "title": "Threat Modeling",
+  "description": "Identifying, communicating, and understanding threats.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Fundamentals"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Threat Modeling\nThis lesson covers the fundamentals of Threat Modeling.\nUnderstand how Identifying, communicating, and understanding threats. impacts modern security protocols.",
+  "videoId": null,
+  "order": 2,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

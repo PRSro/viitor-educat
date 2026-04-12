@@ -1,0 +1,15 @@
+{
+  "id": "crypt-2",
+  "title": "Hashing Algorithms",
+  "description": "One-way math and collision resistance.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Cryptography"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Hashing Algorithms\nThis lesson covers the fundamentals of Hashing Algorithms.\nUnderstand how One-way math and collision resistance. impacts modern security protocols.",
+  "videoId": null,
+  "order": 2,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

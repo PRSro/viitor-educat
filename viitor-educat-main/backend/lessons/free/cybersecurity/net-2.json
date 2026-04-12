@@ -1,0 +1,15 @@
+{
+  "id": "net-2",
+  "title": "DNS Security",
+  "description": "How domains map and how they are poisoned.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Networking"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to DNS Security\nThis lesson covers the fundamentals of DNS Security.\nUnderstand how How domains map and how they are poisoned. impacts modern security protocols.",
+  "videoId": null,
+  "order": 2,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

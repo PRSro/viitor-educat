@@ -1,0 +1,18 @@
+{
+  "nav": {
+    "dashboard": "Acasă",
+    "lessons": "Lecții",
+    "cyberlab": "Laboratorul Cyber",
+    "leaderboard": "Clasament"
+  },
+  "settings": {
+    "title": "Setări",
+    "language": "Limbă",
+    "theme": "Temă",
+    "save": "Salvează Preferințele"
+  },
+  "toast": {
+    "success": "Acțiunea s-a finalizat cu succes!",
+    "error": "Ceva a mers greșit."
+  }
+}

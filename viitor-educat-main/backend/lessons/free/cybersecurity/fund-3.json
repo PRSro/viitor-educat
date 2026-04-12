@@ -1,0 +1,15 @@
+{
+  "id": "fund-3",
+  "title": "Attack Surfaces",
+  "description": "Mapping physical and digital vulnerabilities.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Fundamentals"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to Attack Surfaces\nThis lesson covers the fundamentals of Attack Surfaces.\nUnderstand how Mapping physical and digital vulnerabilities. impacts modern security protocols.",
+  "videoId": null,
+  "order": 3,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cmm6h4517002wh4pglz2l5vag",
+  "courseId": "cmm6h4517002th4pgxxqnhrop",
+  "courseTitle": "Creative Writing Workshop",
+  "title": "Plot Structure",
+  "description": "Beginning, middle, end",
+  "content": "# Plot Structure\n\nMost stories follow a structure: exposition, rising action, climax, falling action, and resolution.\n\n## Resources\n\n- [Resource 1](https://owl.purdue.edu/owl/general_writing/the_writing_process/index.html)",
+  "order": 1,
+  "status": "PUBLIC",
+  "tier": "free",
+  "category": "LITERATURE",
+  "links": [
+    "https://owl.purdue.edu/owl/general_writing/the_writing_process/index.html"
+  ],
+  "createdAt": "2026-02-28T15:26:05.179Z"
+}

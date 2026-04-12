@@ -1,0 +1,15 @@
+{
+  "id": "web-6",
+  "title": "XXE Injection",
+  "description": "XML External Entity exploits.",
+  "category": "Cybersecurity",
+  "topics": [
+    "Web Security"
+  ],
+  "difficulty": "Beginner",
+  "estimatedDuration": 15,
+  "content": "### Welcome to XXE Injection\nThis lesson covers the fundamentals of XXE Injection.\nUnderstand how XML External Entity exploits. impacts modern security protocols.",
+  "videoId": null,
+  "order": 6,
+  "createdAt": "2026-04-12T13:43:59.394Z"
+}

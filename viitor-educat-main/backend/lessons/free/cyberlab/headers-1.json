@@ -1,0 +1,12 @@
+{
+  "id": "headers-1",
+  "title": "Under the Hood",
+  "category": "Web",
+  "difficulty": "Easy",
+  "points": 100,
+  "description": "When viewing HTTP requests in dev tools, which header indicates the browser type and OS of the client?",
+  "hints": [
+    "Look for the 'User-Agent' string."
+  ],
+  "flagHash": "$2a$10$l/CbQVcpD0zKb8VNyaXeO.lFYshpGoJ8R4opXI7but3utZnulsFRK"
+}
