@@ -50,8 +50,10 @@ export default function TeacherDirectoryPage() {
     try {
       const response = await fetch(`/portal/teachers`);
       const data: InstructorsResponse = await response.json();
-      console.log('Fetched instructors:', data.instructors.length, 'source:', data.source);
-      console.log('Sample instructor:', data.instructors[0]);
+      if (import.meta.env.DEV) {
+        console.log('Fetched instructors:', data.instructors.length, 'source:', data.source);
+        console.log('Sample instructor:', data.instructors[0]);
+      }
       setInstructors(data.instructors);
       setSource(data.source);
     } catch (error) {

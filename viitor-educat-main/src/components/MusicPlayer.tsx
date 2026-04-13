@@ -35,16 +35,22 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   const { isOpen, openPlayer, closePlayer } = useMusicPlayer();
   const { theme } = useSettings();
   const [tracks, setTracks] = useState<Track[]>([
-    { id: '1', frequencyHz: 432, name: 'Frutiger Aero — 432Hz', benefit: 'Natural tuning, aquatic serenity.', duration: 3600000, order: 0, url: 'Nn1FwzqrmSo' },
-    { id: '2', frequencyHz: 174, name: 'Foundation — 174Hz', benefit: 'Removes pain and strengthens security.', duration: 3600000, order: 1, url: 'hROqlWgLylg' },
-    { id: '3', frequencyHz: 285, name: 'Healing — 285Hz', benefit: 'Heals tissues and organs.', duration: 3600000, order: 2, url: 'hROqlWgLylg' },
-    { id: '4', frequencyHz: 396, name: 'Liberation — 396Hz', benefit: 'Liberates guilt and fear.', duration: 3600000, order: 3, url: 'Nn1FwzqrmSo' },
-    { id: '5', frequencyHz: 417, name: 'Transformation — 417Hz', benefit: 'Facilitates change.', duration: 3600000, order: 4, url: 'Nn1FwzqrmSo' },
-    { id: '6', frequencyHz: 528, name: 'Miracle — 528Hz', benefit: 'DNA repair, the love frequency.', duration: 3600000, order: 5, url: 'zSZB92LPyOg' },
-    { id: '7', frequencyHz: 639, name: 'Harmony — 639Hz', benefit: 'Harmonises relationships.', duration: 3600000, order: 6, url: 'Nn1FwzqrmSo' },
-    { id: '8', frequencyHz: 741, name: 'Awakening — 741Hz', benefit: 'Awakens intuition.', duration: 3600000, order: 7, url: 'Nn1FwzqrmSo' },
-    { id: '9', frequencyHz: 852, name: 'Spiritual Order — 852Hz', benefit: 'Restores spiritual order.', duration: 3600000, order: 8, url: 'Nn1FwzqrmSo' },
-    { id: '10', frequencyHz: 963, name: 'Divine Consciousness — 963Hz', benefit: 'Highest spiritual frequency.', duration: 3600000, order: 9, url: 'O3AuByXd9Yo' },
+    { 
+      id: '1', frequencyHz: 432, 
+      name: 'Frutiger Aero — 432Hz', 
+      benefit: 'Natural tuning, aquatic serenity.', 
+      duration: 3600000, order: 0, 
+      audioUrl: '/assets/music/safe-haven.mp3'
+    },
+    { id: '2', frequencyHz: 174, name: 'Foundation — 174Hz', benefit: 'Removes pain and strengthens security.', duration: 3600000, order: 1, url: 'FkJfGEkVUhE' },
+    { id: '3', frequencyHz: 285, name: 'Healing — 285Hz', benefit: 'Heals tissues and organs.', duration: 3600000, order: 2, url: 'q1eBkrxSJeQ' },
+    { id: '4', frequencyHz: 396, name: 'Liberation — 396Hz', benefit: 'Liberates guilt and fear.', duration: 3600000, order: 3, url: 'pEGT80dDR60' },
+    { id: '5', frequencyHz: 417, name: 'Transformation — 417Hz', benefit: 'Facilitates change.', duration: 3600000, order: 4, url: 'dBNMnWJBIF8' },
+    { id: '6', frequencyHz: 528, name: 'Miracle — 528Hz', benefit: 'DNA repair, the love frequency.', duration: 3600000, order: 5, url: 'FEnxTz-KWNY' },
+    { id: '7', frequencyHz: 639, name: 'Harmony — 639Hz', benefit: 'Harmonises relationships.', duration: 3600000, order: 6, url: 'A4Tcoa_BHZY' },
+    { id: '8', frequencyHz: 741, name: 'Awakening — 741Hz', benefit: 'Awakens intuition.', duration: 3600000, order: 7, url: 'Tc5c-BWKGPQ' },
+    { id: '9', frequencyHz: 852, name: 'Spiritual Order — 852Hz', benefit: 'Restores spiritual order.', duration: 3600000, order: 8, url: '7NCsRfpbBEI' },
+    { id: '10', frequencyHz: 963, name: 'Divine Consciousness — 963Hz', benefit: 'Highest spiritual frequency.', duration: 3600000, order: 9, url: 'L8IkuQIGiUY' },
   ]);
   // FIX BUG 1: start as false to avoid race conditions overriding the loaded list
   const [isLoading, setIsLoading] = useState(false);
@@ -95,9 +101,9 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
     const fetchTracks = async (attempt = 0) => {
       setIsLoading(true);
       try {
-        console.log(`[MusicPlayer] Fetching tracks (attempt ${attempt + 1})`);
+        if (import.meta.env.DEV) console.log(`[MusicPlayer] Fetching tracks (attempt ${attempt + 1})`);
         const response = await api.get<TracksResponse>('/api/music/tracks');
-        console.log('[MusicPlayer] Tracks response:', response);
+        if (import.meta.env.DEV) console.log('[MusicPlayer] Tracks response:', response);
         setTracks(response.tracks);
         tracksFromBackend.current = true;
         setIsOfflineFallback(false);
@@ -206,7 +212,7 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   }, []);
 
   const handlePlay = (track: Track) => {
-    console.log('[MusicPlayer] handlePlay called for track:', track.name, 'URL:', track.url);
+    if (import.meta.env.DEV) console.log('[MusicPlayer] handlePlay called for track:', track.name, 'URL:', track.url);
     // FIX BUG 3: sync preference Volume ref on manual play
     preferenceVolumeRef.current = volume;
     play(track, volume);
@@ -334,6 +340,9 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm truncate">{track.name}</p>
+                      {track.audioUrl && (
+                        <span className="text-[9px] text-primary/50 ml-1">local</span>
+                      )}
                       {track.name === 'Frutiger Aero' && theme === 'light' && (
                         <Badge variant="outline" className="h-4 px-1 text-[10px] bg-accent/20 border-accent/30 text-accent gap-1 animate-pulse">
                           <Sparkles className="h-2 w-2" /> Theme Track

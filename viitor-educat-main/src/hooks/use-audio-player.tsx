@@ -10,6 +10,7 @@ export interface Track {
   duration: number;
   order: number;
   url?: string; // YouTube video ID
+  audioUrl?: string; // Direct audio URL: MP3, OGG, or stream URL
 }
 
 export interface UseAudioPlayerReturn {
@@ -54,16 +55,22 @@ function loadYTApi(callback: () => void) {
   };
 }
 
+let handleTimeUpdate: (() => void) | null = null;
+let handleMeta: (() => void) | null = null;
+let handleAudioEnded: (() => void) | null = null;
+
 export function useAudioPlayer(): UseAudioPlayerReturn {
   const playerRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  // FIX BUG 3: initialize to Date.now() so remount doesn't immediately fire stop()
   const startTimeRef = useRef<number>(Date.now());
   const pendingTrackRef = useRef<{ track: Track; volume: number } | null>(null);
-  // FIX BUG 1: cancel ref for pending YT player creation
   const pendingCancelRef = useRef<{ cancelled: boolean } | null>(null);
   const isMountedRef = useRef<boolean>(true);
+  const handleMetaRef = useRef<(() => void) | null>(null);
+  const handleTimeUpdateRef = useRef<(() => void) | null>(null);
+  const handleAudioEndedRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -97,6 +104,17 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
       pendingCancelRef.current = null;
     }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    // Stop native audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      if (handleTimeUpdateRef.current) audioRef.current.removeEventListener('timeupdate', handleTimeUpdateRef.current);
+      if (handleMetaRef.current) audioRef.current.removeEventListener('loadedmetadata', handleMetaRef.current);
+      if (handleAudioEndedRef.current) audioRef.current.removeEventListener('ended', handleAudioEndedRef.current);
+      audioRef.current = null;
+    }
+    handleMetaRef.current = null;
+    handleTimeUpdateRef.current = null;
+    handleAudioEndedRef.current = null;
     try { playerRef.current?.stopVideo(); } catch {}
     try { playerRef.current?.destroy(); } catch {}
     playerRef.current = null;
@@ -112,6 +130,9 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     // FIX BUG 2: only set volume on the player when it's actually playing
     if (isPlaying) {
       try { playerRef.current?.setVolume(clamped * 100); } catch {}
+      if (audioRef.current) {
+        audioRef.current.volume = clamped;
+      }
     }
   }, [isPlaying]);
 
@@ -190,9 +211,57 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     });
   }, [startTimer, stop]);
 
+  const playAudio = useCallback((track: Track, vol: number) => {
+    stop();
+    const audio = new Audio(track.audioUrl);
+    audio.volume = vol;
+    audio.loop = true;
+    audioRef.current = audio;
+
+    const onMeta = () => {
+      setDuration(audio.duration * 1000);
+    };
+    const onTimeUpdate = () => {
+      setElapsedTime(audio.currentTime * 1000);
+      startTimeRef.current = Date.now() - audio.currentTime * 1000;
+    };
+    const onEnded = () => {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    };
+
+    handleMetaRef.current = onMeta;
+    handleTimeUpdateRef.current = onTimeUpdate;
+    handleAudioEndedRef.current = onEnded;
+
+    audio.addEventListener('loadedmetadata', handleMetaRef.current);
+    audio.addEventListener('timeupdate', handleTimeUpdateRef.current);
+    audio.addEventListener('ended', handleAudioEndedRef.current);
+
+    audio.play()
+      .then(() => {
+        setIsPlaying(true);
+        setCurrentTrack(track);
+        setCurrentFrequency(track.frequencyHz);
+        setVolumeState(vol);
+        startTimer();
+      })
+      .catch((err) => {
+        console.warn('[AudioPlayer] Native audio play failed:', err);
+        stop();
+      });
+  }, [stop, startTimer]);
+
   const play = useCallback((track: Track, initialVolume: number = 0.25) => {
     stop();
-    if (!track.url) { console.warn('No YouTube ID for track', track.name); return; }
+    if (track.audioUrl) {
+      playAudio(track, initialVolume);
+      return;
+    }
+    if (!track.url) {
+      console.warn('No URL for track', track.name);
+      return;
+    }
     // FIX BUG 1: Explicitly cancel stale player
     if (pendingCancelRef.current) {
       pendingCancelRef.current.cancelled = true;
@@ -204,9 +273,15 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
       if (!isMountedRef.current || cancelRef.cancelled) return;
       createPlayerAndPlay(track, initialVolume, cancelRef);
     });
-  }, [stop, createPlayerAndPlay]);
+  }, [stop, createPlayerAndPlay, playAudio]);
 
   const seekTo = useCallback((ms: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = ms / 1000;
+      setElapsedTime(ms);
+      startTimeRef.current = Date.now() - ms;
+      return;
+    }
     try {
       playerRef.current?.seekTo(ms / 1000, true);
       setElapsedTime(ms);

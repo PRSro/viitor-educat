@@ -108,9 +108,10 @@ const AUTH_RATE_LIMIT_MAX = 10; // stricter limit for auth endpoints
 // In-memory fallback (development only)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
-async function checkRateLimit(
+export async function checkRateLimit(
   key: string,
-  maxRequests: number
+  maxRequests: number,
+  windowDuration: number = RATE_LIMIT_WINDOW
 ): Promise<{ allowed: boolean; count: number; resetTime: number }> {
   const now = Date.now();
 
@@ -119,8 +120,8 @@ async function checkRateLimit(
     if (current) {
       const { count, resetTime } = JSON.parse(current);
       if (now > resetTime) {
-        await redis.set(key, JSON.stringify({ count: 1, resetTime: now + RATE_LIMIT_WINDOW }), 'EX', 60);
-        return { allowed: true, count: 1, resetTime: now + RATE_LIMIT_WINDOW };
+        await redis.set(key, JSON.stringify({ count: 1, resetTime: now + windowDuration }), 'EX', 60);
+        return { allowed: true, count: 1, resetTime: now + windowDuration };
       }
       if (count > maxRequests) {
         return { allowed: false, count, resetTime };
@@ -135,7 +136,7 @@ async function checkRateLimit(
   // In-memory fallback (development only)
   let entry = rateLimitMap.get(key);
   if (!entry || now > entry.resetTime) {
-    entry = { count: 1, resetTime: now + RATE_LIMIT_WINDOW };
+    entry = { count: 1, resetTime: now + windowDuration };
     rateLimitMap.set(key, entry);
   } else {
     entry.count++;
@@ -144,27 +145,29 @@ async function checkRateLimit(
 }
 
 export async function rateLimitPlugin(server: FastifyInstance) {
+  server.log.info('[RateLimit] Initializing rate limiter');
+
   // Initialize Redis if REDIS_URL is set (optional — falls back to in-memory)
   if (REDIS_URL) {
     try {
       redis = new Redis(REDIS_URL);
       redis.on('connect', () => {
         useRedis = true;
-        console.log('[RateLimit] Redis connected');
+        server.log.info('[RateLimit] Redis connected');
       });
       redis.on('error', (err) => {
         useRedis = false;
-        console.warn('[RateLimit] Redis error, falling back to in-memory:', err.message);
+        server.log.warn({ err }, '[RateLimit] Redis error, falling back to in-memory');
       });
       await redis.ping(); // test connection immediately
       useRedis = true;
-      console.log('[RateLimit] Using Redis for distributed rate limiting');
+      server.log.info('[RateLimit] Using Redis for distributed rate limiting');
     } catch (err) {
       useRedis = false;
-      console.warn('[RateLimit] Redis unavailable, using in-memory rate limiting:', (err as Error).message);
+      server.log.warn({ err }, '[RateLimit] Redis unavailable, using in-memory rate limiting');
     }
   } else {
-    console.log('[RateLimit] No REDIS_URL — using in-memory rate limiting');
+    server.log.info('[RateLimit] No REDIS_URL — using in-memory rate limiting');
   }
 
   server.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {

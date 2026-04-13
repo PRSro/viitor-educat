@@ -224,7 +224,7 @@ const start = async () => {
       port: Number(process.env.PORT) || 3001,
       host: '0.0.0.0'
     });
-    console.log(`Server running on http://localhost:${PORT}`);
+    server.log.info(`Server running on http://localhost:${PORT}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

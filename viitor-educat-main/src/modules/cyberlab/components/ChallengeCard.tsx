@@ -89,7 +89,7 @@ export function ChallengeCard({ challenge, solved, onSolve }: ChallengeCardProps
       if (!input) return 'Usage: submit <flag>';
       onSolve(input).then(correct => {
         if (!correct) {
-          console.log("Wrong flag");
+          if (import.meta.env.DEV) console.log("Wrong flag");
         }
       });
       return 'Checking flag...';

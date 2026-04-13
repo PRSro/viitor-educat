@@ -383,8 +383,9 @@ model Track {
   name            String
   frequencyHz     Int                   @unique
   benefit         String
-  duration        Int                   @default(3600)
+  duration        Int                   @default(3600000)
   url             String?
+  audioUrl        String?
   order           Int                   @default(0)
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt

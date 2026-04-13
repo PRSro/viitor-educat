@@ -5,6 +5,7 @@ import { registerSchema, loginSchema, formatZodError } from '../../schemas/valid
 import { prisma } from '../../models/prisma.js';
 import { z } from 'zod';
 import { authMiddleware, JwtPayload } from '../../core/middleware/authMiddleware.js';
+import { checkRateLimit } from '../../core/middleware/securityMiddleware.js';
 
 export async function authRoutes(server: FastifyInstance) {
   /**
@@ -27,6 +28,17 @@ export async function authRoutes(server: FastifyInstance) {
    */
   server.post('/register', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+      const ip = request.ip ?? 'unknown';
+      const emailForKey = ((request.body as Record<string, unknown>)?.email as string) ?? 'unknown';
+      const key = `register:${ip}:${emailForKey}`;
+      const { allowed } = await checkRateLimit(key, 3, 15 * 60 * 1000);
+      if (!allowed) {
+        return reply.status(429).send({
+          error: 'Too many registration attempts',
+          message: 'Please wait 15 minutes before trying again.'
+        });
+      }
+
       // Validate input with Zod
       const validated = registerSchema.parse(request.body);
       const { email, password, role } = validated;
@@ -81,6 +93,17 @@ export async function authRoutes(server: FastifyInstance) {
    */
   server.post('/login', async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+      const ip = request.ip ?? 'unknown';
+      const emailForKey = ((request.body as Record<string, unknown>)?.email as string) ?? 'unknown';
+      const key = `login:${ip}:${emailForKey}`;
+      const { allowed } = await checkRateLimit(key, 5, 15 * 60 * 1000);
+      if (!allowed) {
+        return reply.status(429).send({
+          error: 'Too many login attempts',
+          message: 'Please wait 15 minutes before trying again.'
+        });
+      }
+
       // Validate input with Zod
       const validated = loginSchema.parse(request.body);
       const { email, password } = validated;

@@ -47,11 +47,13 @@ export const REDIS_URL = getOptionalEnv('REDIS_URL', '');
 
 // Log configuration on startup (without sensitive values)
 export function logConfig(): void {
-  console.log('[Config] Environment:', isDevelopment ? 'development' : 'production');
-  console.log('[Config] Port:', PORT);
-  const originsStr = Array.isArray(ALLOWED_ORIGINS)
-    ? ALLOWED_ORIGINS.join(', ')
-    : (ALLOWED_ORIGINS === true ? '*' : 'none');
-  console.log('[Config] CORS origins:', originsStr);
-  console.log('[Config] JWT_SECRET:', JWT_SECRET ? '***configured***' : 'MISSING');
+  if (isDevelopment) {
+    console.log('[Config] Environment:', isDevelopment ? 'development' : 'production');
+    console.log('[Config] Port:', PORT);
+    const originsStr = Array.isArray(ALLOWED_ORIGINS)
+      ? ALLOWED_ORIGINS.join(', ')
+      : (ALLOWED_ORIGINS === true ? '*' : 'none');
+    console.log('[Config] CORS origins:', originsStr);
+    console.log('[Config] JWT_SECRET:', JWT_SECRET ? '***configured***' : 'MISSING');
+  }
 }
