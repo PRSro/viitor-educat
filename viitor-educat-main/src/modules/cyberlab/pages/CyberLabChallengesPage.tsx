@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChallengeCard, Challenge } from '../components/ChallengeCard';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { ShieldAlert, Terminal, Award, Target } from 'lucide-react';
 import { api } from '@/lib/apiClient';
 import { toast } from 'sonner';
@@ -9,17 +10,27 @@ export function CyberLabChallengesPage() {
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [solvedIds, setSolvedIds] = useState<Set<string>>(new Set());
   const [points, setPoints] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadChallenges = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
         const res = await api.get<{ challenges: Challenge[], solvedIds: string[], userPoints: number }>('/api/cyberlab/challenges');
-        setChallenges(res.challenges);
-        setSolvedIds(new Set(res.solvedIds));
-        setPoints(res.userPoints);
+        if (!res) {
+          throw new Error('No response from server');
+        }
+        setChallenges(res.challenges || []);
+        setSolvedIds(new Set(res.solvedIds || []));
+        setPoints(res.userPoints || 0);
       } catch (err) {
         console.error("Failed to load CyberLab challenges", err);
+        setError(err instanceof Error ? err.message : 'Failed to load challenges. Please try again.');
         toast.error("Failed to load challenges");
+      } finally {
+        setIsLoading(false);
       }
     };
     loadChallenges();
@@ -69,10 +80,35 @@ export function CyberLabChallengesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          
-          {/* Main Content: Challenges Grid */}
-          <div className="lg:col-span-3 space-y-12">
+        {isLoading && (
+          <div className="text-center py-24">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 rounded-full border-4 border-green-500/30 border-t-green-500 animate-spin"></div>
+              <p className="text-green-400/70 font-mono">Initializing CyberLab protocols...</p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-center py-24">
+            <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
+              <ShieldAlert className="w-12 h-12 text-red-500/70" />
+              <p className="text-red-400 font-mono">{error}</p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+              >
+                Retry Connection
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && !error && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Main Content: Challenges Grid */}
+            <div className="lg:col-span-3 space-y-12">
             {categories.map(category => {
               const catChalls = challenges.filter(c => c.category === category);
               return (
@@ -105,6 +141,7 @@ export function CyberLabChallengesPage() {
           </div>
 
           {/* Sidebar: Dashboard / User Stats */}
+          {challenges.length > 0 && (
           <div className="lg:col-span-1 space-y-6">
             <Card data-card="true" className="p-6 sticky top-24 border-green-500/20 bg-black/60 backdrop-blur-sm">
               <h3 className="font-semibold text-lg mb-6 flex items-center gap-2 text-green-400">
@@ -144,8 +181,9 @@ export function CyberLabChallengesPage() {
               </div>
             </Card>
           </div>
-          
+          )}
         </div>
+        )}
       </div>
     </div>
   );

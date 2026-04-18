@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Volume2, VolumeX, Music, X, Play, Pause, Clock, Sparkles, Repeat, Shuffle, Gauge } from 'lucide-react';
+import { Volume2, VolumeX, Music, X, Play, Pause, Clock, Repeat, Shuffle, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
@@ -35,13 +35,6 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
   const { isOpen, openPlayer, closePlayer } = useMusicPlayer();
   const { theme } = useSettings();
   const [tracks, setTracks] = useState<Track[]>([
-    {
-      id: '1', frequencyHz: 432,
-      name: 'Frutiger Aero — 432Hz',
-      benefit: 'Natural tuning, aquatic serenity.',
-      duration: 3600000, order: 0,
-      audioUrl: '/assets/music/safe-haven.mp3'
-    },
     { id: '2', frequencyHz: 174, name: 'Foundation — 174Hz', benefit: 'Removes pain and strengthens security.', duration: 3600000, order: 1, url: 'MTwSC3jMOIQ' },
     { id: '3', frequencyHz: 285, name: 'Healing — 285Hz', benefit: 'Heals tissues and organs.', duration: 3600000, order: 2, url: 'CbiHT9-ca70' },
     { id: '4', frequencyHz: 396, name: 'Liberation — 396Hz', benefit: 'Liberates guilt and fear.', duration: 3600000, order: 3, url: 'e_hdIsuG4YQ' },
@@ -430,11 +423,6 @@ export function MusicPlayer({ className }: MusicPlayerProps) {
                       <p className="font-medium text-sm truncate">{track.name}</p>
                       {'audioUrl' in track && (
                         <span className="text-[9px] text-primary/50 ml-1">local</span>
-                      )}
-                      {track.name.includes('Frutiger Aero') && theme === 'light' && (
-                        <Badge variant="outline" className="h-4 px-1 text-[10px] bg-accent/20 border-accent/30 text-accent gap-1 animate-pulse">
-                          <Sparkles className="h-2 w-2" /> Theme Track
-                        </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">{track.benefit}</p>

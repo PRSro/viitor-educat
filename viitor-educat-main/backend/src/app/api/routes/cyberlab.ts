@@ -8,6 +8,8 @@ export const cyberlabRoutes = async (server: FastifyInstance) => {
     try {
       const user = (request as any).user as { id: string };
       const userId = user.id;
+      
+      server.log.info(`[CyberLab] Loading challenges for user: ${userId}`);
 
       const challenges = await prisma.cyberChallenge.findMany({
         orderBy: { createdAt: 'asc' },
@@ -35,14 +37,16 @@ export const cyberlabRoutes = async (server: FastifyInstance) => {
 
       const userPoints = await prisma.userPoints.findUnique({ where: { userId } });
 
-      return { 
+      return reply.send({ 
         challenges, 
         solvedIds, 
-        userPoints: userPoints?.total || 0 
-      };
+        userPoints: userPoints?.total ?? 0 
+      });
     } catch (error) {
       server.log.error(error);
-      return reply.status(500).send({ error: 'Failed to load challenges' });
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      server.log.error(`[CyberLab] Failed to load challenges: ${errMsg}`);
+      return reply.status(500).send({ error: 'Failed to load challenges', details: errMsg });
     }
   });
 
@@ -58,6 +62,11 @@ export const cyberlabRoutes = async (server: FastifyInstance) => {
       const user = (request as any).user as { id: string };
       const userId = user.id;
 
+      const userExists = await prisma.user.findUnique({ where: { id: userId } });
+      if (!userExists) {
+        return reply.status(401).send({ error: 'User not found' });
+      }
+
       const challenge = await prisma.cyberChallenge.findUnique({ 
         where: { id } 
       });
@@ -70,9 +79,9 @@ export const cyberlabRoutes = async (server: FastifyInstance) => {
         return reply.status(500).send({ error: 'Challenge configuration error' });
       }
       
-      const correct = await bcrypt.compare(flag, challenge.flagHash);
+      const correct = await bcrypt.compare(flag.trim(), challenge.flagHash);
       if (!correct) {
-        return { correct: false };
+        return reply.send({ correct: false });
       }
 
       const existing = await prisma.pointEvent.findFirst({
@@ -88,18 +97,21 @@ export const cyberlabRoutes = async (server: FastifyInstance) => {
       }
 
       await prisma.$transaction(async (tx) => {
-        await tx.userPoints.upsert({
+        // Ensure UserPoints exists
+        let userPoints = await tx.userPoints.findUnique({ where: { userId } });
+        if (!userPoints) {
+          userPoints = await tx.userPoints.create({
+            data: { userId, total: 0, weekly: 0, monthly: 0 }
+          });
+        }
+        
+        // Update points
+        await tx.userPoints.update({
           where: { userId },
-          update: { 
+          data: { 
             total: { increment: challenge.points }, 
             weekly: { increment: challenge.points }, 
             monthly: { increment: challenge.points }
-          },
-          create: { 
-            userId, 
-            total: challenge.points, 
-            weekly: challenge.points, 
-            monthly: challenge.points 
           }
         });
         

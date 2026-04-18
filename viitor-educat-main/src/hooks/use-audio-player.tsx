@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 const MAX_SESSION_DURATION = 4 * 60 * 60 * 1000;
 const CROSSFADE_DURATION = 1500;
@@ -252,6 +253,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
         },
         onError: (e: any) => {
           console.error('YT player error:', e.data);
+          toast.error(`Failed to load YouTube video for ${track.name}`);
           setDuration(MAX_SESSION_DURATION);
           setIsPlaying(true);
           setCurrentTrack(track);
@@ -263,15 +265,16 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   }, [loopMode, shuffleMode, startTimer, stop]);
 
   const fadeOutAndPlay = useCallback((newTrack: Track, vol: number, tracks: Track[] = []) => {
-    originalVolumeRef.current = volume;
+    const targetVolume = vol;
+    originalVolumeRef.current = targetVolume;
     const fadeSteps = 20;
     const stepDuration = CROSSFADE_DURATION / fadeSteps;
-    const volumeStep = volume / fadeSteps;
+    const volumeStep = targetVolume / fadeSteps;
     let currentStep = 0;
 
     fadeIntervalRef.current = setInterval(() => {
       currentStep++;
-      const newVol = Math.max(0, volume - (volumeStep * currentStep));
+      const newVol = Math.max(0, targetVolume - (volumeStep * currentStep));
       setVolumeState(newVol);
       if (audioRef.current) audioRef.current.volume = newVol;
       try { playerRef.current?.setVolume(newVol * 100); } catch {}
@@ -281,7 +284,12 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
         fadeIntervalRef.current = null;
         
         if (newTrack.audioUrl) {
-          playAudio(newTrack, vol, tracks);
+          try {
+            playAudio(newTrack, vol, tracks);
+          } catch (err) {
+            console.warn('[AudioPlayer] playAudio failed in fadeOutAndPlay:', err);
+            toast.error(`Failed to play "${newTrack.name}". The file may be unavailable.`);
+          }
         } else if (newTrack.url) {
           if (pendingCancelRef.current) pendingCancelRef.current.cancelled = true;
           const cancelRef = { cancelled: false };
@@ -317,6 +325,14 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     audio.volume = vol;
     audio.loop = loopMode === 'track';
     audioRef.current = audio;
+
+    const onError = () => {
+      console.error(`[AudioPlayer] Failed to load audio: ${track.audioUrl}`);
+      toast.error(`Failed to load "${track.name}". The audio file may be unavailable.`);
+      stop();
+    };
+
+    audio.addEventListener('error', onError);
 
     if (!audioContextRef.current) {
       audioContextRef.current = new AudioContext();
@@ -382,6 +398,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
       .catch((err) => {
         console.warn('[AudioPlayer] Native audio play failed:', err);
         stop();
+        toast.error(`Failed to play "${track.name}". The file may be unavailable.`);
       });
   }, [loopMode, shuffleMode, stop, startTimer, fadeOutAndPlay]);
 
@@ -427,6 +444,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
           });
         } else {
           console.warn('No URL for track', track.name);
+          toast.error(`Cannot play "${track.name}" - no audio source available`);
         }
       }
     },
