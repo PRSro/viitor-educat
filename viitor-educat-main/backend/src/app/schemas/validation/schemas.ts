@@ -22,8 +22,8 @@ export const registerSchema = z.object({
     .min(8, { message: 'Password must be at least 8 characters' })
     .max(128, { message: 'Password must be less than 128 characters' }),
   role: z
-    .enum(['STUDENT', 'TEACHER'], {
-      errorMap: () => ({ message: 'Role must be STUDENT or TEACHER' })
+    .enum(['STUDENT', 'TEACHER'] as const, {
+      error: () => ({ message: 'Role must be STUDENT or TEACHER' })
     })
     .optional()
     .default('STUDENT'),
@@ -48,7 +48,7 @@ export const loginSchema = z.object({
 const lessonQuestionSchema = z.object({
   id: z.string().optional(),
   prompt: z.string().min(1, { message: 'Question prompt is required' }),
-  type: z.enum(['SHORT_ANSWER', 'MULTIPLE_CHOICE']).optional().default('SHORT_ANSWER'),
+  type: z.enum(['SHORT_ANSWER', 'MULTIPLE_CHOICE'] as const).optional().default('SHORT_ANSWER'),
   correctAnswer: z.string().optional().nullable(),
   hint: z.string().optional().nullable(),
 });
@@ -115,12 +115,12 @@ export const lessonIdSchema = z.object({
 // Challenge Schemas (for future implementation)
 // ============================================
 
-export const challengeDifficultyEnum = z.enum(['EASY', 'MEDIUM', 'HARD', 'EXPERT'], {
-  errorMap: () => ({ message: 'Difficulty must be EASY, MEDIUM, HARD, or EXPERT' })
+export const challengeDifficultyEnum = z.enum(['EASY', 'MEDIUM', 'HARD', 'EXPERT'] as const, {
+  error: () => ({ message: 'Difficulty must be EASY, MEDIUM, HARD, or EXPERT' })
 });
 
-export const challengeVisibilityEnum = z.enum(['PUBLIC', 'PRIVATE', 'UNLISTED'], {
-  errorMap: () => ({ message: 'Visibility must be PUBLIC, PRIVATE, or UNLISTED' })
+export const challengeVisibilityEnum = z.enum(['PUBLIC', 'PRIVATE', 'UNLISTED'] as const, {
+  error: () => ({ message: 'Visibility must be PUBLIC, PRIVATE, or UNLISTED' })
 });
 
 const dockerConfigSchema = z.object({
@@ -139,7 +139,7 @@ const dockerConfigSchema = z.object({
     .min(1)
     .max(65535)
     .optional(),
-  environment: z.record(z.string()).optional(),
+  environment: z.record(z.string(), z.string()).optional(),
   memoryLimit: z
     .string()
     .regex(/^\d+[kmg]$/i, { message: 'Memory limit must be in format: 512m, 1g, etc.' })
@@ -201,7 +201,7 @@ export const updateChallengeSchema = createChallengeSchema.partial().extend({
 // ============================================
 
 export function formatZodError(error: z.ZodError): string {
-  return error.errors.map(e => e.message).join(', ');
+  return error.issues.map((e: z.ZodIssue) => e.message).join(', ');
 }
 
 // Type exports for use in routes

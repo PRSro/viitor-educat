@@ -1,6 +1,7 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 
 const MAX_SESSION_DURATION = 4 * 60 * 60 * 1000;
+const CROSSFADE_DURATION = 1500;
 
 export interface Track {
   id: string;
@@ -9,8 +10,8 @@ export interface Track {
   benefit: string;
   duration: number;
   order: number;
-  url?: string; // YouTube video ID
-  audioUrl?: string; // Direct audio URL: MP3, OGG, or stream URL
+  url?: string;
+  audioUrl?: string;
 }
 
 export interface UseAudioPlayerReturn {
@@ -19,12 +20,16 @@ export interface UseAudioPlayerReturn {
   currentFrequency: number | null;
   volume: number;
   elapsedTime: number;
-  analyserNode: AnalyserNode | null; // always null with YT — kept for API compat
+  analyserNode: AnalyserNode | null;
   play: (track: Track, volume?: number) => void;
   stop: () => void;
   setVolume: (vol: number) => void;
   duration: number;
   seekTo: (ms: number) => void;
+  loopMode: 'track' | 'list' | 'off';
+  shuffleMode: boolean;
+  setLoopMode: (mode: 'track' | 'list' | 'off') => void;
+  setShuffleMode: (enabled: boolean) => void;
 }
 
 declare global {
@@ -71,6 +76,16 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const handleMetaRef = useRef<(() => void) | null>(null);
   const handleTimeUpdateRef = useRef<(() => void) | null>(null);
   const handleAudioEndedRef = useRef<(() => void) | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const originalVolumeRef = useRef(0.25);
+  const tracksRef = useRef<Track[]>([]);
+  const onTrackEndRef = useRef<(() => void) | null>(null);
+
+  const [loopMode, setLoopModeState] = useState<'track' | 'list' | 'off'>('list');
+  const [shuffleMode, setShuffleModeState] = useState(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -86,7 +101,6 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // Create hidden container for YT iframe once on mount
   useEffect(() => {
     if (containerRef.current) return;
     const div = document.createElement('div');
@@ -97,14 +111,21 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     return () => { div.remove(); };
   }, []);
 
+  const setLoopMode = useCallback((mode: 'track' | 'list' | 'off') => {
+    setLoopModeState(mode);
+  }, []);
+
+  const setShuffleMode = useCallback((enabled: boolean) => {
+    setShuffleModeState(enabled);
+  }, []);
+
   const stop = useCallback(() => {
-    // FIX BUG 1: cancel any pending player creation before it fires onReady
     if (pendingCancelRef.current) {
       pendingCancelRef.current.cancelled = true;
       pendingCancelRef.current = null;
     }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    // Stop native audio
+    if (fadeIntervalRef.current) { clearInterval(fadeIntervalRef.current); fadeIntervalRef.current = null; }
     if (audioRef.current) {
       audioRef.current.pause();
       if (handleTimeUpdateRef.current) audioRef.current.removeEventListener('timeupdate', handleTimeUpdateRef.current);
@@ -127,7 +148,6 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const setVolume = useCallback((vol: number) => {
     const clamped = Math.max(0, Math.min(1, vol));
     setVolumeState(clamped);
-    // FIX BUG 2: only set volume on the player when it's actually playing
     if (isPlaying) {
       try { playerRef.current?.setVolume(clamped * 100); } catch {}
       if (audioRef.current) {
@@ -137,18 +157,19 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   }, [isPlaying]);
 
   const startTimer = useCallback(() => {
-    // FIX BUG 3: always reset startTimeRef here so elapsed begins at 0
     startTimeRef.current = Date.now();
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current;
       setElapsedTime(elapsed);
-      if (elapsed >= MAX_SESSION_DURATION) stop();
+      if (elapsed >= MAX_SESSION_DURATION) {
+        if (onTrackEndRef.current) onTrackEndRef.current();
+      }
     }, 1000);
-  }, [stop]);
+  }, []);
 
-  const createPlayerAndPlay = useCallback((track: Track, vol: number, cancelRef: { cancelled: boolean }) => {
+  const createPlayerAndPlay = useCallback((track: Track, vol: number, cancelRef: { cancelled: boolean }, tracks: Track[] = []) => {
     if (!containerRef.current) return;
-    // Destroy existing player
     try { playerRef.current?.destroy(); } catch {}
     playerRef.current = null;
 
@@ -158,6 +179,36 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     containerRef.current.innerHTML = '';
     containerRef.current.appendChild(playerDiv);
 
+    tracksRef.current = tracks;
+    onTrackEndRef.current = () => {
+      if (loopMode === 'track') {
+        try { playerRef.current?.seekTo(0); } catch {}
+        try { playerRef.current?.playVideo(); } catch {}
+      } else if (loopMode === 'list' && tracks.length > 0) {
+        const currentIndex = tracks.findIndex(t => t.id === track.id);
+        const nextIndex = (currentIndex + 1) % tracks.length;
+        if (nextIndex === 0 && currentIndex === tracks.length - 1) {
+          stop();
+          return;
+        }
+        const nextTrack = shuffleMode 
+          ? tracks[Math.floor(Math.random() * tracks.length)]
+          : tracks[nextIndex];
+        if (pendingCancelRef.current) {
+          pendingCancelRef.current.cancelled = true;
+        }
+        const newCancelRef = { cancelled: false };
+        pendingCancelRef.current = newCancelRef;
+        loadYTApi(() => {
+          if (!newCancelRef.cancelled && isMountedRef.current) {
+            createPlayerAndPlay(nextTrack, vol, newCancelRef, tracks);
+          }
+        });
+      } else {
+        stop();
+      }
+    };
+
     playerRef.current = new window.YT.Player(playerId, {
       videoId: track.url,
       playerVars: {
@@ -165,8 +216,8 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
         controls: 0,
         disablekb: 1,
         fs: 0,
-        loop: 1,
-        playlist: track.url,
+        loop: loopMode === 'track' ? 1 : 0,
+        playlist: loopMode === 'track' ? track.url : undefined,
         modestbranding: 1,
         origin: window.location.origin,
       },
@@ -176,13 +227,11 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
             try { e.target.destroy(); } catch {}
             return;
           }
-          // FIX: Use fallback duration if YT duration is unavailable
           const dur = e.target.getDuration();
           if (dur && dur > 0) {
             setDuration(dur * 1000);
           } else {
-            console.warn('[AudioPlayer] Could not get video duration, using fallback');
-            setDuration(MAX_SESSION_DURATION); // 4 hours fallback
+            setDuration(MAX_SESSION_DURATION);
           }
           e.target.playVideo();
           setIsPlaying(true);
@@ -192,15 +241,17 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
           startTimer();
         },
         onStateChange: (e: any) => {
-          // Handle video ended - restart for looping
           if (e.data === window.YT.PlayerState.ENDED) {
-            try { playerRef.current?.seekTo(0); } catch {}
-            try { playerRef.current?.playVideo(); } catch {}
+            if (loopMode === 'track') {
+              try { playerRef.current?.seekTo(0); } catch {}
+              try { playerRef.current?.playVideo(); } catch {}
+            } else if (onTrackEndRef.current) {
+              onTrackEndRef.current();
+            }
           }
         },
         onError: (e: any) => {
           console.error('YT player error:', e.data);
-          // Fallback: play with estimated duration on error
           setDuration(MAX_SESSION_DURATION);
           setIsPlaying(true);
           setCurrentTrack(track);
@@ -209,14 +260,81 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
         },
       },
     });
-  }, [startTimer, stop]);
+  }, [loopMode, shuffleMode, startTimer, stop]);
 
-  const playAudio = useCallback((track: Track, vol: number) => {
+  const fadeOutAndPlay = useCallback((newTrack: Track, vol: number, tracks: Track[] = []) => {
+    originalVolumeRef.current = volume;
+    const fadeSteps = 20;
+    const stepDuration = CROSSFADE_DURATION / fadeSteps;
+    const volumeStep = volume / fadeSteps;
+    let currentStep = 0;
+
+    fadeIntervalRef.current = setInterval(() => {
+      currentStep++;
+      const newVol = Math.max(0, volume - (volumeStep * currentStep));
+      setVolumeState(newVol);
+      if (audioRef.current) audioRef.current.volume = newVol;
+      try { playerRef.current?.setVolume(newVol * 100); } catch {}
+
+      if (currentStep >= fadeSteps) {
+        if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+        fadeIntervalRef.current = null;
+        
+        if (newTrack.audioUrl) {
+          playAudio(newTrack, vol, tracks);
+        } else if (newTrack.url) {
+          if (pendingCancelRef.current) pendingCancelRef.current.cancelled = true;
+          const cancelRef = { cancelled: false };
+          pendingCancelRef.current = cancelRef;
+          loadYTApi(() => {
+            if (!cancelRef.cancelled && isMountedRef.current) {
+              createPlayerAndPlay(newTrack, vol, cancelRef, tracks);
+            }
+          });
+        }
+        
+        setTimeout(() => {
+          let fadeBackStep = 0;
+          fadeIntervalRef.current = setInterval(() => {
+            fadeBackStep++;
+            const fadeBackVol = (volumeStep * fadeBackStep);
+            setVolumeState(Math.min(originalVolumeRef.current, fadeBackVol));
+            if (audioRef.current) audioRef.current.volume = fadeBackVol;
+            try { playerRef.current?.setVolume(fadeBackVol * 100); } catch {}
+            if (fadeBackStep >= fadeSteps) {
+              if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+              fadeIntervalRef.current = null;
+            }
+          }, stepDuration);
+        }, 100);
+      }
+    }, stepDuration);
+  }, [volume, setVolume, createPlayerAndPlay]);
+
+  const playAudio = useCallback((track: Track, vol: number, tracks: Track[] = []) => {
     stop();
     const audio = new Audio(track.audioUrl);
     audio.volume = vol;
-    audio.loop = true;
+    audio.loop = loopMode === 'track';
     audioRef.current = audio;
+
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current.fftSize = 64;
+    }
+
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+
+    try {
+      sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audio);
+      sourceNodeRef.current.connect(analyserRef.current);
+      analyserRef.current.connect(audioContextRef.current.destination);
+    } catch (e) {
+      console.warn('[AudioPlayer] Could not connect analyser:', e);
+    }
 
     const onMeta = () => {
       setDuration(audio.duration * 1000);
@@ -226,8 +344,23 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
       startTimeRef.current = Date.now() - audio.currentTime * 1000;
     };
     const onEnded = () => {
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
+      if (loopMode === 'list' && tracks.length > 0) {
+        const currentIndex = tracks.findIndex(t => t.id === track.id);
+        const nextIndex = (currentIndex + 1) % tracks.length;
+        if (nextIndex === 0 && currentIndex === tracks.length - 1) {
+          stop();
+          return;
+        }
+        const nextTrack = shuffleMode 
+          ? tracks[Math.floor(Math.random() * tracks.length)]
+          : tracks[nextIndex];
+        fadeOutAndPlay(nextTrack, vol, tracks);
+      } else {
+        audio.currentTime = 0;
+        if (loopMode !== 'track') {
+          audio.play().catch(() => {});
+        }
+      }
     };
 
     handleMetaRef.current = onMeta;
@@ -250,30 +383,7 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
         console.warn('[AudioPlayer] Native audio play failed:', err);
         stop();
       });
-  }, [stop, startTimer]);
-
-  const play = useCallback((track: Track, initialVolume: number = 0.25) => {
-    stop();
-    if (track.audioUrl) {
-      playAudio(track, initialVolume);
-      return;
-    }
-    if (!track.url) {
-      console.warn('No URL for track', track.name);
-      return;
-    }
-    // FIX BUG 1: Explicitly cancel stale player
-    if (pendingCancelRef.current) {
-      pendingCancelRef.current.cancelled = true;
-    }
-    const cancelRef = { cancelled: false };
-    pendingCancelRef.current = cancelRef;
-    loadYTApi(() => {
-      if (cancelRef.cancelled) return;
-      if (!isMountedRef.current || cancelRef.cancelled) return;
-      createPlayerAndPlay(track, initialVolume, cancelRef);
-    });
-  }, [stop, createPlayerAndPlay, playAudio]);
+  }, [loopMode, shuffleMode, stop, startTimer, fadeOutAndPlay]);
 
   const seekTo = useCallback((ms: number) => {
     if (audioRef.current) {
@@ -299,11 +409,34 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     currentFrequency,
     volume,
     elapsedTime,
-    analyserNode: null, // no Web Audio with YT — canvas visualizer will be idle
-    play,
+    analyserNode: analyserRef.current,
+    play: (track: Track, initialVolume: number = 0.25, tracks: Track[] = []) => {
+      if (isPlaying && currentTrack) {
+        fadeOutAndPlay(track, initialVolume, tracks);
+      } else {
+        if (track.audioUrl) {
+          playAudio(track, initialVolume, tracks);
+        } else if (track.url) {
+          if (pendingCancelRef.current) pendingCancelRef.current.cancelled = true;
+          const cancelRef = { cancelled: false };
+          pendingCancelRef.current = cancelRef;
+          loadYTApi(() => {
+            if (!cancelRef.cancelled && isMountedRef.current) {
+              createPlayerAndPlay(track, initialVolume, cancelRef, tracks);
+            }
+          });
+        } else {
+          console.warn('No URL for track', track.name);
+        }
+      }
+    },
     stop,
     setVolume,
     duration,
     seekTo,
+    loopMode,
+    shuffleMode,
+    setLoopMode,
+    setShuffleMode,
   };
 }

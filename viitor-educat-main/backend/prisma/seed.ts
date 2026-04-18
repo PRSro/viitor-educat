@@ -508,16 +508,16 @@ async function main() {
 
     // Create default school
     const school = await prisma.school.upsert({
-        where: { slug: 'tudor-vianu' },
+        where: { slug: 'obscuron-cyber' },
         update: {},
         create: {
-            name: 'Colegiul Național de Informatică Tudor Vianu',
-            slug: 'tudor-vianu',
+            name: 'Obscuron Cyber Educational',
+            slug: 'obscuron-cyber',
             address: 'Str. Arh. Ion Mincu, Nr. 10, Sector 1, București',
             phone: '021-222-66-70',
             email: 'lbi@lbi.ro',
             website: 'https://portal.lbi.ro',
-            description: 'Colegiul Național de Informatică Tudor Vianu - Centru de excelență în educație informatică',
+            description: 'Obscuron Cyber Educational - Centru de excelență în educație informatică',
         },
     });
 

@@ -8,9 +8,12 @@ export const lessonService = {
             order = 0;
         }
 
+        const slug = data.title.toLowerCase().replace(/\s+/g, '-');
+
         return prisma.lesson.create({
             data: {
                 title: data.title,
+                slug,
                 content: data.content,
                 description: data.description,
                 order: order,
